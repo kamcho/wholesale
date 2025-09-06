@@ -1,0 +1,208 @@
+{% extends 'vendor/base.html' %}
+
+{% block title %}Add Product - Vendor Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-plus-circle me-2"></i>Add New Product
+    </h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Product Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Product Name *</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.name.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.price.id_for_label }}" class="form-label">Price *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.price }}
+                            </div>
+                            {% if form.price.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.price.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.moq.id_for_label }}" class="form-label">Minimum Order Quantity (MOQ) *</label>
+                            {{ form.moq }}
+                            {% if form.moq.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.moq.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Minimum quantity required for orders</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <!-- Empty column for layout balance -->
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">Category *</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.category.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.business.id_for_label }}" class="form-label">Business *</label>
+                            {{ form.business }}
+                            {% if form.business.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.business.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.description.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Add Product
+                        </button>
+                        <a href="{% url 'vendor:product_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Choose a clear, descriptive product name
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Set a competitive price for your market
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Set appropriate MOQ for wholesale orders
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Select the most appropriate category
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Write a detailed description
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-check text-success me-2"></i>
+                        You can add images after creating the product
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if not user.businesses.exists %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0 text-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>No Business Found
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">
+                    You need to create a business first before adding products.
+                </p>
+                <a href="{% url 'vendor:add_business' %}" class="btn btn-warning btn-sm">
+                    <i class="fas fa-plus me-1"></i>Create Business
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add form validation
+    $('form').on('submit', function(e) {
+        var isValid = true;
+        
+        // Check required fields
+        $('input[required], select[required], textarea[required]').each(function() {
+            if (!$(this).val()) {
+                $(this).addClass('is-invalid');
+                isValid = false;
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+    
+    // Remove validation classes on input
+    $('input, select, textarea').on('input change', function() {
+        $(this).removeClass('is-invalid');
+    });
+});
+</script>
+{% endblock %}

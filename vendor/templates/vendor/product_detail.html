@@ -1,0 +1,247 @@
+{% extends 'vendor/base.html' %}
+
+{% block title %}{{ product.name }} - Vendor Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-box me-2"></i>{{ product.name }}
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{% url 'vendor:edit_product' product.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-2"></i>Edit Product
+            </a>
+            <a href="{% url 'vendor:add_product_image' product.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-image me-2"></i>Add Image
+            </a>
+        </div>
+        <a href="{% url 'vendor:delete_product' product.id %}" 
+           class="btn btn-outline-danger"
+           onclick="return confirm('Are you sure you want to delete this product?')">
+            <i class="fas fa-trash me-2"></i>Delete
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Product Images -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-images me-2"></i>Product Images
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if images %}
+                    <div class="row">
+                        {% for image in images %}
+                        <div class="col-md-4 mb-3">
+                            <div class="position-relative">
+                                <img src="{{ image.image.url }}" 
+                                     class="img-fluid rounded" 
+                                     alt="{{ image.caption|default:product.name }}"
+                                     style="height: 200px; width: 100%; object-fit: cover;">
+                                {% if image.is_default %}
+                                    <span class="position-absolute top-0 start-0 badge bg-primary m-2">
+                                        Default
+                                    </span>
+                                {% endif %}
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="deleteImage({{ image.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            {% if image.caption %}
+                                <p class="text-muted small mt-2">{{ image.caption }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No images uploaded yet</p>
+                        <a href="{% url 'vendor:add_product_image' product.id %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add First Image
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Product Details -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Product Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="fw-bold">Name:</td>
+                                <td>{{ product.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Price:</td>
+                                <td class="h5 text-primary">${{ product.price }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">MOQ:</td>
+                                <td>
+                                    <span class="badge bg-info">{{ product.moq }} units</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Category:</td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ product.category.name }}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Business:</td>
+                                <td>{{ product.business.name }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Timestamps</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="fw-bold">Created:</td>
+                                <td>{{ product.created_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold">Updated:</td>
+                                <td>{{ product.updated_at|date:"M d, Y H:i" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                {% if product.description %}
+                <hr>
+                <h6>Description</h6>
+                <p class="text-muted">{{ product.description|linebreaks }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Quick Actions -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'vendor:edit_product' product.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Product
+                    </a>
+                    <a href="{% url 'vendor:add_product_image' product.id %}" class="btn btn-outline-primary">
+                        <i class="fas fa-image me-2"></i>Add Image
+                    </a>
+                    <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-2"></i>Back to Products
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Statistics -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Statistics
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-0">{{ images.count }}</h4>
+                            <small class="text-muted">Images</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-0">0</h4>
+                        <small class="text-muted">Views</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Business Information -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-building me-2"></i>Business Info
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6>{{ product.business.name }}</h6>
+                {% if product.business.description %}
+                    <p class="text-muted small">{{ product.business.description|truncatechars:100 }}</p>
+                {% endif %}
+                {% if product.business.address %}
+                    <p class="small mb-1">
+                        <i class="fas fa-map-marker-alt me-1"></i>
+                        {{ product.business.address }}
+                    </p>
+                {% endif %}
+                {% if product.business.phone %}
+                    <p class="small mb-1">
+                        <i class="fas fa-phone me-1"></i>
+                        {{ product.business.phone }}
+                    </p>
+                {% endif %}
+                {% if product.business.email %}
+                    <p class="small mb-0">
+                        <i class="fas fa-envelope me-1"></i>
+                        {{ product.business.email }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteImage(imageId) {
+    if (confirm('Are you sure you want to delete this image?')) {
+        // You would need to implement this endpoint
+        fetch(`/vendor/images/${imageId}/delete/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting image');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting image');
+        });
+    }
+}
+</script>
+{% endblock %}

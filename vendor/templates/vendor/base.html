@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vendor Dashboard{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .sidebar .nav-link {
+            color: #495057;
+            padding: 0.75rem 1rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.25rem;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #e9ecef;
+            color: #0d6efd;
+        }
+        .sidebar .nav-link.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .main-content {
+            padding: 2rem;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+        .table th {
+            border-top: none;
+            font-weight: 600;
+        }
+        .badge {
+            font-size: 0.75em;
+        }
+        .product-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 0.375rem;
+        }
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .stats-card .card-body {
+            padding: 1.5rem;
+        }
+        .stats-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block sidebar">
+                <div class="position-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <h4 class="text-primary">
+                            <i class="fas fa-store"></i> Vendor Panel
+                        </h4>
+                    </div>
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
+                               href="{% url 'vendor:dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'product_list' %}active{% endif %}" 
+                               href="{% url 'vendor:product_list' %}">
+                                <i class="fas fa-box me-2"></i> Products
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'business_list' %}active{% endif %}" 
+                               href="{% url 'vendor:business_list' %}">
+                                <i class="fas fa-building me-2"></i> Businesses
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'vendor:add_product' %}">
+                                <i class="fas fa-plus me-2"></i> Add Product
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'vendor:add_business' %}">
+                                <i class="fas fa-plus me-2"></i> Add Business
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <hr class="my-4">
+                    
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'home:home' %}">
+                                <i class="fas fa-home me-2"></i> Back to Home
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <!-- Messages -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Page content -->
+                {% block content %}
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>

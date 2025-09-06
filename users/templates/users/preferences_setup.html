@@ -1,0 +1,299 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Set Your Preferences - TravelsKe{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Set Your Preferences</h1>
+            <p class="text-gray-600">Help us personalize your travel experience</p>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="flex justify-center mb-8">
+            <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold text-sm">✓</div>
+                <div class="w-16 h-1 bg-green-500 rounded-full"></div>
+                <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold text-sm">✓</div>
+                <div class="w-16 h-1 bg-blue-500 rounded-full"></div>
+                <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold text-sm">3</div>
+            </div>
+        </div>
+
+        <!-- Preferences Form -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="space-y-8">
+                    <!-- Travel Interests -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Travel Interests</h3>
+                        <p class="text-sm text-gray-600 mb-4">Select all that apply to your travel preferences</p>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="adventure" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Adventure</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="culture" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Culture & Heritage</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="relaxation" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Relaxation</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="food" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Food & Dining</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="nature" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Nature & Wildlife</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="shopping" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Shopping</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="beach" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Beach & Water</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="mountain" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Mountain & Hiking</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="interests" value="historical" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Historical Sites</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Budget and Travel Style -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Budget Range</h3>
+                            <select name="budget" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition duration-200">
+                                <option value="">Select your budget range</option>
+                                <option value="budget">Budget-friendly</option>
+                                <option value="moderate">Moderate</option>
+                                <option value="luxury">Luxury</option>
+                                <option value="premium">Premium</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Preferred Travel Style</h3>
+                            <div class="space-y-3">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="travel_style" value="solo" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    <span class="text-sm text-gray-700">Solo Travel</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="travel_style" value="couple" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    <span class="text-sm text-gray-700">Couple Travel</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="travel_style" value="family" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    <span class="text-sm text-gray-700">Family Travel</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="travel_style" value="group" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
+                                    <span class="text-sm text-gray-700">Group Travel</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Travel Frequency and Group Size -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Travel Frequency</h3>
+                            <select name="travel_frequency" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition duration-200">
+                                <option value="">How often do you travel?</option>
+                                <option value="never">Never traveled</option>
+                                <option value="rarely">Rarely (1-2 times per year)</option>
+                                <option value="occasionally">Occasionally (3-5 times per year)</option>
+                                <option value="frequently">Frequently (6-10 times per year)</option>
+                                <option value="very_frequently">Very frequently (10+ times per year)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Preferred Group Size</h3>
+                            <select name="preferred_group_size" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition duration-200">
+                                <option value="">Select your preferred group size</option>
+                                <option value="1">Solo (1 person)</option>
+                                <option value="2">Couple (2 people)</option>
+                                <option value="3-5">Small group (3-5 people)</option>
+                                <option value="6-10">Medium group (6-10 people)</option>
+                                <option value="10+">Large group (10+ people)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Transportation Preferences -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Transportation Preferences</h3>
+                        <p class="text-sm text-gray-600 mb-4">Select your preferred transportation methods</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="flight" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Flight</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="bus" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Bus</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="train" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Train</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="car" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Car Rental</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="motorcycle" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Motorcycle</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="bicycle" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Bicycle</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="walking" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Walking</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="transportation_preferences" value="boat" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Boat</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity Preferences -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Activity Preferences</h3>
+                        <p class="text-sm text-gray-600 mb-4">Select activities you enjoy during travel</p>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="sightseeing" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Sightseeing</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="photography" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Photography</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="hiking" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Hiking</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="swimming" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Swimming</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="fishing" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Fishing</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="bird_watching" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Bird Watching</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="cultural_events" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Cultural Events</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="sports" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Sports</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="spa" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Spa & Wellness</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="activity_preferences" value="nightlife" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Nightlife</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Preferred Destinations -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Preferred Destinations</h3>
+                        <p class="text-sm text-gray-600 mb-4">What types of destinations do you prefer?</p>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="preferred_destinations" value="beach" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Beach Destinations</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="preferred_destinations" value="mountain" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Mountain Destinations</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="preferred_destinations" value="city" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">City Destinations</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="preferred_destinations" value="rural" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Rural Destinations</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="preferred_destinations" value="historical" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Historical Destinations</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="preferred_destinations" value="wildlife" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Wildlife Destinations</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Notification Preferences -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Notification Preferences</h3>
+                        <p class="text-sm text-gray-600 mb-4">How would you like to receive updates?</p>
+                        <div class="space-y-3">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="notifications" value="email" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Email notifications</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="notifications" value="sms" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">SMS notifications</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="checkbox" name="notifications" value="push" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <span class="text-sm text-gray-700">Push notifications</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white py-3 px-4 rounded-lg font-semibold transition duration-200 shadow-lg hover:shadow-xl">
+                        Complete Setup
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Skip Option -->
+        <div class="text-center mt-6">
+            <a href="{% url 'home' %}" class="text-gray-500 hover:text-gray-700">
+                Skip for now
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 
