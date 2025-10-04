@@ -12,7 +12,7 @@ from .models import PersonalProfile
 def login_view(request):
     if request.user.is_authenticated:
         next_url = request.GET.get('next') or request.POST.get('next')
-        return redirect(next_url or 'home')
+        return redirect(next_url or 'home:home')
     
     if request.method == 'POST':
         form = MyAuthenticationForm(request, data=request.POST)
@@ -24,7 +24,7 @@ def login_view(request):
                 login(request, user)
                 messages.success(request, f'Welcome back, {username}!')
                 next_url = request.GET.get('next') or request.POST.get('next')
-                return redirect(next_url or 'home')
+                return redirect(next_url or 'home:home')
             else:
                 messages.error(request, 'Invalid email or password.')
         else:
@@ -37,7 +37,7 @@ def login_view(request):
 
 def signup_view(request):
     if request.user.is_authenticated:
-        return redirect('home')
+        return redirect('home:home')
     
     if request.method == 'POST':
         form = MyUserCreationForm(request.POST)
@@ -59,7 +59,7 @@ def signup_view(request):
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
-    return redirect('home')
+    return redirect('home:home')
 
 @login_required
 def profile_view(request):
@@ -109,7 +109,7 @@ def profile_completion_view(request):
         # Clear any existing messages and show only this one
         messages.get_messages(request)
         messages.success(request, 'Profile completed successfully! Now let\'s set your preferences.')
-        return redirect('home')
+        return redirect('home:home')
     
     return render(request, 'users/profile_completion.html')
 

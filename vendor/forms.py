@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter
+from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue
 
 User = get_user_model()
 
@@ -10,7 +10,7 @@ class ProductForm(forms.ModelForm):
     
     class Meta:
         model = Product
-        fields = ['name', 'description', 'price', 'moq', 'category', 'business']
+        fields = ['name', 'description', 'moq', 'categories', 'business', 'user']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -21,56 +21,134 @@ class ProductForm(forms.ModelForm):
                 'rows': 4,
                 'placeholder': 'Enter product description'
             }),
-            'price': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'step': '0.01',
-                'min': '0',
-                'placeholder': '0.00'
-            }),
             'moq': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'min': '1',
                 'placeholder': '1'
             }),
-            'category': forms.Select(attrs={
-                'class': 'form-control'
-            }),
+            'categories': forms.CheckboxSelectMultiple(),
             'business': forms.Select(attrs={
                 'class': 'form-control'
-            })
+            }),
+            'user': forms.HiddenInput()
         }
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+        self.user = kwargs.pop('user', None)  # Store the user for later use
         super().__init__(*args, **kwargs)
         
         # Filter businesses to only show those owned by the current user
-        if user:
-            self.fields['business'].queryset = Business.objects.filter(owner=user)
+        if self.user:
+            self.fields['business'].queryset = Business.objects.filter(owner=self.user)
+            # Set the user field to the current user (hidden field)
+            self.fields['user'].initial = self.user
         else:
             self.fields['business'].queryset = Business.objects.none()
 
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Set the user field to the logged-in user
+        if self.user:
+            instance.user = self.user
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
 
 class ProductImageForm(forms.ModelForm):
-    """Form for adding product images"""
+    """Form for adding product images and videos"""
+    MEDIA_TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('video', 'Video')
+    ]
+    media_type = forms.ChoiceField(
+        choices=MEDIA_TYPE_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        initial='image'
+    )
     
     class Meta:
         model = ProductImage
-        fields = ['image', 'caption', 'is_default']
+        fields = ['image', 'video', 'caption', 'is_default']
         widgets = {
             'image': forms.FileInput(attrs={
-                'class': 'form-control',
-                'accept': 'image/*'
+                'class': 'form-control image-upload',
+                'accept': 'image/*',
+                'style': 'display: none;'
+            }),
+            'video': forms.FileInput(attrs={
+                'class': 'form-control video-upload',
+                'accept': 'video/*',
+                'style': 'display: none;'
             }),
             'caption': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Image caption (optional)'
+                'placeholder': 'Media caption (optional)'
             }),
             'is_default': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             })
         }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial media type based on which field has a value
+        if self.instance and self.instance.video:
+            self.fields['media_type'].initial = 'video'
 
+
+class ProductVariationImageForm(forms.ModelForm):
+    """Form for adding images/videos attached to a ProductVariation."""
+    MEDIA_TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('video', 'Video')
+    ]
+    media_type = forms.ChoiceField(
+        choices=MEDIA_TYPE_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        initial='image'
+    )
+
+    class Meta:
+        model = ProductImage
+        fields = ['image', 'video', 'caption', 'is_default']
+        widgets = {
+            'image': forms.FileInput(attrs={
+                'class': 'form-control image-upload',
+                'accept': 'image/*',
+                'style': 'display: none;'
+            }),
+            'video': forms.FileInput(attrs={
+                'class': 'form-control video-upload',
+                'accept': 'video/*',
+                'style': 'display: none;'
+            }),
+            'caption': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Media caption (optional)'
+            }),
+            'is_default': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set initial media type based on which field has a value
+        if self.instance and self.instance.video:
+            self.fields['media_type'].initial = 'video'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make image field not required for formsets (can be added later)
+        self.fields['image'].required = False
+
+    def _post_clean(self):
+        """Override _post_clean to skip model validation for excluded fields"""
+        # Don't run model validation since we're manually setting product/variation fields
+        # in the view, and they're excluded from form validation
+        pass
 
 class ProductSearchForm(forms.Form):
     """Form for searching products"""
@@ -144,3 +222,115 @@ class BusinessForm(forms.ModelForm):
             }),
             'categories': forms.CheckboxSelectMultiple()
         }
+
+
+class ProductVariationForm(forms.ModelForm):
+    """Form for creating/editing product variations"""
+    
+    class Meta:
+        model = ProductVariation
+        fields = ['name', 'moq', 'price', 'order', 'closes_on']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Color: Red, Size: XL'
+            }),
+            'moq': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+                'placeholder': '1'
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0',
+                'placeholder': '0.00'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+                'placeholder': '0'
+            })
+        }
+
+
+class ProductAttributeAssignmentForm(forms.ModelForm):
+    """Form for assigning product attributes to variations - now supports creating new attributes"""
+
+    # Fields for creating new attribute and value
+    new_attribute_name = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter attribute name (e.g., Color, Size)'
+        })
+    )
+    new_attribute_description = forms.CharField(
+        max_length=500,
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'placeholder': 'Enter attribute description (optional)'
+        })
+    )
+    new_attribute_value = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter attribute value (e.g., Red, Large)'
+        })
+    )
+
+    # Field for selecting existing attribute value
+    existing_value = forms.ModelChoiceField(
+        queryset=ProductAttributeValue.objects.none(),  # Will be set in __init__
+        required=False,
+        empty_label="Select existing attribute value",
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        })
+    )
+
+    class Meta:
+        model = ProductAttributeAssignment
+        fields = []  # We'll handle all fields manually
+
+    def __init__(self, *args, **kwargs):
+        self.variation = kwargs.pop('variation', None)
+        super().__init__(*args, **kwargs)
+
+        if self.variation:
+            # Set the variation as the initial value for the variation field
+            self.fields['variation'].initial = self.variation
+            
+            
+        else:
+            self.fields['existing_value'].queryset = ProductAttributeValue.objects.none()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_attribute_name = cleaned_data.get('new_attribute_name')
+        new_attribute_value = cleaned_data.get('new_attribute_value')
+        existing_value = cleaned_data.get('existing_value')
+
+        # Validate that either new attribute/value is provided OR existing value is selected
+        if not new_attribute_name and not new_attribute_value and not existing_value:
+            raise forms.ValidationError(
+                "Please either create a new attribute/value pair or select an existing attribute value."
+            )
+
+        # If creating new attribute, both name and value are required
+        if (new_attribute_name or new_attribute_value) and not (new_attribute_name and new_attribute_value):
+            raise forms.ValidationError(
+                "Both attribute name and attribute value are required when creating a new attribute."
+            )
+
+        return cleaned_data
+        
+    def save(self, commit=True):
+        # This method is required but won't be used directly
+        # The view handles the actual saving
+        return super().save(commit=commit)

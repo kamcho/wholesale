@@ -1,0 +1,433 @@
+{% extends 'vendor/base.html' %}
+
+{% block title %}Add Product Variation - Vendor Panel{% endblock %}
+
+{% block content %}
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-plus-circle me-2"></i>Add Product Variation
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'vendor:product_detail' product.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Product
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tags me-2"></i>Variation Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Product:</strong> {{ product.name }}
+                </div>
+                
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">Variation Name *</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.name.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">e.g., "Color: Red", "Size: XL", "Material: Cotton"</div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.moq.id_for_label }}" class="form-label">MOQ *</label>
+                            {{ form.moq }}
+                            {% if form.moq.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.moq.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Minimum units for this variation</div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.price.id_for_label }}" class="form-label">Variation Price *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.price }}
+                            </div>
+                            {% if form.price.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.price.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Price for this specific variation</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.order.id_for_label }}" class="form-label">Display Order</label>
+                            {{ form.order }}
+                            {% if form.order.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.order.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">Order in which this variation appears (0 = first)</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.closes_on.id_for_label }}" class="form-label">Closes On</label>
+                            {{ form.closes_on }}
+                            {% if form.closes_on.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.closes_on.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">When this variation stops accepting orders (optional)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Media for this variation -->
+                    <hr class="my-4" />
+                    <h5 class="mb-3"><i class="fas fa-images me-2"></i>Variation Media</h5>
+                    {% if formset.non_form_errors %}
+                        <div class="alert alert-danger">
+                            {% for err in formset.non_form_errors %}
+                                <div>{{ err }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {{ formset.management_form }}
+                    <div class="row">
+                        {% for f in formset %}
+                        <div class="col-md-12">
+                            <div class="border rounded p-3">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label d-block">Media Type</label>
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                {% for choice in f.media_type %}
+                                                    {{ choice.tag }}
+                                                    <label for="{{ choice.id_for_label }}" class="btn btn-outline-primary">
+                                                        {{ choice.choice_label }}
+                                                    </label>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Image Upload -->
+                                        <div class="mb-3 image-upload-container">
+                                            <label class="form-label">Image</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control image-filename" placeholder="No image selected" readonly>
+                                                <button class="btn btn-outline-secondary image-browse" type="button">
+                                                    <i class="fas fa-folder-open"></i> Browse
+                                                </button>
+                                                {{ f.image }}
+                                            </div>
+                                            {% if f.image.errors %}
+                                                <div class="alert alert-danger mt-1 p-2">
+                                                    {% for error in f.image.errors %}
+                                                        <div class="small">{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Video Upload -->
+                                        <div class="mb-3 video-upload-container d-none">
+                                            <label class="form-label">Video</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control video-filename" placeholder="No video selected" readonly>
+                                                <button class="btn btn-outline-secondary video-browse" type="button">
+                                                    <i class="fas fa-folder-open"></i> Browse
+                                                </button>
+                                                {{ f.video }}
+                                            </div>
+                                            {% if f.video.errors %}
+                                                <div class="alert alert-danger mt-1 p-2">
+                                                    {% for error in f.video.errors %}
+                                                        <div class="small">{{ error }}</div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="form-text text-muted">Upload an image or video for this variation (optional)</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Caption</label>
+                                        {{ f.caption }}
+                                        {% if f.caption.errors %}
+                                            <div class="text-danger small mt-1">
+                                                {% for error in f.caption.errors %}<div>{{ error }}</div>{% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        <div class="form-text">Optional media description</div>
+                                    </div>
+                                    <div class="col-md-2 d-flex align-items-end">
+                                        <div class="form-check">
+                                            {{ f.is_default }}
+                                            <label class="form-check-label">Default Media</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Add Variation
+                        </button>
+                        <a href="{% url 'vendor:product_detail' product.id %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>About Variations
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="card-text small">
+                    Product variations allow you to offer different options of the same product with different prices.
+                </p>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>Color variations:</strong> "Color: Red", "Color: Blue"
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>Size variations:</strong> "Size: S", "Size: M", "Size: L"
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>Material variations:</strong> "Material: Cotton", "Material: Polyester"
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>Custom variations:</strong> Any specific attribute
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-lightbulb me-2"></i>Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Use clear, descriptive names
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Set appropriate prices for each variation
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Use display order to control listing sequence
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Set closing date for time-limited variations
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-check text-success me-2"></i>
+                        Upload one clear image per variation
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Handle media type toggle
+function setupMediaTypeToggle(container) {
+    const mediaTypeInputs = container.querySelectorAll('input[name$="-media_type"]');
+    const imageContainer = container.querySelector('.image-upload-container');
+    const videoContainer = container.querySelector('.video-upload-container');
+    
+    function toggleMediaType() {
+        const isImage = container.querySelector('input[name$="-media_type"]:checked').value === 'image';
+        imageContainer.style.display = isImage ? 'block' : 'none';
+        videoContainer.style.display = isImage ? 'none' : 'block';
+    }
+    
+    mediaTypeInputs.forEach(input => {
+        input.addEventListener('change', toggleMediaType);
+    });
+    
+    // Initialize
+    toggleMediaType();
+}
+
+// Handle file input display
+function setupFileInputs() {
+    // For image uploads
+    document.querySelectorAll('.image-browse').forEach(button => {
+        const container = button.closest('.image-upload-container');
+        const fileInput = container.querySelector('input[type="file"]');
+        const fileNameInput = container.querySelector('.image-filename');
+        
+        button.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileNameInput.value = fileInput.files[0].name;
+            } else {
+                fileNameInput.value = '';
+            }
+        });
+    });
+    
+    // For video uploads
+    document.querySelectorAll('.video-browse').forEach(button => {
+        const container = button.closest('.video-upload-container');
+        const fileInput = container.querySelector('input[type="file"]');
+        const fileNameInput = container.querySelector('.video-filename');
+        
+        button.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileNameInput.value = fileInput.files[0].name;
+            } else {
+                fileNameInput.value = '';
+            }
+        });
+    });
+}
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up media type toggles for each form
+    document.querySelectorAll('.border.rounded.p-3').forEach(container => {
+        setupMediaTypeToggle(container);
+    });
+    
+    // Set up file inputs
+    setupFileInputs();
+});
+</script>
+
+<style>
+/* Style for media type toggle buttons */
+.btn-group .btn-outline-primary {
+    border-color: #0d6efd;
+    color: #0d6efd;
+    padding: 0.25rem 0.75rem;
+}
+
+.btn-group .btn-check:checked + .btn-outline-primary {
+    background-color: #0d6efd;
+    color: white;
+}
+
+/* Hide the default file input */
+input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Style for the file input group */
+.input-group .form-control[readonly] {
+    background-color: #fff;
+    cursor: default;
+}
+
+/* Ensure proper spacing for media containers */
+.image-upload-container,
+.video-upload-container {
+    margin-bottom: 1rem;
+}
+
+/* Style for the media preview area */
+.media-preview {
+    margin-top: 10px;
+    max-width: 100%;
+    max-height: 200px;
+    display: block;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // Add form validation
+    $('form').on('submit', function(e) {
+        var isValid = true;
+        
+        // Check required fields
+        $('input[required], select[required], textarea[required]').each(function() {
+            if (!$(this).val()) {
+                $(this).addClass('is-invalid');
+                isValid = false;
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+    
+    // Remove validation classes on input
+    $('input, select, textarea').on('input change', function() {
+        $(this).removeClass('is-invalid');
+    });
+});
+</script>
+{% endblock %}
+
+

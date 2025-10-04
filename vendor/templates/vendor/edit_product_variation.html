@@ -1,0 +1,107 @@
+{% extends 'vendor/base.html' %}
+
+{% block title %}Edit Variation - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2"><i class="fas fa-edit me-2"></i>Edit Variation</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <a href="{% url 'vendor:product_detail' product.id %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-2"></i>Back to Product
+    </a>
+    <a href="{% url 'vendor:add_variation_image' variation.id %}" class="btn btn-outline-primary ms-2">
+      <i class="fas fa-image me-2"></i>Add Image
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title mb-0"><i class="fas fa-tags me-2"></i>{{ variation.name }}</h5>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      <strong>Product:</strong> {{ product.name }}
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Hidden error display for non-field errors -->
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger" role="alert">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.name.id_for_label }}" class="form-label">Variation Name *</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.name.errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label for="{{ form.moq.id_for_label }}" class="form-label">MOQ *</label>
+          {{ form.moq }}
+          {% if form.moq.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.moq.errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <div class="col-md-3 mb-3">
+          <label for="{{ form.price.id_for_label }}" class="form-label">Price *</label>
+          <div class="input-group">
+            <span class="input-group-text">$</span>
+            {{ form.price }}
+          </div>
+          {% if form.price.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.price.errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.order.id_for_label }}" class="form-label">Display Order</label>
+          {{ form.order }}
+          {% if form.order.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.order.errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text">Lower numbers appear first</div>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="{{ form.closes_on.id_for_label }}" class="form-label">Closes On (Optional)</label>
+          {{ form.closes_on }}
+          {% if form.closes_on.errors %}
+            <div class="text-danger small mt-1">
+              {% for error in form.closes_on.errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+          {% endif %}
+          <div class="form-text">Leave empty for no closing date</div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-2"></i>Save Changes
+        </button>
+        <a href="{% url 'vendor:product_detail' product.id %}" class="btn btn-secondary">
+          <i class="fas fa-times me-2"></i>Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

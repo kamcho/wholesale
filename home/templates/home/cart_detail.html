@@ -1,0 +1,117 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Your Cart - WholeSaleHub{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Your Cart</h1>
+            <p class="text-sm text-gray-500">Review your items and update quantities.</p>
+        </div>
+        <form method="post" action="{% url 'home:clear_cart' %}">
+            {% csrf_token %}
+            <button class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 shadow-sm">Clear Cart</button>
+        </form>
+    </div>
+
+    {% if items %}
+    <div class="grid lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-4">
+            {% for item in items %}
+            <div class="bg-white rounded-xl shadow-sm p-4 flex gap-4 border border-gray-100" data-unit-price="{{ item.unit_price }}">
+                <div class="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                    {% if item.product.images.first %}
+                        <img src="{{ item.product.images.first.image.url }}" class="w-full h-full object-cover" alt="{{ item.product.name }}">
+                    {% else %}
+                        <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    {% endif %}
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">{{ item.product.name }}</h3>
+                            {% if item.variation %}
+                            <div class="text-sm text-gray-500">{{ item.variation.name }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <div class="text-blue-600 font-semibold">$<span class="unit-price">{{ item.unit_price }}</span></div>
+                            <div class="text-sm text-gray-500">Subtotal: $<span id="subtotal-{{ item.id }}">{{ item.subtotal }}</span></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between">
+                        <form method="post" action="{% url 'home:update_cart_item' item.id %}" class="flex items-center gap-2">
+                            {% csrf_token %}
+                            <label class="text-sm text-gray-600">Qty</label>
+                            <input data-item-id="{{ item.id }}" type="number" name="quantity" min="{{ item.product.moq }}" value="{{ item.quantity }}" class="w-24 border border-gray-300 rounded px-2 py-1 qty-input">
+                            <button class="px-3 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-sm shadow-sm">Update</button>
+                        </form>
+                        <form method="post" action="{% url 'home:remove_cart_item' item.id %}">
+                            {% csrf_token %}
+                            <button class="text-red-600 hover:text-red-700 text-sm">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <aside class="bg-white rounded-xl shadow-sm p-6 h-max border border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-gray-600">Items</span>
+                <span class="font-semibold">{{ items|length }}</span>
+            </div>
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-gray-600">Total</span>
+                <span class="text-xl font-bold text-blue-600">$<span id="cart-total">{{ total }}</span></span>
+            </div>
+            <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">Proceed to Checkout</button>
+        </aside>
+    </div>
+    {% else %}
+    <div class="text-center py-16">
+        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/></svg>
+        <h2 class="text-xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
+        <p class="text-gray-600 mb-6">Browse products and add items to your cart.</p>
+        <a href="{% url 'home:product_list' %}" class="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700">Continue Shopping</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function recalcTotals() {
+    var total = 0;
+    document.querySelectorAll('[id^="subtotal-"]').forEach(function(s){
+      var val = parseFloat(s.textContent) || 0;
+      total += val;
+    });
+    var totalEl = document.getElementById('cart-total');
+    if (totalEl) totalEl.textContent = total.toFixed(2);
+  }
+
+  document.querySelectorAll('.qty-input').forEach(function(input){
+    input.addEventListener('input', function(){
+      var container = input.closest('[data-unit-price]');
+      if (!container) return;
+      var unit = parseFloat(container.getAttribute('data-unit-price')) || 0;
+      var qty = parseInt(input.value, 10) || 0;
+      var itemId = input.getAttribute('data-item-id');
+      var subtotalEl = document.getElementById('subtotal-' + itemId);
+      if (subtotalEl) {
+        var subtotal = unit * qty;
+        subtotalEl.textContent = subtotal.toFixed(2);
+        recalcTotals();
+      }
+    });
+  });
+});
+</script>
+{% endblock %}
+
+

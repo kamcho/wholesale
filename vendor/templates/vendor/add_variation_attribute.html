@@ -1,0 +1,107 @@
+{% extends 'vendor/base.html' %}
+
+{% block title %}Add Attribute - {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h2"><i class="fas fa-tags me-2"></i>Add Product Attribute</h1>
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <a href="{% url 'vendor:variation_detail' variation.id %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left me-2"></i>Back to Variation
+    </a>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title mb-0"><i class="fas fa-plus me-2"></i>Add Attribute to {{ variation.name }}</h5>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle me-2"></i>
+      <strong>Product:</strong> {{ product.name }}<br>
+      <strong>Variation:</strong> {{ variation.name }}
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Hidden error display for non-field errors -->
+      {% if form.non_field_errors %}
+      <div class="alert alert-danger" role="alert">
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Option 1: Create new attribute -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-plus me-2"></i>Create New Attribute</h6>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.new_attribute_name.id_for_label }}" class="form-label">Attribute Name</label>
+              {{ form.new_attribute_name }}
+              {% if form.new_attribute_name.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.new_attribute_name.errors %}<div>{{ error }}</div>{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">e.g., Color, Size, Material</div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="{{ form.new_attribute_value.id_for_label }}" class="form-label">Attribute Value</label>
+              {{ form.new_attribute_value }}
+              {% if form.new_attribute_value.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.new_attribute_value.errors %}<div>{{ error }}</div>{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">e.g., Red, Large, Cotton</div>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="{{ form.new_attribute_description.id_for_label }}" class="form-label">Description (Optional)</label>
+            {{ form.new_attribute_description }}
+            {% if form.new_attribute_description.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.new_attribute_description.errors %}<div>{{ error }}</div>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 2: Use existing attribute -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0"><i class="fas fa-list me-2"></i>Or Select Existing Attribute</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="{{ form.existing_value.id_for_label }}" class="form-label">Existing Attribute Value</label>
+            {{ form.existing_value }}
+            {% if form.existing_value.errors %}
+              <div class="text-danger small mt-1">
+                {% for error in form.existing_value.errors %}<div>{{ error }}</div>{% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save me-2"></i>Add Attribute
+        </button>
+        <a href="{% url 'vendor:variation_detail' variation.id %}" class="btn btn-secondary">
+          <i class="fas fa-times me-2"></i>Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

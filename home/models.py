@@ -1,9 +1,10 @@
 from django.db import models
+from django.db.models import Q
+from django.core.exceptions import ValidationError
 from django.conf import settings   # use settings.AUTH_USER_MODEL instead of hardcoding
                                    # so it works with custom User models
 import uuid
 from decimal import Decimal
-
 # ==============================
 # BUSINESS & REVIEWS
 # ==============================
@@ -100,12 +101,15 @@ class ProductCategory(models.Model):
 # PRODUCTS
 # ==============================
 class Product(models.Model):
-    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="products")
-    category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE, related_name="products")
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="products", null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="products", null=True, blank=True)
+    categories = models.ManyToManyField(ProductCategory, related_name="products", blank=True)
+    # product_type = models.ForeignKey('ProductType', on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     moq = models.PositiveIntegerField(default=1)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    # price = models.DecimalField(max_digits=10, decimal_places=2)  # Unit price when MOQ is met
+    # price_single = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Unit price for single/below MOQ
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -115,33 +119,110 @@ class Product(models.Model):
 
 
 class ProductImage(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to='product_images/')
+    # Link to either product OR variation (exactly one must be set)
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="images",
+        null=True,
+        blank=True,
+    )
+    variation = models.ForeignKey(
+        'ProductVariation',
+        on_delete=models.CASCADE,
+        related_name="images",
+        null=True,
+        blank=True,
+    )
+    image = models.ImageField(upload_to='product_media/images/', null=True, blank=True)
+    video = models.FileField(upload_to='product_media/videos/', null=True, blank=True,
+                           help_text='Upload a video file (MP4, WebM, etc.)')
     caption = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_default = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    (Q(product__isnull=False) & Q(variation__isnull=True)) |
+                    (Q(product__isnull=True) & Q(variation__isnull=False))
+                ),
+                name='productimage_exactly_one_of_product_or_variation'
+            )
+        ]
+
+    def clean(self):
+        super().clean()
+        # XOR: exactly one of product or variation must be set
+        if bool(self.product) == bool(self.variation):
+            raise ValidationError(
+                {
+                    'product': 'Attach media to exactly one of product or variation.',
+                    'variation': 'Attach media to exactly one of product or variation.'
+                }
+            )
+            
+        # Ensure either image or video is provided, but not both
+        if not self.image and not self.video:
+            raise ValidationError(
+                'Either an image or a video must be provided.'
+            )
+            
+        if self.image and self.video:
+            raise ValidationError(
+                'Please provide either an image or a video, not both.'
+            )
+
+    def save(self, *args, **kwargs):
+        # Ensure validation runs on model.save()
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.product.name} Image"
+        media_type = 'Video' if self.video else 'Image'
+        if self.variation:
+            return f"{self.variation.product.name} – {self.variation.name} {media_type}"
+        if self.product:
+            return f"{self.product.name} {media_type}"
+        return "Orphan Product Image"
 
 
 class ProductVariation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="variations")
     name = models.CharField(max_length=255)   # e.g. "Color: Red", "Size: XL"
+    moq = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-
+    order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    closes_on = models.DateTimeField(null=True, blank=True)
+    
     def __str__(self):
         return f"{self.product.name} - {self.name}"
+
+
+class PriceTier(models.Model):
+    """Quantity-based pricing for product variations"""
+    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='price_tiers')
+    min_quantity = models.PositiveIntegerField()
+    max_quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        unique_together = ('variation', 'min_quantity')
+        ordering = ['min_quantity']
+
+    def __str__(self):
+        return f"{self.variation} - Qty {self.min_quantity}+: ${self.price}"
 
 
 # ==============================
 # PRODUCT REVIEWS
 # ==============================
 class ProductReview(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    product = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name="reviews")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(default=0)
     comment = models.TextField(blank=True)
@@ -172,6 +253,7 @@ class Cart(models.Model):
         null=True,
         blank=True
     )
+    name = models.CharField(max_length=255, blank=True, null=True)
     session_id = models.CharField(
         max_length=100,
         blank=True,
@@ -199,16 +281,16 @@ class Cart(models.Model):
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey("Product", on_delete=models.CASCADE)
     variation = models.ForeignKey(
-        "ProductVariation", on_delete=models.SET_NULL, null=True, blank=True
+        "ProductVariation", on_delete=models.RESTRICT
     )
     quantity = models.PositiveIntegerField(default=1)
 
     def unit_price(self):
+        # Prefer variation price when available; otherwise fallback to 0
         if self.variation:
             return self.variation.price
-        return self.product.price
+        return Decimal('0')
 
     def subtotal(self):
         return self.unit_price() * self.quantity
@@ -263,9 +345,8 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
-    product = models.ForeignKey("Product", on_delete=models.SET_NULL, null=True)
     variation = models.ForeignKey(
-        "ProductVariation", on_delete=models.SET_NULL, null=True, blank=True
+        "ProductVariation", on_delete=models.RESTRICT
     )
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -275,3 +356,137 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product}"
+
+
+# ==============================
+# WISHLIST
+# ==============================
+class Wishlist(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="wishlists")
+    name = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Wishlist of {self.user}"
+
+
+class WishlistItem(models.Model):
+    wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name="wishlisted_in")
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("wishlist", "product")
+
+    def __str__(self):
+        return f"{self.product.name} in {self.wishlist}"
+
+
+
+
+# ==============================
+# SIMPLIFIED PRODUCT ATTRIBUTES
+# ==============================
+
+class ProductAttribute(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class ProductAttributeValue(models.Model):
+    attribute = models.ForeignKey(ProductAttribute, on_delete=models.CASCADE, related_name='values')
+    value = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.value
+
+class ProductAttributeAssignment(models.Model):
+    product = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='attribute_assignments')
+    value = models.ForeignKey(ProductAttributeValue, on_delete=models.CASCADE, related_name='assignments')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.value.value}"
+
+# ==============================
+# PRODUCT ORDERS (per-product commitments)
+# ==============================
+class ProductOrder(models.Model):
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("confirmed", "Confirmed"),
+        ("cancelled", "Cancelled"),
+        ("fulfilled", "Fulfilled"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='product_orders')
+    product = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='orders')
+    quantity = models.PositiveIntegerField(default=1)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    # Simple payment tracking
+   
+    note = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+   
+    def __str__(self):
+        base = f"{self.product.name} x{self.quantity}"
+        return f"PO[{self.user} – {base} – {self.status}]"
+
+
+
+
+class RawPayment(models.Model):
+    PAYMENT_METHODS = [
+        ('mpesa', 'Mpesa'),
+        ('card', 'Card'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded'),
+    ]
+
+    product_id = models.CharField(max_length=100, blank=True, null=True)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    currency = models.CharField(max_length=10, default="KES")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    transaction_id = models.CharField(max_length=100, unique=True)  # from gateway
+
+    # ---- Mpesa specific fields ----
+    mpesa_receipt = models.CharField(max_length=100, blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+
+    # ---- Card specific fields ----
+    card_last4 = models.CharField(max_length=4, blank=True, null=True)
+    card_brand = models.CharField(max_length=20, blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.transaction_id} - {self.payment_method} - {self.amount} {self.currency}"
+
+class Payment(models.Model):
+   
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payments")
+    order_id = models.ForeignKey(ProductOrder, on_delete=models.CASCADE, related_name="payments")
+
+    raw_payment = models.ForeignKey(RawPayment, on_delete=models.CASCADE, related_name="payments")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.raw_payment.transaction_id} - {self.raw_payment.payment_method} - {self.raw_payment.amount} {self.raw_payment.currency}"

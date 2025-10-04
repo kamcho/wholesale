@@ -3,89 +3,53 @@
 {% block title %}Businesses - Vendor Panel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-building me-2"></i>My Businesses
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'vendor:add_business' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Add Business
-        </a>
-    </div>
+<div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h3 m-0"><i class="fas fa-building me-2"></i>My Businesses</h1>
+    <a href="{% url 'vendor:add_business' %}" class="px-3 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white">Add Business</a>
 </div>
 
 {% if businesses %}
     <div class="row">
         {% for business in businesses %}
         <div class="col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <h5 class="card-title">{{ business.name }}</h5>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{% url 'vendor:edit_business' business.id %}">
-                                    <i class="fas fa-edit me-2"></i>Edit
-                                </a></li>
-                            </ul>
-                        </div>
+            <div class="bg-[#0f172a] text-gray-200 rounded-2xl shadow-md h-100 d-flex flex-column border border-gray-800">
+                <div class="p-4 border-bottom border-gray-800 d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="m-0 font-semibold">{{ business.name }}</h5>
+                        {% if business.description %}
+                        <div class="text-sm text-gray-400 mt-1">{{ business.description|truncatechars:120 }}</div>
+                        {% endif %}
                     </div>
-                    
-                    {% if business.description %}
-                        <p class="card-text text-muted">{{ business.description|truncatechars:150 }}</p>
-                    {% endif %}
-                    
-                    <div class="row mb-3">
+                    <a href="{% url 'vendor:edit_business' business.id %}" class="px-2 py-1 text-sm rounded-md border border-gray-700 hover:bg-gray-800 text-gray-200">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </div>
+                <div class="p-4">
+                    <div class="row g-3">
                         <div class="col-6">
-                            <small class="text-muted">
-                                <i class="fas fa-box me-1"></i>
-                                {{ business.products.count }} products
-                            </small>
+                            <div class="text-xs text-gray-400">Products</div>
+                            <div class="fw-semibold">{{ business.products.count }}</div>
                         </div>
                         <div class="col-6">
-                            <small class="text-muted">
-                                <i class="fas fa-calendar me-1"></i>
-                                Created {{ business.created_at|date:"M d, Y" }}
-                            </small>
+                            <div class="text-xs text-gray-400">Created</div>
+                            <div class="fw-semibold">{{ business.created_at|date:"M d, Y" }}</div>
                         </div>
                     </div>
-                    
                     {% if business.address or business.phone or business.email %}
-                    <div class="border-top pt-3">
-                        <h6 class="small text-muted mb-2">Contact Information</h6>
-                        {% if business.address %}
-                            <p class="small mb-1">
-                                <i class="fas fa-map-marker-alt me-1"></i>
-                                {{ business.address }}
-                            </p>
-                        {% endif %}
-                        {% if business.phone %}
-                            <p class="small mb-1">
-                                <i class="fas fa-phone me-1"></i>
-                                {{ business.phone }}
-                            </p>
-                        {% endif %}
-                        {% if business.email %}
-                            <p class="small mb-0">
-                                <i class="fas fa-envelope me-1"></i>
-                                {{ business.email }}
-                            </p>
-                        {% endif %}
+                    <div class="mt-3 pt-3 border-top border-gray-800">
+                        <div class="text-xs text-gray-400 mb-2">Contact</div>
+                        <div class="text-sm text-gray-300">
+                            {% if business.address %}<div class="mb-1"><i class="fas fa-map-marker-alt me-1"></i>{{ business.address }}</div>{% endif %}
+                            {% if business.phone %}<div class="mb-1"><i class="fas fa-phone me-1"></i>{{ business.phone }}</div>{% endif %}
+                            {% if business.email %}<div class="mb-0"><i class="fas fa-envelope me-1"></i>{{ business.email }}</div>{% endif %}
+                        </div>
                     </div>
                     {% endif %}
                 </div>
-                
-                <div class="card-footer bg-transparent">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <a href="{% url 'vendor:add_product' %}?business={{ business.id }}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-plus me-1"></i>Add Product
-                        </a>
-                        <a href="{% url 'vendor:edit_business' business.id %}" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-edit me-1"></i>Edit
-                        </a>
+                <div class="p-4 border-top border-gray-800 mt-auto">
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'vendor:add_product' %}?business={{ business.id }}" class="btn btn-sm btn-primary flex-fill"><i class="fas fa-plus me-1"></i> Add Product</a>
+                        <a href="{% url 'vendor:edit_business' business.id %}" class="btn btn-sm btn-outline-secondary flex-fill"><i class="fas fa-edit me-1"></i> Edit</a>
                     </div>
                 </div>
             </div>
@@ -93,13 +57,14 @@
         {% endfor %}
     </div>
 {% else %}
-    <div class="text-center py-5">
-        <i class="fas fa-building fa-4x text-muted mb-3"></i>
-        <h3 class="text-muted">No Businesses Found</h3>
-        <p class="text-muted">You need to create a business before you can add products.</p>
-        <a href="{% url 'vendor:add_business' %}" class="btn btn-primary">
+    <div class="text-center py-10">
+        <i class="fas fa-building fa-3x text-gray-600 mb-3"></i>
+        <h5 class="text-gray-300">No Businesses Found</h5>
+        <p class="text-gray-500">You need to create a business before you can add products.</p>
+        <a href="{% url 'vendor:add_business' %}" class="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white">
             <i class="fas fa-plus me-2"></i>Create Your First Business
         </a>
     </div>
 {% endif %}
 {% endblock %}
+

@@ -1,0 +1,79 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}GavaConnect PIN Checker{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-10">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">GavaConnect PIN Checker</h1>
+
+  <form method="post" class="bg-white rounded-xl shadow p-6">
+    {% csrf_token %}
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Taxpayer Type</label>
+        <input type="text" name="TaxpayerType" value="{{ TaxpayerType }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., KE" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Taxpayer ID</label>
+        <input type="text" name="TaxpayerID" value="{{ TaxpayerID }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., 41789723" />
+      </div>
+    </div>
+    <div class="mt-6">
+      <button type="submit" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700">Check PIN</button>
+      <button type="submit" name="action" value="testall" class="ml-3 bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700">Test all samples</button>
+      <a href="{% url 'core:health' %}" class="ml-3 text-sm text-gray-600 underline">Health</a>
+    </div>
+  </form>
+
+  {% if error %}
+  <div class="mt-6 p-4 bg-red-50 text-red-700 rounded-lg">
+    <div class="font-semibold mb-1">Error</div>
+    <pre class="whitespace-pre-wrap text-sm">{{ error|safe }}</pre>
+  </div>
+  {% endif %}
+
+  {% if result %}
+  <div class="mt-6 p-4 bg-green-50 text-green-700 rounded-lg">
+    <div class="font-semibold mb-1">Result</div>
+    <pre class="whitespace-pre-wrap text-sm">{{ result|json_script:'pin_result' }}</pre>
+    <script>
+      // Render the JSON result nicely
+      (function(){
+        var el = document.currentScript.previousElementSibling;
+        try {
+          var data = JSON.parse(document.getElementById('pin_result').textContent);
+          el.textContent = JSON.stringify(data, null, 2);
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
+  </div>
+  {% endif %}
+
+  {% if batch %}
+  <div class="mt-6 p-4 bg-blue-50 text-blue-800 rounded-lg">
+    <div class="font-semibold mb-2">Batch Results (Test all samples)</div>
+    <div class="space-y-4">
+      {% for item in batch %}
+      <div class="bg-white border border-blue-100 rounded p-3">
+        <div class="text-sm text-gray-600 mb-1">{{ item.label }} — Type: <strong>{{ item.TaxpayerType }}</strong>, ID: <strong>{{ item.TaxpayerID }}</strong></div>
+        <pre class="whitespace-pre-wrap text-sm">{{ item.response|json_script:'pin_batch_'|add:forloop.counter }}</pre>
+        <script>
+          (function(){
+            var id = 'pin_batch_{{ forloop.counter }}';
+            var nodeList = document.querySelectorAll('script[id^="pin_batch_"]');
+            // find the specific one for this loop
+            var target = Array.prototype.find.call(nodeList, function(n){ return n.id === id; });
+            var pre = (target && target.previousElementSibling);
+            if (target && pre) {
+              try { pre.textContent = JSON.stringify(JSON.parse(target.textContent), null, 2); } catch(e) {}
+            }
+          })();
+        </script>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

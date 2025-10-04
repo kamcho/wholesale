@@ -61,12 +61,18 @@
                     <p class="text-sm text-gray-500 mb-3 line-clamp-2">{{ product.description|truncatechars:80 }}</p>
                     
                     <div class="flex items-center justify-between mb-3">
-                        <span class="text-2xl font-bold text-blue-600">${{ product.price }}</span>
+                        <span></span>
                         <span class="text-sm text-gray-500">MOQ: {{ product.moq }}</span>
                     </div>
                     
                     <div class="flex items-center justify-between">
-                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{{ product.category.name }}</span>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            {% with cats=product.categories.all %}
+                                {% if cats %}
+                                    {% for c in cats %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                                {% endif %}
+                            {% endwith %}
+                        </span>
                         <a href="{% url 'home:product_detail' product.pk %}" 
                            class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
                             View Details
@@ -147,3 +153,4 @@
 }
 </style>
 {% endblock %}
+

@@ -1,0 +1,52 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}GavaConnect Pending Returns{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 py-10">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">GavaConnect Pending Returns</h1>
+
+  <form method="post" class="bg-white rounded-xl shadow p-6">
+    {% csrf_token %}
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Taxpayer PIN</label>
+        <input type="text" name="taxPayerPin" value="{{ taxPayerPin }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., A000000000L" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Obligation ID</label>
+        <input type="text" name="obligationId" value="{{ obligationId }}" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g., 7 (PAYE)" />
+        <p class="text-xs text-gray-500 mt-1">Valid: 4=Income Tax Company, 7=PAYE, 9=VAT, 22=Advance Tax, 6=Withholding, 32=CGT, 29=VAT Withholding</p>
+      </div>
+    </div>
+    <div class="mt-6">
+      <button type="submit" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700">Fetch Pending Returns</button>
+      <a href="{% url 'core:health' %}" class="ml-3 text-sm text-gray-600 underline">Health</a>
+    </div>
+  </form>
+
+  {% if error %}
+  <div class="mt-6 p-4 bg-red-50 text-red-700 rounded-lg">
+    <div class="font-semibold mb-1">Error</div>
+    <pre class="whitespace-pre-wrap text-sm">{{ error|safe }}</pre>
+  </div>
+  {% endif %}
+
+  {% if result %}
+  <div class="mt-6 p-4 bg-green-50 text-green-700 rounded-lg">
+    <div class="font-semibold mb-2">Result</div>
+    <pre class="whitespace-pre-wrap text-sm">{{ result|json_script:'pending_result' }}</pre>
+    <script>
+      (function(){
+        var pre = document.currentScript.previousElementSibling;
+        try {
+          var data = JSON.parse(document.getElementById('pending_result').textContent);
+          pre.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {}
+      })();
+    </script>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

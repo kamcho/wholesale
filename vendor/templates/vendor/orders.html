@@ -1,0 +1,74 @@
+{% extends 'vendor/base.html' %}
+
+{% block title %}Orders - Vendor Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h3 m-0"><i class="fas fa-receipt me-2"></i>Orders</h1>
+    <div>
+        <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-box me-1"></i> Products
+        </a>
+    </div>
+    </div>
+
+<div class="bg-[#0f172a] text-gray-200 rounded-2xl shadow-md overflow-hidden">
+    <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+        <h5 class="m-0 font-semibold"><i class="fas fa-list me-2"></i>Recent Order Items</h5>
+    </div>
+    {% if page_obj %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full align-middle">
+            <thead class="bg-[#0b1220] text-gray-400 text-xs uppercase">
+                <tr>
+                    <th class="px-4 py-3 text-left">Order #</th>
+                    <th class="px-4 py-3 text-left">Product</th>
+                    <th class="px-4 py-3 text-left">Variation</th>
+                    <th class="px-4 py-3 text-left">Qty</th>
+                    <th class="px-4 py-3 text-left">Price</th>
+                    <th class="px-4 py-3 text-left">Subtotal</th>
+                    <th class="px-4 py-3 text-left">Date</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-800">
+                {% for item in page_obj %}
+                <tr class="hover:bg-[#0b1220] transition-colors">
+                    <td class="px-4 py-3">{{ item.order.id }}</td>
+                    <td class="px-4 py-3">{{ item.product.name }}</td>
+                    <td class="px-4 py-3">{{ item.variation.name|default:'—' }}</td>
+                    <td class="px-4 py-3">{{ item.quantity }}</td>
+                    <td class="px-4 py-3">${{ item.price }}</td>
+                    <td class="px-4 py-3">${{ item.subtotal }}</td>
+                    <td class="px-4 py-3">{{ item.order.created_at|date:"M d, Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="p-3 border-t border-gray-800">
+        <nav aria-label="Orders pagination">
+            <ul class="pagination justify-content-center m-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% else %}
+    <div class="text-center py-10">
+        <i class="fas fa-receipt fa-3x text-gray-600 mb-3"></i>
+        <h5 class="text-gray-300">No Orders Yet</h5>
+        <p class="text-gray-500">You'll see order items here once customers place orders.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+
+

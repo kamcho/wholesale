@@ -37,22 +37,27 @@
                             {% endif %}
                         </div>
                         
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.price.id_for_label }}" class="form-label">Price *</label>
+                        
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3" id="single-price-wrapper">
+                            <label for="{{ form.price_single.id_for_label }}" class="form-label">Single Unit Price</label>
                             <div class="input-group">
                                 <span class="input-group-text">$</span>
-                                {{ form.price }}
+                                {{ form.price_single }}
                             </div>
-                            {% if form.price.errors %}
+                            {% if form.price_single.errors %}
                                 <div class="text-danger small mt-1">
-                                    {% for error in form.price.errors %}
+                                    {% for error in form.price_single.errors %}
                                         <div>{{ error }}</div>
                                     {% endfor %}
                                 </div>
                             {% endif %}
+                            <div class="form-text">Optional: price when ordering below MOQ</div>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="{{ form.moq.id_for_label }}" class="form-label">Minimum Order Quantity (MOQ) *</label>
@@ -74,11 +79,11 @@
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="{{ form.category.id_for_label }}" class="form-label">Category *</label>
-                            {{ form.category }}
-                            {% if form.category.errors %}
+                            <label for="{{ form.categories.id_for_label }}" class="form-label">Categories *</label>
+                            {{ form.categories }}
+                            {% if form.categories.errors %}
                                 <div class="text-danger small mt-1">
-                                    {% for error in form.category.errors %}
+                                    {% for error in form.categories.errors %}
                                         <div>{{ error }}</div>
                                     {% endfor %}
                                 </div>
@@ -139,11 +144,33 @@
                 <p class="text-muted small">{{ product.description|truncatechars:100 }}</p>
                 
                 <div class="d-flex justify-content-between">
-                    <span class="fw-bold text-primary">${{ product.price }}</span>
-                    <span class="badge bg-secondary">{{ product.category.name }}</span>
+                    <span class="fw-bold text-primary"></span>
+                    <span class="badge bg-secondary">
+                        {% with cats=product.categories.all %}
+                            {% if cats %}
+                                {% for c in cats %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </span>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+$(function(){
+  function toggleSinglePrice(){
+    var moqVal = parseInt($('#id_moq').val() || '1', 10);
+    if (!isNaN(moqVal) && moqVal > 1) {
+      $('#single-price-wrapper').show();
+    } else {
+      $('#single-price-wrapper').hide();
+    }
+  }
+  toggleSinglePrice();
+  $('#id_moq').on('input change', toggleSinglePrice);
+});
+</script>
 {% endblock %}

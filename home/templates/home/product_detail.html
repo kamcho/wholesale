@@ -16,13 +16,60 @@
                 <li><span class="text-gray-900">{{ product.name }}</span></li>
             </ol>
         </nav>
+        {% if product.business.phone %}
+    {% with msg="Hi "|add:product.business.name|add:", I'm interested in "|add:product.name|add:"." %}
+    <a href="https://wa.me/{{ product.business.phone|cut:' '|cut:'-'|cut:'('|cut:')' }}?text={{ msg|urlencode }}"
+       target="_blank" rel="noopener" class="fab-whatsapp" aria-label="Chat on WhatsApp">
+        <svg viewBox="0 0 32 32" width="28" height="28" fill="currentColor" aria-hidden="true">
+            <path d="M19.11 17.24a5.51 5.51 0 0 1-2.44-2.44c-.22-.47-.11-.78.1-1l.24-.25c.19-.19.25-.5.14-.76l-.72-1.75c-.21-.5-.7-.82-1.24-.82a3.6 3.6 0 0 0-2.56 1.2 3.68 3.68 0 0 0-.93 2.59c0 2.5 2.27 5.39 5.2 6.56.62.25 1.18.41 1.68.52.26.06.53-.03.72-.22l1.02-1.03c.2-.2.3-.5.22-.78l-.45-1.62c-.07-.25-.3-.44-.58-.49l-.34-.06c-.2-.03-.41.03-.56.17l-.28.28c-.2.2-.52.31-.99.1Z"/>
+            <path d="M16 3C9.375 3 4 8.375 4 15c0 2.15.567 4.167 1.558 5.917L4 29l8.292-1.525A11.88 11.88 0 0 0 16 27c6.625 0 12-5.375 12-12S22.625 3 16 3Zm0 22a9.93 9.93 0 0 1-5.08-1.392l-.364-.219-4.058 .747.747-4.058-.22-.364A9.93 9.93 0 0 1 6 15c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10Z"/>
+        </svg>
+    </a>
+    {% endwith %}
+    {% endif %}
+
+    <!-- AI Chat Floating Button -->
+    <button type="button" id="aiChatBtn" class="fab-ai" aria-haspopup="dialog" aria-controls="aiChatModal" aria-label="AI Chat">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+            <path d="M7 8h10M7 12h6M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 0 1-4-.8L3 20l.86-3.44A7.963 7.963 0 0 1 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8Z"/>
+        </svg>
+    </button>
+
+    <!-- AI Chat Modal -->
+    <div id="aiChatModal" class="ai-modal hidden" role="dialog" aria-modal="true" aria-labelledby="aiChatTitle">
+        <div class="ai-modal__backdrop" data-ai-close></div>
+        <div class="ai-modal__panel">
+            <div class="ai-modal__header">
+                <h3 id="aiChatTitle" class="text-lg font-semibold text-gray-900">Ask AI about this product</h3>
+                <button type="button" class="ai-modal__close" aria-label="Close" data-ai-close>&times;</button>
+            </div>
+            <div class="ai-modal__body">
+                <form id="aiChatForm" onsubmit="return false;">
+                    <label for="aiQuestion" class="block text-sm font-medium text-gray-700 mb-2">Your question</label>
+                    <textarea id="aiQuestion" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="3" placeholder="e.g., What are the differences between the variations?" ></textarea>
+                    <p class="mt-2 text-xs text-gray-500">This will use AI to help answer questions about <strong>{{ product.name }}</strong>.</p>
+                    <div class="mt-4 flex items-center gap-2">
+                        <button type="button" id="aiSendBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700">Send</button>
+                        <button type="button" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700" data-ai-close>Close</button>
+                    </div>
+                </form>
+                <div id="aiChatResponse" class="mt-4 text-sm text-gray-800 hidden"></div>
+            </div>
+        </div>
     </div>
+</div>
+    <!-- Floating Back to Top (desktop only) -->
+    <button id="backToTopRight" aria-label="Back to top" class="back-to-top hidden lg:flex items-center justify-center" title="Back to top">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+        </svg>
+    </button>
 </div>
 
 <div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="grid lg:grid-cols-2 gap-8">
+    <div class="grid lg:grid-cols-2 gap-8 items-start">
         <!-- Product Images -->
-        <div>
+        <div class="lg:sticky lg:top-0 lg:self-start">
             {% if images %}
                 <div class="mb-4">
                     <img src="{{ images.first.image.url }}" 
@@ -68,22 +115,210 @@
             </div>
             
             <!-- Price and MOQ -->
-            <div class="bg-gray-50 rounded-lg p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <span class="text-4xl font-bold text-blue-600">${{ product.price }}</span>
-                    <span class="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">{{ product.category.name }}</span>
+            <div class="bg-gray-50 rounded-lg p-6 mb-6" id="priceCard" data-moq="{{ product.moq }}" data-price="0" data-price-single="0" data-has-variations="{% if product.variations.all|length %}1{% else %}0{% endif %}">
+                <div class="flex items-center justify-between mb-3">
+                    <div>
+                        <div class="text-gray-500 text-sm" id="priceTierLabel">Unit price</div>
+                        <div class="text-4xl font-bold text-blue-600">
+                            {% if variation_min_price and variation_max_price %}
+                                ${{ variation_min_price }}{% if variation_max_price != variation_min_price %} - ${{ variation_max_price }}{% endif %}
+                            {% else %}
+                                $<span id="unit-price">0.00</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
+                        {% with cats=product.categories.all %}
+                            {% if cats %}
+                                {% for c in cats %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                    </span>
                 </div>
-                
-                <div class="flex items-center justify-between text-sm text-gray-600">
+                {% if False %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 text-sm">
+                    <div class="bg-white rounded-lg border border-gray-200 p-3">
+                        <div class="text-gray-500">When buying ≥ MOQ ({{ product.moq }})</div>
+                        <div class="font-semibold text-gray-900">$0.00</div>
+                    </div>
+                    <div class="bg-white rounded-lg border border-gray-200 p-3">
+                        <div class="text-gray-500">When buying less than MOQ</div>
+                        <div class="font-semibold text-gray-900">$0.00</div>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="flex items-center justify-between text-sm text-gray-600 mt-4">
                     <span>Minimum Order Quantity (MOQ):</span>
                     <span class="font-semibold">{{ product.moq }} units</span>
                 </div>
             </div>
+
+            <!-- Purchase Options -->
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <div class="grid sm:grid-cols-2 gap-4">
+                    {% if not product.variations.all %}
+                    <form method="post" action="{% url 'home:add_to_cart' %}" class="contents">
+                        {% csrf_token %}
+                        <input type="hidden" name="product_id" value="{{ product.id }}" />
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                            <div class="flex items-center">
+                                <input name="quantity" type="number" min="{{ product.moq }}" value="{{ product.moq }}" class="w-28 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                <span class="ml-3 text-sm text-gray-500">units (MOQ {{ product.moq }})</span>
+                            </div>
+                        </div>
+                        <div class="sm:col-span-2 mt-6 flex flex-col sm:flex-row gap-3">
+                            <button type="submit" class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/>
+                                </svg>
+                                Add to Cart
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+
+                    {% if product.variations.all %}
+                    <div class="sm:col-span-2">
+                        <h3 class="text-md font-semibold text-gray-900 mb-3">Available Variations</h3>
+                        <div class="space-y-3">
+                            {% for v in product.variations.all %}
+                            <form method="post" action="{% url 'home:add_to_cart' %}" class="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="product_id" value="{{ product.id }}" />
+                                <input type="hidden" name="variation_id" value="{{ v.id }}" />
+                                <div>
+                                    <div class="font-medium text-gray-900">
+                                        <a href="{% url 'home:variation_detail' v.id %}" class="text-blue-600 hover:text-blue-800">{{ v.name }}</a>
+                                    </div>
+                                    <div class="text-sm text-gray-600">Price: ${{ v.price }} • MOQ: {{ v.moq }}</div>
+                                    <a href="{% url 'home:variation_detail' v.id %}" class="text-xs text-blue-600 hover:text-blue-800">View variation details</a>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label for="qty_{{ v.id }}" class="sr-only">Quantity</label>
+                                    <input id="qty_{{ v.id }}" name="quantity" type="number" min="{{ v.moq }}" value="{{ v.moq }}" class="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Add</button>
+                                </div>
+                            </form>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    <a href="{% url 'home:product_order_create' product.id %}" class="block sm:col-span-2 mt-3">
+                        <button class="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                            Commit to Order
+                        </button>
+                    </a>
+                </div>
+                <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                    {% if product.business.phone %}
+                    {% with msg="Hi "|add:product.business.name|add:", I'm interested in "|add:product.name|add:"." %}
+                    <a href="https://wa.me/{{ product.business.phone|cut:' '|cut:'-'|cut:'('|cut:')' }}?text={{ msg|urlencode }}"
+                       target="_blank"
+                       rel="noopener"
+                       class="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-semibold text-center hover:bg-green-700 transition-colors">
+                        <svg class="w-5 h-5 inline mr-2" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+                            <path d="M19.11 17.24a5.51 5.51 0 0 1-2.44-2.44c-.22-.47-.11-.78.1-1l.24-.25c.19-.19.25-.5.14-.76l-.72-1.75c-.21-.5-.7-.82-1.24-.82a3.6 3.6 0 0 0-2.56 1.2 3.68 3.68 0 0 0-.93 2.59c0 2.5 2.27 5.39 5.2 6.56.62.25 1.18.41 1.68.52.26.06.53-.03.72-.22l1.02-1.03c.2-.2.3-.5.22-.78l-.45-1.62c-.07-.25-.3-.44-.58-.49l-.34-.06c-.2-.03-.41.03-.56.17l-.28.28c-.2.2-.52.31-.99.1Z"/>
+                            <path d="M16 3C9.375 3 4 8.375 4 15c0 2.15.567 4.167 1.558 5.917L4 29l8.292-1.525A11.88 11.88 0 0 0 16 27c6.625 0 12-5.375 12-12S22.625 3 16 3Zm0 22a9.93 9.93 0 0 1-5.08-1.392l-.364-.219-4.058.747.747-4.058-.22-.364A9.93 9.93 0 0 1 6 15c0-5.523 4.477-10 10-10s10 4.477 10 10-4.477 10-10 10Z"/>
+                        </svg>
+                        WhatsApp
+                    </a>
+                    {% endwith %}
+                    {% elif product.business.email %}
+                    <a href="mailto:{{ product.business.email }}?subject=Inquiry about {{ product.name }}" class="flex-1 bg-green-600 text-white py-3 px-6 rounded-lg font-semibold text-center hover:bg-green-700 transition-colors">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4-.8L3 20l.86-3.44A7.963 7.963 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        Chat Now
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
             
+            {% if request.user.is_authenticated and my_orders %}
+            <!-- Your Orders for this Product -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Your Orders for this Product</h3>
+                <div class="space-y-3">
+                    {% for o in my_orders %}
+                    <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
+                        <div>
+                            <div class="text-sm text-gray-500">Order #{{ o.id }} • {{ o.created_at|date:"M d, Y H:i" }}</div>
+                            <div class="text-sm text-gray-700">Qty: <span class="font-semibold">{{ o.quantity }}</span></div>
+                            {% if o.note %}
+                            <div class="text-xs text-gray-500 mt-1">{{ o.note|linebreaksbr }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium {% if o.status == 'confirmed' %}bg-green-100 text-green-700{% elif o.status == 'pending' %}bg-yellow-100 text-yellow-800{% elif o.status == 'cancelled' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">{{ o.status|title }}</span>
+                            {% if o.status == 'pending' %}
+                            <a href="{% url 'home:product_order_payment' o.id %}" class="inline-flex items-center bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">Confirm</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if request.user.is_authenticated and my_payments %}
+            <!-- Your Payments for this Product -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Your Payments for this Product</h3>
+                <div class="space-y-3">
+                    {% for p in my_payments %}
+                    {% with rp=p.raw_payment %}
+                    <div class="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
+                        <div>
+                            <div class="text-sm text-gray-500">Payment • {{ p.created_at|date:"M d, Y H:i" }}</div>
+                            <div class="text-sm text-gray-700">Amount: <span class="font-semibold">{{ rp.amount }} {{ rp.currency }}</span></div>
+                            <div class="text-xs text-gray-500 mt-1">Method: {{ rp.payment_method|title }}{% if rp.phone_number %} • Phone: {{ rp.phone_number }}{% endif %}</div>
+                        </div>
+                        <span class="px-2 py-1 rounded-full text-xs font-medium {% if rp.status == 'completed' %}bg-green-100 text-green-700{% elif rp.status == 'pending' %}bg-yellow-100 text-yellow-800{% elif rp.status == 'failed' %}bg-red-100 text-red-700{% elif rp.status == 'refunded' %}bg-purple-100 text-purple-700{% else %}bg-gray-100 text-gray-700{% endif %}">{{ rp.status|title }}</span>
+                    </div>
+                    {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Description -->
             <div class="mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
                 <p class="text-gray-700 leading-relaxed">{{ product.description|linebreaks }}</p>
+            </div>
+
+            <!-- Ratings & Reviews -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Ratings & Reviews</h3>
+                    <span class="text-sm text-gray-500">{{ product.reviews.count }} review{{ product.reviews.count|pluralize }}</span>
+                </div>
+                {% if product.reviews.all %}
+                <div class="space-y-4">
+                    {% for review in product.reviews.all|slice:":5" %}
+                    <div class="bg-white rounded-lg border border-gray-100 p-4">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center">
+                                {% for i in "12345" %}
+                                    {% if forloop.counter <= review.rating %}
+                                        <svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.802-2.034a1 1 0 00-1.175 0l-2.802 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    {% else %}
+                                        <svg class="w-4 h-4 text-gray-300" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.802 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.802-2.034a1 1 0 00-1.175 0l-2.802 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            <span class="text-xs text-gray-400">{{ review.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        {% if review.comment %}
+                        <p class="text-sm text-gray-700">{{ review.comment }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="bg-gray-50 rounded-lg p-6 text-center text-gray-500">No reviews yet.</div>
+                {% endif %}
             </div>
             
             <!-- Contact Vendor -->
@@ -129,12 +364,44 @@
                     </svg>
                     Contact Vendor
                 </button>
-                <button class="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
-                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                    </svg>
-                    Save for Later
-                </button>
+                
+                {% if user.is_authenticated %}
+                    {% if wishlist_items %}
+                        {% for item in wishlist_items %}
+                        <form method="post" action="{% url 'home:remove_from_wishlist' item.id %}" class="flex-1">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full bg-red-50 text-red-700 py-3 px-6 rounded-lg font-semibold hover:bg-red-100 transition-colors">
+                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                Remove {{ item.product.name }} from Wishlist
+                            </button>
+                        </form>
+                        {% endfor %}
+                    {% else %}
+                        {% if default_variation %}
+                        <form method="post" action="{% url 'home:add_to_wishlist' %}" class="flex-1">
+                            {% csrf_token %}
+                            <input type="hidden" name="variation_id" value="{{ default_variation.id }}" />
+                            <button type="submit" class="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors">
+                                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                                </svg>
+                                Save for Later
+                            </button>
+                        </form>
+                        {% else %}
+                        <button type="button" disabled class="w-full bg-gray-100 text-gray-400 py-3 px-6 rounded-lg font-semibold cursor-not-allowed">
+                            <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            </svg>
+                            No variations available
+                        </button>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                <a href="{% url 'login' %}" class="flex-1 bg-gray-100 text-gray-700 py-3 px-6 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center">Save for Later</a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -185,14 +452,170 @@
 function changeMainImage(imageUrl) {
     document.getElementById('main-image').src = imageUrl;
 }
+
+// Back to top visibility and behavior for window scroll
+document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('backToTopRight');
+    if (!btn) return;
+
+    var rafId;
+    function toggleBtn() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(function () {
+            if (window.scrollY > 200) {
+                btn.classList.add('show');
+            } else {
+                btn.classList.remove('show');
+            }
+        });
+    }
+
+    window.addEventListener('scroll', toggleBtn, { passive: true });
+    toggleBtn();
+
+    btn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+});
+
+// Dynamic unit price switching based on quantity/MOQ
+document.addEventListener('DOMContentLoaded', function(){
+    var card = document.getElementById('priceCard');
+    if (!card) return;
+    var moq = parseInt(card.getAttribute('data-moq') || '1', 10);
+    var price = parseFloat(card.getAttribute('data-price') || '0');
+    var priceSingle = parseFloat(card.getAttribute('data-price-single') || '0');
+    var qtyInput = document.querySelector('input[name="quantity"]');
+    var unitPriceEl = document.getElementById('unit-price');
+    var tierLabel = document.getElementById('priceTierLabel');
+    var hasVariations = card.getAttribute('data-has-variations') === '1';
+
+    // If product has variations, we display a price range server-side; don't override it here.
+    if (hasVariations) {
+        return;
+    }
+    function updatePrice(){
+        var qty = parseInt(qtyInput && qtyInput.value || moq, 10);
+        var useSingle = (moq > 1) && priceSingle && qty < moq;
+        unitPriceEl.textContent = (useSingle ? priceSingle : price).toFixed(2);
+        if (tierLabel) tierLabel.textContent = useSingle ? 'Unit price (below MOQ)' : 'Unit price';
+    }
+    if (qtyInput) {
+        qtyInput.addEventListener('input', updatePrice);
+    }
+    updatePrice();
+});
+
+// AI Chat modal interactions (basic frontend-only placeholder)
+document.addEventListener('DOMContentLoaded', function(){
+    var aiBtn = document.getElementById('aiChatBtn');
+    var modal = document.getElementById('aiChatModal');
+    var responseEl = document.getElementById('aiChatResponse');
+    function openModal(){ modal.classList.remove('hidden'); }
+    function closeModal(){ modal.classList.add('hidden'); }
+    document.querySelectorAll('[data-ai-close]').forEach(function(el){ el.addEventListener('click', closeModal); });
+    if (aiBtn) aiBtn.addEventListener('click', openModal);
+    var sendBtn = document.getElementById('aiSendBtn');
+    var q = document.getElementById('aiQuestion');
+    if (sendBtn) {
+        sendBtn.addEventListener('click', function(){
+            var text = (q && q.value || '').trim();
+            if (!text) { q && q.focus(); return; }
+            // Placeholder: echo back. Integrate backend API later.
+            responseEl.classList.remove('hidden');
+            responseEl.textContent = 'AI (placeholder): Thanks! We will process your question about "' + text + '" for {{ product.name }}.';
+        });
+    }
+});
 </script>
 
 <style>
 .line-clamp-2 {
     display: -webkit-box;
+    line-clamp: 2;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+/* Removed independent right-column scrolling */
+
+/* Back to top button styles */
+.back-to-top {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    width: 44px;
+    height: 44px;
+    background: #2563eb; /* blue-600 */
+    color: #fff;
+    border-radius: 9999px;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
+    transition: transform .2s ease, opacity .2s ease;
+    opacity: 0;
+    transform: translateY(16px);
+    z-index: 40;
+}
+.back-to-top.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+.back-to-top:hover {
+    background: #1d4ed8; /* blue-700 */
+}
+/* Floating WhatsApp action button */
+.fab-whatsapp {
+    position: fixed;
+    right: 1rem;
+    bottom: 5.5rem; /* above back-to-top */
+    width: 52px;
+    height: 52px;
+    border-radius: 9999px;
+    background: #25D366;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(37, 211, 102, 0.35);
+    z-index: 45;
+    transition: transform .2s ease, opacity .2s ease, background .2s ease;
+}
+.fab-whatsapp:hover { background: #1ebe5d; }
+
+/* Floating AI chat button */
+.fab-ai {
+    position: fixed;
+    right: 1rem;
+    bottom: 10rem; /* above WhatsApp */
+    width: 52px;
+    height: 52px;
+    border-radius: 9999px;
+    background: #4f46e5; /* indigo-600 */
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(79, 70, 229, 0.35);
+    z-index: 45;
+    transition: transform .2s ease, opacity .2s ease, background .2s ease;
+}
+.fab-ai:hover { background: #4338ca; }
+
+/* AI modal */
+.ai-modal.hidden { display: none; }
+.ai-modal { position: fixed; inset: 0; z-index: 50; }
+.ai-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.4); }
+.ai-modal__panel {
+    position: relative;
+    max-width: 600px;
+    margin: 10vh auto;
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    padding: 1rem 1.25rem 1.25rem;
+}
+.ai-modal__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+.ai-modal__close { font-size: 1.5rem; line-height: 1; color: #6b7280; }
+.ai-modal__close:hover { color: #374151; }
 </style>
 {% endblock %}
+

@@ -11,9 +11,30 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from a local .env file if present (no extra deps)
+_env_file = os.path.join(BASE_DIR, '.env')
+if os.path.exists(_env_file):
+    try:
+        with open(_env_file, 'r') as _f:
+            for _line in _f:
+                _line = _line.strip()
+                if not _line or _line.startswith('#'):
+                    continue
+                if '=' in _line:
+                    _k, _v = _line.split('=', 1)
+                    _k = _k.strip()
+                    _v = _v.strip().strip('"').strip("'")
+                    # Do not override already-set env vars
+                    if _k and _k not in os.environ:
+                        os.environ[_k] = _v
+    except Exception:
+        # Fail silently if .env cannot be read
+        pass
 
 
 # Quick-start development settings - unsuitable for production
@@ -39,7 +60,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'vendor',
-    'home'
+    'home',
+    'core',
 ]
 
 MIDDLEWARE = [
@@ -65,6 +87,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'home.context_processors.cart_info',
             ],
         },
     },
@@ -120,7 +143,20 @@ AUTH_USER_MODEL = 'users.MyUser'
 
 STATIC_URL = 'static/'
 
+# Media files (uploaded content)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ==============================
+# External APIs: GavaConnect
+# ==============================
+# Base URL for sandbox/production
+GAVA_BASE_URL = os.environ.get('GAVA_BASE_URL', 'https://sbx.kra.go.ke')
+# Client credentials (set in environment)
+GAVA_CLIENT_KEY = os.environ.get('GAVA_CLIENT_KEY', '')
+GAVA_CLIENT_SECRET = os.environ.get('GAVA_CLIENT_SECRET', '')
