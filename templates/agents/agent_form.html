@@ -1,124 +1,188 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
 
 {% block title %}{% if form.instance.pk %}Update{% else %}Create{% endif %} Agent - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <h1 class="h4 mb-0">
-                        {% if form.instance.pk %}
-                            Update Agent: {{ form.instance.name }}
-                        {% else %}
-                            Create New Agent Profile
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <h1 class="text-xl font-semibold text-gray-800">
+                {% if form.instance.pk %}
+                    Update Agent: {{ form.instance.name }}
+                {% else %}
+                    Create New Agent Profile
+                {% endif %}
+            </h1>
+        </div>
+        
+        <div class="p-6">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-medium text-gray-900 border-b pb-2">Basic Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.name.label }}
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.email.label }}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
                         {% endif %}
-                    </h1>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" novalidate>
-                        {% csrf_token %}
                         
-                        <div class="mb-4">
-                            <h5 class="border-bottom pb-2 mb-3">Basic Information</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    {{ form.name|as_crispy_field }}
+                <!-- Services -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-medium text-gray-900 border-b pb-2">Services</h2>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Service Types <span class="text-red-500">*</span>
+                        </label>
+                        <div class="space-y-2 border rounded-md p-3">
+                            {% for checkbox in form.service_types %}
+                                <div class="flex items-center">
+                                    {{ checkbox.tag }}
+                                    <label for="{{ checkbox.id_for_label }}" class="ml-2 text-sm text-gray-700">
+                                        {{ checkbox.choice_label }}
+                                    </label>
                                 </div>
-                                <div class="col-md-6">
-                                    {{ form.email|as_crispy_field }}
-                                </div>
-                                <div class="col-12">
-                                    {{ form.description|as_crispy_field }}
-                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.service_types.errors %}
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Select all services this agent provides</p>
+                    </div>
+                </div>
+                        
+                <!-- Contact Information -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-medium text-gray-900 border-b pb-2">Contact Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-1">
+                            <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.phone.label }}
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="md:col-span-1">
+                            <label for="{{ form.phone2.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ form.phone2.label }} (Optional)
+                            </label>
+                            {{ form.phone2 }}
+                            {% if form.phone2.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.phone2.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="md:col-span-2">
+                            <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            </label>
+                            {{ form.website }}
+                            {% if form.website.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.website.errors.0 }}</p>
+                            {% endif %}
+                <!-- Social Media -->
+                <div class="space-y-4">
+                    <h2 class="text-lg font-medium text-gray-900 border-b pb-2">Social Media (Optional)</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="{{ form.social_facebook.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Facebook
+                            </label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                    https://facebook.com/
+                                </span>
+                                {{ form.social_facebook }}
                             </div>
+                            {% if form.social_facebook.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.social_facebook.errors.0 }}</p>
+                            {% endif %}
                         </div>
-                        
-                        <div class="mb-4">
-                            <h5 class="border-bottom pb-2 mb-3">Services</h5>
-                            <div class="mb-3">
-                                <label class="form-label">Service Types*</label>
-                                <div class="border rounded p-3">
-                                    {% for checkbox in form.service_types %}
-                                        <div class="form-check">
-                                            {{ checkbox }}
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                                {% if form.service_types.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {{ form.service_types.errors }}
-                                    </div>
-                                {% endif %}
-                                <small class="form-text text-muted">Select all services this agent provides</small>
+                        <div>
+                            <label for="{{ form.social_twitter.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Twitter
+                            </label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                    https://twitter.com/
+                                </span>
+                                {{ form.social_twitter }}
                             </div>
+                            {% if form.social_twitter.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.social_twitter.errors.0 }}</p>
+                            {% endif %}
                         </div>
-                        
-                        <div class="mb-4">
-                            <h5 class="border-bottom pb-2 mb-3">Contact Information</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    {{ form.phone|as_crispy_field }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.phone2|as_crispy_field }}
-                                </div>
-                                <div class="col-12">
-                                    {{ form.website|as_crispy_field }}
-                                </div>
+                        <div>
+                            <label for="{{ form.social_linkedin.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                LinkedIn
+                            </label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                    https://linkedin.com/in/
+                                </span>
+                                {{ form.social_linkedin }}
                             </div>
+                            {% if form.social_linkedin.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.social_linkedin.errors.0 }}</p>
+                            {% endif %}
                         </div>
-                        
-                        <div class="mb-4">
-                            <h5 class="border-bottom pb-2 mb-3">Location</h5>
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    {{ form.address|as_crispy_field }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.city|as_crispy_field }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.country|as_crispy_field }}
-                                </div>
+                        <div>
+                            <label for="{{ form.social_instagram.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Instagram
+                            </label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                    https://instagram.com/
+                                </span>
+                                {{ form.social_instagram }}
                             </div>
+                            {% if form.social_instagram.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.social_instagram.errors.0 }}</p>
+                            {% endif %}
                         </div>
-                        
-                        <div class="mb-4">
-                            <h5 class="border-bottom pb-2 mb-3">Social Media</h5>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    {{ form.social_facebook|as_crispy_field }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.social_twitter|as_crispy_field }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.social_linkedin|as_crispy_field }}
-                                </div>
-                                <div class="col-md-6">
-                                    {{ form.social_instagram|as_crispy_field }}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="d-flex justify-content-between">
-                            <a href="{% if form.instance.pk %}{% url 'agents:agent_detail' form.instance.pk %}{% else %}{% url 'agents:agent_list' %}{% endif %}" 
-                               class="btn btn-outline-secondary">
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                {% if form.instance.pk %}Update{% else %}Create{% endif %} Agent
-                            </button>
-                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <a href="{% if form.instance.pk %}{% url 'agents:agent_detail' form.instance.pk %}{% else %}{% url 'agents:agent_list' %}{% endif %}"
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </a>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        {% if form.instance.pk %}Update{% else %}Create{% endif %} Agent
+                    </button>
+                </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
