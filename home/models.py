@@ -57,18 +57,185 @@ class BusinessImage(models.Model):
         return f"{self.business.name} Image"
 
 
+class ServiceCategory(models.Model):
+    """Categories for agent services (Sourcing, Shipping, etc.)"""
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text="Name of the service type (e.g., Sourcing, Shipping, Customs Clearance)"
+    )
+    code = models.SlugField(
+        max_length=50,
+        unique=True,
+        help_text="Short code for the service type (e.g., 'sourcing', 'shipping')"
+    )
+    description = models.TextField(blank=True)
+    icon = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Icon class (e.g., 'fas fa-ship' or 'fas fa-warehouse')"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this service type is currently available"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Service Categories"
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Agent(models.Model):
+    """Model for Sourcing and Shipping agents"""
+    
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="agents")
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    
+    # Service Types (replaces service_type and services fields)
+    service_types = models.ManyToManyField(
+        ServiceCategory,
+        related_name="agents",
+        verbose_name="Service Types",
+        help_text="Select the types of services this agent provides"
+    )
+    
+    # Contact Information
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    phone2 = models.CharField(max_length=20, blank=True)
+    website = models.URLField(blank=True)
+    
+    # Location
+    address = models.TextField(blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    
+    # Business Hours
+    business_hours = models.JSONField(blank=True, null=True, help_text="JSON format for business hours")
+    
+    # Social Media
+    social_facebook = models.URLField(blank=True)
+    social_twitter = models.URLField(blank=True)
+    social_linkedin = models.URLField(blank=True)
+    social_instagram = models.URLField(blank=True)
+    
+    # Verification
+    is_verified = models.BooleanField(default=False)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Sourcing/Shipping Agent"
+        verbose_name_plural = "Sourcing/Shipping Agents"
+
+    def __str__(self):
+        return f"{', '.join(st.name for st in self.service_types.all())}: {self.name}"
+    
+    def get_primary_image(self):
+        """Return the primary image or the first available image"""
+        return self.images.filter(is_primary=True).first() or self.images.first()
+
+
+class AgentImage(models.Model):
+    """Images for Agent profiles"""
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='agent_images/')
+    caption = models.CharField(max_length=255, blank=True)
+    is_primary = models.BooleanField(default=False, help_text="Set as primary image")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_primary', 'created_at']
+
+    def save(self, *args, **kwargs):
+        # If this is set as primary, unset any existing primary for this agent
+        if self.is_primary:
+            AgentImage.objects.filter(agent=self.agent, is_primary=True).update(is_primary=False)
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.agent.name} - {self.caption or 'Image'}"
+
+class AgentAIKnowledgeBase(models.Model):
+    agent = models.OneToOneField(Agent, on_delete=models.CASCADE, related_name="knowledge_base")
+    content = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
 class BusinessReview(models.Model):
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="reviews")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(default=0)  # 1–5 stars
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ('business', 'user')  # 1 review per user per business
 
     def __str__(self):
         return f"{self.user} review on {self.business.name}"
+
+class AgentReview(models.Model):
+    """Model for user reviews of agents"""
+    RATING_CHOICES = [
+        (1, '★☆☆☆☆ (1/5)'),
+        (2, '★★☆☆☆ (2/5)'),
+        (3, '★★★☆☆ (3/5)'),
+        (4, '★★★★☆ (4/5)'),
+        (5, '★★★★★ (5/5)')
+    ]
+    
+    agent = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name="reviews")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="agent_reviews")
+    rating = models.PositiveSmallIntegerField(choices=RATING_CHOICES, default=5)
+    title = models.CharField(max_length=200)
+    comment = models.TextField(help_text="Share your experience with this agent")
+    is_approved = models.BooleanField(default=False, help_text="Review will be visible only after approval")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('agent', 'user')  # One review per user per agent
+        verbose_name = "Agent Review"
+        verbose_name_plural = "Agent Reviews"
+
+    def __str__(self):
+        return f"{self.user} review on {self.agent.name}"
+
+    def save(self, *args, **kwargs):
+        # Update agent's average rating
+        super().save(*args, **kwargs)
+        self.update_agent_rating()
+    
+    def update_agent_rating(self):
+        """Update the agent's average rating"""
+        from django.db.models import Avg, Count
+        
+        # Get approved reviews for this agent
+        reviews = AgentReview.objects.filter(
+            agent=self.agent,
+            is_approved=True
+        ).aggregate(
+            average_rating=Avg('rating'),
+            review_count=Count('id')
+        )
+        
+        # Update the agent's rating fields
+        self.agent.average_rating = reviews['average_rating'] or 0
+        self.agent.review_count = reviews['review_count']
+        self.agent.save(update_fields=['average_rating', 'review_count'])
 
 
 # ==============================
@@ -490,3 +657,30 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.raw_payment.transaction_id} - {self.raw_payment.payment_method} - {self.raw_payment.amount} {self.raw_payment.currency}"
+
+
+class ChatMessage(models.Model):
+    """Model for storing chat messages for product variations"""
+    variation = models.ForeignKey(
+        ProductVariation,
+        on_delete=models.CASCADE,
+        related_name='chat_messages'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='chat_messages'
+    )
+    reply_for = models.CharField(max_length=100, null=True, blank=True)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['variation', 'created_at']),
+            models.Index(fields=['user']),
+        ]
+
+    def __str__(self):
+        return f"{self.id}"

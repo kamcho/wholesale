@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if form.instance.pk %}Update{% else %}Create{% endif %} Agent - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h1 class="h4 mb-0">
+                        {% if form.instance.pk %}
+                            Update Agent: {{ form.instance.name }}
+                        {% else %}
+                            Create New Agent Profile
+                        {% endif %}
+                    </h1>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Basic Information</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.name|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.email|as_crispy_field }}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.description|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Services</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Service Types*</label>
+                                <div class="border rounded p-3">
+                                    {% for checkbox in form.service_types %}
+                                        <div class="form-check">
+                                            {{ checkbox }}
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                {% if form.service_types.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.service_types.errors }}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">Select all services this agent provides</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Contact Information</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.phone|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.phone2|as_crispy_field }}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.website|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Location</h5>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    {{ form.address|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.city|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.country|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2 mb-3">Social Media</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.social_facebook|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.social_twitter|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.social_linkedin|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.social_instagram|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% if form.instance.pk %}{% url 'agents:agent_detail' form.instance.pk %}{% else %}{% url 'agents:agent_list' %}{% endif %}" 
+                               class="btn btn-outline-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                {% if form.instance.pk %}Update{% else %}Create{% endif %} Agent
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize any required JavaScript here
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add any client-side validation or UI enhancements
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Chat - {{ variation.product.name }} - {{ variation.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100">
+    <div class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Chat Header -->
+        <div class="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <div class="flex items-center">
+                    <a href="{% url 'home:variation_detail' variation.id %}" class="mr-4 text-blue-100 hover:text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                    </a>
+                    <div class="flex-1">
+                        <h1 class="text-xl font-semibold truncate">{{ variation.product.name }}</h1>
+                        <p class="text-sm text-blue-100">{{ variation.name }}</p>
+                    </div>
+                    {% if variation.images.first %}
+                    <div class="w-12 h-12 rounded-full bg-white overflow-hidden ml-4 flex-shrink-0">
+                        <img src="{{ variation.images.first.image.url }}" alt="{{ variation.name }}" class="w-full h-full object-cover">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Messages Container -->
+            <div class="h-[calc(100vh-280px)] bg-gray-50 p-4 overflow-y-auto" id="messages">
+                {% for message in messages %}
+                <div class="mb-4 {% if message.user == request.user %}flex justify-end{% else %}flex{% endif %}">
+                    <div class="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
+                        <div class="flex {% if message.user == request.user %}flex-row-reverse{% endif %} items-start">
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full {% if message.user == request.user %}bg-blue-600{% else %}bg-gray-600{% endif %} text-white flex items-center justify-center font-semibold text-sm">
+                                {% if message.user and message.user.username %}
+                                    {{ message.user.username|first|upper }}
+                                {% else %}
+                                    U
+                                {% endif %}
+                            </div>
+                            <div class="mx-3">
+                                <div class="{% if message.user == request.user %}bg-blue-600 text-white rounded-l-xl rounded-br-xl{% else %}bg-white text-gray-800 rounded-r-xl rounded-bl-xl border border-gray-200{% endif %} px-4 py-2 shadow-sm">
+                                    <div class="text-sm">{{ message.message|linebreaksbr }}</div>
+                                    <div class="text-xs mt-1 {% if message.user == request.user %}text-blue-100{% else %}text-gray-500{% endif %}">
+                                        {{ message.created_at|date:"g:i A" }}
+                                        {% if message.user and message.user.username %}
+                                            <span class="ml-2">@{{ message.user.username }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <p class="text-lg font-medium">No messages yet</p>
+                    <p class="text-sm">Start the conversation!</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Message Input -->
+            <div class="bg-white border-t border-gray-200 p-4">
+                <form id="chat-form" method="post" class="flex items-end space-x-2">
+                    {% csrf_token %}
+                    <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all duration-200">
+                        <textarea name="message" rows="1" class="w-full border-0 bg-transparent focus:ring-0 resize-none py-3 px-4" placeholder="Type your message..." required></textarea>
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center h-12 w-12 rounded-full bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                        <svg class="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    const messagesContainer = $('#messages');
+    const messageForm = $('#chat-form');
+    let lastMessageId = {{ messages.last.id|default:0 }};
+    
+    // Auto-scroll to bottom of messages
+    function scrollToBottom() {
+        messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+    }
+    
+    // Load new messages
+    function loadNewMessages() {
+        $.get(`{% url 'home:get_chat_messages' variation.id %}?last_message_id=${lastMessageId}`, function(data) {
+            if (data.messages.length > 0) {
+                data.messages.forEach(function(msg) {
+                    const isOwn = msg.is_own;
+                    const userInitial = msg.user ? msg.user.charAt(0).toUpperCase() : 'U';
+                    const messageHtml = `
+                        <div class="mb-4 ${isOwn ? 'flex justify-end' : 'flex'}">
+                            <div class="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
+                                <div class="flex ${isOwn ? 'flex-row-reverse' : ''} items-start">
+                                    <div class="flex-shrink-0 h-8 w-8 rounded-full ${isOwn ? 'bg-blue-600' : 'bg-gray-600'} text-white flex items-center justify-center font-semibold text-sm">
+                                        ${userInitial}
+                                    </div>
+                                    <div class="mx-3">
+                                        <div class="${isOwn ? 'bg-blue-600 text-white rounded-l-xl rounded-br-xl' : 'bg-white text-gray-800 rounded-r-xl rounded-bl-xl border border-gray-200'} px-4 py-2 shadow-sm">
+                                            <div class="text-sm">${msg.message || ''}</div>
+                                            <div class="text-xs mt-1 ${isOwn ? 'text-blue-100' : 'text-gray-500'}">
+                                                ${msg.created_at || ''}
+                                                ${msg.user ? `<span class="ml-2">@${msg.user}</span>` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.append(messageHtml);
+                    lastMessageId = msg.id;
+                });
+                scrollToBottom();
+            }
+        });
+    }
+    
+    // Handle form submission
+    messageForm.on('submit', function(e) {
+        e.preventDefault();
+        const messageInput = $(this).find('textarea[name="message"]');
+        const message = messageInput.val().trim();
+        
+        if (message) {
+            const form = $(this);
+            $.post({
+                url: window.location.href,
+                data: form.serialize(),
+                success: function() {
+                    messageInput.val('').trigger('input');
+                    loadNewMessages();
+                },
+                // Prevent any success messages from being displayed
+                statusCode: {
+                    200: function() {},
+                    201: function() {}
+                }
+            }).fail(function() {
+                console.error('Failed to send message');
+            });
+        }
+    });
+
+    // Auto-resize textarea
+    $('textarea').on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Poll for new messages every 3 seconds
+    setInterval(loadNewMessages, 3000);
+    
+    // Initial scroll to bottom
+    scrollToBottom();
+    
+    // Focus the message input on load
+    $('textarea[name="message"]').focus();
+});
+</script>
+
+<style>
+/* Custom scrollbar */
+#messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#messages::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+#messages::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Smooth scrolling */
+#messages {
+    scroll-behavior: smooth;
+}
+
+/* Message animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#messages > div {
+    animation: fadeIn 0.2s ease-out;
+}
+</style>
+{% endblock %}

@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import chat_views
 
 app_name = 'home'
 
@@ -22,5 +23,9 @@ urlpatterns = [
     path('wishlist/', views.wishlist_list, name='wishlist'),
     path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/item/<int:item_id>/remove/', views.remove_from_wishlist, name='remove_from_wishlist'),
+    
+    # Chat URLs
+    path('chat/<int:variation_id>/', chat_views.chat_room, name='chat_room'),
+    path('api/chat/<int:variation_id>/messages/', chat_views.get_messages, name='get_chat_messages'),
 ]
 

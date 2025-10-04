@@ -26,6 +26,7 @@ urlpatterns = [
     path('accounts/', include('users.urls')),
     path('vendor/', include('vendor.urls')),
     path('core/', include('core.urls')),
+    path('agents/', include('agents.urls')),
 ]
 
 if settings.DEBUG:

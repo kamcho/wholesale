@@ -58,10 +58,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'users',
-    'vendor',
-    'home',
-    'core',
+    
+    # Local apps
+    'home.apps.HomeConfig',
+    'users.apps.UsersConfig',
+    'vendor.apps.VendorConfig',
+    'core.apps.CoreConfig',
+    'agents.apps.AgentsConfig',
 ]
 
 MIDDLEWARE = [
@@ -76,10 +79,15 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'WholeSale.urls'
 
+import os
+
+# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -102,7 +110,7 @@ WSGI_APPLICATION = 'WholeSale.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
 
