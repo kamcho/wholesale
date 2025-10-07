@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
-from home.models import Product, ProductCategory, Business, ProductImage, BusinessCategory, ProductVariation, OrderItem, ProductAttributeAssignment, ProductAttribute, ProductAttributeValue
+from home.models import Product, ProductCategory, Business, ProductImage, BusinessCategory, ProductVariation, OrderItem, ProductAttributeAssignment, ProductAttribute, ProductAttributeValue, PriceTier
 from .forms import (
     ProductForm,
     ProductImageForm,
@@ -15,8 +15,12 @@ from .forms import (
     ProductVariationForm,
     ProductVariationImageForm,
     ProductAttributeAssignmentForm,
+    PriceTierForm,
+    PromiseFeeForm,
 )
+from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
+from django.views.decorators.http import require_http_methods
 
 
 @login_required
@@ -442,10 +446,55 @@ def variation_detail(request, pk):
 
     images = ProductImage.objects.filter(variation=variation).order_by('-is_default', '-created_at')
 
+    # Handle PriceTier formset
+    PriceTierFormSet = inlineformset_factory(
+        ProductVariation,
+        PriceTier,
+        form=PriceTierForm,
+        extra=1,
+        can_delete=True,
+        fields=('min_quantity', 'max_quantity', 'price')
+    )
+    
+    if request.method == 'POST' and 'price_tier_submit' in request.POST:
+        price_tier_formset = PriceTierFormSet(
+            request.POST,
+            instance=variation,
+            prefix='pricetier'
+        )
+        if price_tier_formset.is_valid():
+            price_tier_formset.save()
+            messages.success(request, 'Price tiers updated successfully.')
+            return redirect('vendor:variation_detail', pk=variation.id)
+        else:
+            messages.error(request, 'Please correct the errors in the price tiers.')
+    else:
+        price_tier_formset = PriceTierFormSet(
+            instance=variation,
+            queryset=variation.price_tiers.order_by('min_quantity'),
+            prefix='pricetier'
+        )
+
+    # Handle PromiseFee form submission
+    if request.method == 'POST' and 'promise_fee_submit' in request.POST:
+        promise_fee_form = PromiseFeeForm(request.POST, variation=variation)
+        if promise_fee_form.is_valid():
+            promise_fee_form.save()
+            messages.success(request, 'Promise fee saved.')
+            return redirect('vendor:variation_detail', pk=variation.id)
+        else:
+            messages.error(request, 'Please correct the errors below (Promise Fee).')
+    else:
+        # If a PromiseFee already exists, load it for editing; else blank
+        existing = variation.promise_fees.order_by('-created_at').first()
+        promise_fee_form = PromiseFeeForm(instance=existing) if existing else PromiseFeeForm()
+
     return render(request, 'vendor/variation_detail.html', {
         'product': product,
         'variation': variation,
         'images': images,
+        'price_tier_formset': price_tier_formset,
+        'promise_fee_form': promise_fee_form,
     })
 
 @login_required
@@ -530,19 +579,52 @@ def get_categories(request):
 def orders(request):
     """List order items for products that belong to the vendor's businesses."""
     user_businesses = Business.objects.filter(owner=request.user)
-    items = (
-        OrderItem.objects
-        .select_related('order', 'product', 'variation')
-        .filter(product__business__in=user_businesses)
-        .order_by('-order__created_at')
-    )
-
-    # Simple pagination
-    paginator = Paginator(items, 20)
+    order_items = OrderItem.objects.filter(
+        Q(product__business__in=user_businesses) | Q(product__user=request.user)
+    ).select_related('order', 'product').order_by('-order__created_at')
+    
+    # Pagination
+    paginator = Paginator(order_items, 10)  # Show 10 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-
+    
     return render(request, 'vendor/orders.html', {
         'page_obj': page_obj,
-        'user_businesses': user_businesses,
+        'order_count': order_items.count(),
     })
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_price_tier(request, pk):
+    """Delete a price tier"""
+    price_tier = get_object_or_404(PriceTier, pk=pk)
+    variation = price_tier.variation
+    
+    # Check if the user has permission to delete this price tier
+    if variation.product.user != request.user and variation.product.business.owner != request.user:
+        messages.error(request, 'You do not have permission to delete this price tier.')
+        return redirect('vendor:variation_detail', pk=variation.id)
+    
+    price_tier.delete()
+    messages.success(request, 'Price tier deleted successfully.')
+    return redirect('vendor:variation_detail', pk=variation.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_promise_fee(request, pk):
+    """Delete a promise fee"""
+    from home.models import PromiseFee  # Import here to avoid circular imports
+    
+    promise_fee = get_object_or_404(PromiseFee, pk=pk)
+    variation = promise_fee.variation
+    
+    # Check if the user has permission to delete this promise fee
+    if variation.product.user != request.user and variation.product.business.owner != request.user:
+        messages.error(request, 'You do not have permission to delete this promise fee.')
+        return redirect('vendor:variation_detail', pk=variation.id)
+    
+    promise_fee.delete()
+    messages.success(request, 'Promise fee deleted successfully.')
+    return redirect('vendor:variation_detail', pk=variation.id)

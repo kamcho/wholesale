@@ -1,9 +1,16 @@
 {% extends 'users/base.html' %}
 {% load static %}
 
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
+
 {% block title %}{{ product.name }} - WholeSaleHub{% endblock %}
 
 {% block content %}
+<!-- Add data attributes for chat initialization -->
+<div data-product-id="{{ product.id }}" data-variation-id="{{ variation.id|default:'' }}" id="chat-data"></div>
 <!-- Breadcrumb -->
 <div class="bg-gray-50 py-4">
     <div class="max-w-7xl mx-auto px-4">
@@ -168,6 +175,7 @@
                             </div>
                         </div>
                         <div class="sm:col-span-2 mt-6 flex flex-col sm:flex-row gap-3">
+                            <input type="hidden" name="next" value="{{ request.get_full_path }}" />
                             <button type="submit" class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
                                 <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/>
@@ -183,22 +191,58 @@
                         <h3 class="text-md font-semibold text-gray-900 mb-3">Available Variations</h3>
                         <div class="space-y-3">
                             {% for v in product.variations.all %}
-                            <form method="post" action="{% url 'home:add_to_cart' %}" class="flex items-center justify-between gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <form method="post" action="{% url 'home:add_to_cart' %}" class="gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
                                 {% csrf_token %}
                                 <input type="hidden" name="product_id" value="{{ product.id }}" />
                                 <input type="hidden" name="variation_id" value="{{ v.id }}" />
-                                <div>
-                                    <div class="font-medium text-gray-900">
-                                        <a href="{% url 'home:variation_detail' v.id %}" class="text-blue-600 hover:text-blue-800">{{ v.name }}</a>
+                                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                                    <div>
+                                        <div class="font-medium text-gray-900">
+                                            <a href="{% url 'home:variation_detail' v.id %}" class="text-blue-600 hover:text-blue-800">{{ v.name }}</a>
+                                        </div>
+                                        <div class="text-sm text-gray-600">Price: ${{ v.price }} • MOQ: {{ v.moq }}</div>
+                                        <a href="{% url 'home:variation_detail' v.id %}" class="text-xs text-blue-600 hover:text-blue-800">View variation details</a>
                                     </div>
-                                    <div class="text-sm text-gray-600">Price: ${{ v.price }} • MOQ: {{ v.moq }}</div>
-                                    <a href="{% url 'home:variation_detail' v.id %}" class="text-xs text-blue-600 hover:text-blue-800">View variation details</a>
+                                    <div class="flex items-center gap-2">
+                                        <label for="qty_{{ v.id }}" class="sr-only">Quantity</label>
+                                        <input id="qty_{{ v.id }}" name="quantity" type="number" min="{{ v.moq }}" value="{{ v.moq }}" class="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                                        <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+                                        {% if cart_variation_ids and v.id in cart_variation_ids %}
+                                            <button type="button" disabled class="bg-green-50 text-green-700 px-4 py-2 rounded-lg font-semibold">
+                                                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                                In cart
+                                            </button>
+                                        {% else %}
+                                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Add</button>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <div class="flex items-center gap-2">
-                                    <label for="qty_{{ v.id }}" class="sr-only">Quantity</label>
-                                    <input id="qty_{{ v.id }}" name="quantity" type="number" min="{{ v.moq }}" value="{{ v.moq }}" class="w-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700">Add</button>
+
+                                {% with tiers=v.price_tiers.all %}
+                                {% if tiers %}
+                                <div class="mt-4 rounded-lg bg-white p-4">
+                                    <div class="mb-2 text-sm font-medium text-gray-900">Bulk Pricing</div>
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full text-left text-sm">
+                                            <thead>
+                                                <tr class="text-gray-500">
+                                                    <th class="py-2 pr-4">Quantity Range</th>
+                                                    <th class="py-2 pr-4">Unit Price</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-100">
+                                                {% for t in tiers %}
+                                                <tr>
+                                                    <td class="py-2 pr-4 text-gray-700">{{ t.min_quantity }}{% if t.max_quantity %} - {{ t.max_quantity }}{% else %}+{% endif %}</td>
+                                                    <td class="py-2 pr-4 font-semibold text-gray-900">${{ t.price }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
+                                {% endif %}
+                                {% endwith %}
                             </form>
                             {% endfor %}
                         </div>
@@ -616,6 +660,150 @@ document.addEventListener('DOMContentLoaded', function(){
 .ai-modal__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
 .ai-modal__close { font-size: 1.5rem; line-height: 1; color: #6b7280; }
 .ai-modal__close:hover { color: #374151; }
+
+/* Promise Fee Modal */
+#promiseFeeModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+#promiseFeeModal[style*="display: flex"] {
+    display: flex !important;
+}
+
+.promise-fee-modal-content {
+    background: white;
+    border-radius: 0.5rem;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.promise-fee-modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.promise-fee-modal-body {
+    padding: 1.5rem;
+}
+
+.promise-fee-modal-close {
+    color: #6b7280;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem;
+}
+
+.promise-fee-modal-close:hover {
+    color: #374151;
+}
+
+.promise-fee-feature-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 1.5rem 0;
+}
+
+.promise-fee-feature-list li {
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.promise-fee-feature-list li:before {
+    content: "✓";
+    color: #10b981;
+    font-weight: bold;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
 </style>
+
+{% if has_promise_fee %}
+<!-- Promise Fee Modal -->
+<div id="promiseFeeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 py-6" style="display: none;">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-900">✨ Promise Fee Available</h3>
+                <button type="button" onclick="closePromiseFeeModal()" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-gray-700">
+                    This product offers a <span class="font-semibold">Promise Fee</span> option, allowing you to:
+                </p>
+                <ul class="promise-fee-feature-list">
+                    <li>Reserve the product with a small fee</li>
+                    <li>Inspect the product in person at a local office</li>
+                    <li>Complete the payment only if you're satisfied</li>
+                    <li>No obligation to purchase if the product doesn't meet your expectations</li>
+                </ul>
+                <p class="text-gray-700">
+                    Look for the "Pay Promise Fee" option when selecting a variation.
+                </p>
+                <div class="mt-6">
+                    <button type="button" onclick="closePromiseFeeModal()" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Got it, thanks!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show promise fee modal on page load if it exists
+window.addEventListener('DOMContentLoaded', function() {
+    const promiseFeeModal = document.getElementById('promiseFeeModal');
+    if (promiseFeeModal) {
+        // Only show if not already shown in this session
+        if (!sessionStorage.getItem('promiseFeeModalShown')) {
+            promiseFeeModal.style.display = 'flex';
+            sessionStorage.setItem('promiseFeeModalShown', 'true');
+        }
+    }
+});
+
+function closePromiseFeeModal() {
+    const modal = document.getElementById('promiseFeeModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Close modal when clicking outside the content
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('promiseFeeModal');
+    if (event.target === modal) {
+        closePromiseFeeModal();
+    }
+});
+</script>
+{% endif %}
+
 {% endblock %}
 

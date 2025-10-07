@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from formtools.wizard.views import SessionWizardView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from django.contrib import messages
@@ -7,7 +8,14 @@ from django.db.models import Q, Count, Avg
 from django.core.paginator import Paginator
 
 from home.models import Agent, AgentImage, ServiceCategory
-from .forms import AgentForm, AgentImageForm, AgentSearchForm
+from .forms import (
+    AgentForm,
+    AgentImageForm,
+    AgentSearchForm,
+    AgentBasicInfoForm,
+    AgentContactInfoForm,
+    AgentSocialLinksForm,
+)
 
 class AgentListView(ListView):
     model = Agent
@@ -105,6 +113,51 @@ class AgentCreateView(LoginRequiredMixin, CreateView):
     
     def get_success_url(self):
         return reverse_lazy('agents:agent_detail', kwargs={'pk': self.object.pk})
+
+
+class AgentCreateWizardView(LoginRequiredMixin, SessionWizardView):
+    form_list = [
+        ('basic', AgentBasicInfoForm),
+        ('contact', AgentContactInfoForm),
+        ('social', AgentSocialLinksForm),
+    ]
+    template_name = 'agents/agent_form_wizard.html'
+
+    def get_context_data(self, form, **kwargs):
+        context = super().get_context_data(form=form, **kwargs)
+        context['steps_meta'] = [
+            ('basic', 'Basic Info'),
+            ('contact', 'Contact'),
+            ('social', 'Social'),
+        ]
+        return context
+
+    def done(self, form_list, **kwargs):
+        # Combine cleaned data from steps
+        aggregated = {}
+        for form in form_list:
+            aggregated.update(form.cleaned_data)
+
+        # Create Agent
+        agent = Agent(owner=self.request.user)
+        # Fields excluding M2M service_types
+        direct_fields = [
+            'name', 'description', 'email', 'phone', 'phone2', 'website',
+            'address', 'city', 'country',
+            'social_facebook', 'social_twitter', 'social_linkedin', 'social_instagram'
+        ]
+        for field in direct_fields:
+            if field in aggregated:
+                setattr(agent, field, aggregated[field])
+        agent.save()
+
+        # Handle M2M service_types
+        service_types = aggregated.get('service_types')
+        if service_types is not None:
+            agent.service_types.set(service_types)
+
+        messages.success(self.request, 'Your agent profile has been created!')
+        return redirect('agents:agent_detail', pk=agent.pk)
 
 class AgentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Agent

@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue
+from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue, PriceTier, PromiseFee
 
 User = get_user_model()
 
@@ -334,3 +334,51 @@ class ProductAttributeAssignmentForm(forms.ModelForm):
         # This method is required but won't be used directly
         # The view handles the actual saving
         return super().save(commit=commit)
+
+
+class PriceTierForm(forms.ModelForm):
+    """Form to add/edit PriceTier rows for a variation."""
+    class Meta:
+        model = PriceTier
+        fields = ["min_quantity", "max_quantity", "price"]
+        widgets = {
+            "min_quantity": forms.NumberInput(attrs={"class": "form-control", "min": "1"}),
+            "max_quantity": forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
+            "price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.variation = kwargs.pop("variation", None)
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.variation is not None:
+            instance.variation = self.variation
+        if commit:
+            instance.save()
+        return instance
+
+
+class PromiseFeeForm(forms.ModelForm):
+    """Form to add/edit PromiseFee for a variation."""
+    class Meta:
+        model = PromiseFee
+        fields = ["buy_back_fee", "percentage_fee", "must_pay_shipping"]
+        widgets = {
+            "buy_back_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "percentage_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
+            "must_pay_shipping": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.variation = kwargs.pop("variation", None)
+        super().__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.variation is not None:
+            instance.variation = self.variation
+        if commit:
+            instance.save()
+        return instance

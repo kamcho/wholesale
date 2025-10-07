@@ -1,0 +1,615 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Add data attributes for chat initialization -->
+<div data-product-id="{{ product.id }}" data-variation-id="{{ variation.id }}" id="chat-data"></div>
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .chat-btn:hover {
+    background: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  
+  .chat-btn i {
+    font-size: 24px;
+  }
+  
+  .chat-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ef4444;
+    color: white;
+    border-radius: 9999px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 0 0 2px white;
+  }
+  
+  .chat-container {
+    display: none;
+    position: absolute;
+    bottom: 80px;
+    right: 0;
+    width: 380px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+  }
+  
+  .chat-header {
+    background: #4f46e5;
+    color: white;
+    padding: 16px 20px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .chat-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+  
+  .chat-close:hover {
+    opacity: 1;
+  }
+  
+  .chat-messages {
+    height: 400px;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f9fafb;
+  }
+  
+  .message {
+    margin-bottom: 16px;
+    max-width: 80%;
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .user-message {
+    margin-left: auto;
+    text-align: right;
+  }
+  
+  .bot-message {
+    margin-right: auto;
+  }
+  
+  .message-content {
+    display: inline-block;
+    padding: 12px 16px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  .user-message .message-content {
+    background: #4f46e5;
+    color: white;
+    border-top-right-radius: 4px;
+  }
+  
+  .bot-message .message-content {
+    background: white;
+    color: #1f2937;
+    border: 1px solid #e5e7eb;
+    border-top-left-radius: 4px;
+  }
+  
+  .chat-input-container {
+    padding: 16px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .chat-input-wrapper {
+    display: flex;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .chat-input {
+    flex: 1;
+    border: none;
+    padding: 12px 16px;
+    font-size: 14px;
+    outline: none;
+  }
+  
+  .chat-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+  }
+  
+  .chat-send {
+    background: #4f46e5;
+    color: white;
+    border: none;
+    padding: 0 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .chat-send:hover {
+    background: #4338ca;
+  }
+  
+  .typing-indicator {
+    display: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #6b7280;
+    font-style: italic;
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .chat-container {
+      width: 100%;
+      bottom: 0;
+      right: 0;
+      border-radius: 12px 12px 0 0;
+    }
+    
+    .ai-chat-widget {
+      bottom: 16px;
+      right: 16px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block title %}{{ product.name }} – {{ variation.name }} - WholeSaleHub{% endblock %}
+
+{% block content %}
+<!-- AI Chat Widget -->
+<div class="ai-chat-widget">
+  <button id="chatBtn" class="chat-btn" aria-label="Chat with AI">
+    <i class="fas fa-robot"></i>
+    <span class="chat-badge" id="unreadBadge" style="display: none;">1</span>
+  </button>
+  
+  <div id="chatContainer" class="chat-container">
+    <div class="chat-header">
+      <span>AI Product Assistant</span>
+      <button id="chatClose" class="chat-close">&times;</button>
+    </div>
+    
+    <div id="chatMessages" class="chat-messages">
+      <div id="typingIndicator" class="typing-indicator">
+        <i class="fas fa-ellipsis-h mr-2"></i>AI Assistant is typing...
+      </div>
+    </div>
+    
+    <div class="chat-input-container">
+      <div class="chat-input-wrapper">
+        <input type="text" id="chatInput" class="chat-input" placeholder="Ask me about this product..." autocomplete="off">
+        <button id="sendBtn" class="chat-send">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Breadcrumb -->
+<div class="bg-gray-50 py-4">
+  <div class="max-w-7xl mx-auto px-4">
+    <nav class="flex" aria-label="Breadcrumb">
+      <ol class="flex items-center space-x-2">
+        <li><a href="{% url 'home:home' %}" class="text-blue-600 hover:text-blue-800">Home</a></li>
+        <li><span class="text-gray-400">/</span></li>
+        <li><a href="{% url 'home:product_list' %}" class="text-blue-600 hover:text-blue-800">Products</a></li>
+        <li><span class="text-gray-400">/</span></li>
+        <li><a href="{% url 'home:product_detail' product.pk %}" class="text-blue-600 hover:text-blue-800">{{ product.name }}</a></li>
+        <li><span class="text-gray-400">/</span></li>
+        <li><span class="text-gray-900">{{ variation.name }}</span></li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+  <div class="grid lg:grid-cols-2 gap-8 items-start">
+    <!-- Images -->
+    <div class="lg:sticky lg:top-0 lg:self-start">
+      {% if images %}
+        <div class="mb-4">
+          <img src="{{ images.first.image.url }}"
+               alt="{{ product.name }} – {{ variation.name }}"
+               class="w-full h-96 object-cover rounded-lg shadow-lg"
+               id="main-image">
+        </div>
+        {% if images.count > 1 %}
+        <div class="grid grid-cols-4 gap-2">
+          {% for image in images %}
+            <img src="{{ image.image.url }}"
+                 alt="{{ product.name }} – {{ variation.name }}"
+                 class="w-full h-20 object-cover rounded-lg cursor-pointer hover:opacity-75 transition-opacity"
+                 onclick="changeMainImage('{{ image.image.url }}')">
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% else %}
+        <div class="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+          <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Details -->
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ product.name }}</h1>
+      <div class="text-gray-600 mb-6">Variation: <span class="font-semibold text-gray-900">{{ variation.name }}</span></div>
+
+      <!-- Vendor Info -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-gray-600">Sold by</p>
+            <p class="font-semibold text-gray-900">{{ product.business.name }}</p>
+          </div>
+        </div>
+        <a href="{% url 'home:chat_room' variation.id %}" 
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          Chat with Seller
+        </a>
+      </div>
+
+      <!-- Price & MOQ -->
+      <div class="bg-gray-50 rounded-lg p-6 mb-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-gray-500 text-sm">Unit price</div>
+            <div class="text-4xl font-bold text-blue-600">${{ variation.price }}</div>
+          </div>
+          <span class="text-sm text-gray-500 bg-white px-3 py-1 rounded-full">
+            {% with cats=product.categories.all %}
+              {% if cats %}
+                {% for c in cats %}{{ c.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+              {% endif %}
+            {% endwith %}
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-sm text-gray-600 mt-4">
+          <span>Minimum Order Quantity (MOQ):</span>
+          <span class="font-semibold">{{ variation.moq }} units</span>
+        </div>
+      </div>
+
+      {% if price_tiers %}
+      <!-- Bulk Pricing -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3">Bulk Pricing</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-sm">
+            <thead>
+              <tr class="text-gray-500">
+                <th class="py-2 pr-4">Quantity Range</th>
+                <th class="py-2 pr-4">Unit Price</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for t in price_tiers %}
+              <tr>
+                <td class="py-2 pr-4 text-gray-700">{{ t.min_quantity }}{% if t.max_quantity %} - {{ t.max_quantity }}{% else %}+{% endif %}</td>
+                <td class="py-2 pr-4 font-semibold text-gray-900">${{ t.price }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Product Attributes -->
+      {% if has_attributes %}
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Product Specifications</h3>
+        <div class="space-y-4">
+          {% for attr_name, values in attribute_groups.items %}
+          <div class="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
+            <dt class="text-sm font-medium text-gray-500">{{ attr_name }}</dt>
+            <dd class="mt-1 text-sm text-gray-900">
+              {% for value in values %}
+                <span class="inline-block bg-gray-100 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">
+                  {{ value }}
+                </span>
+              {% endfor %}
+            </dd>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Purchase -->
+      <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <form method="post" action="{% url 'home:add_to_cart' %}" class="space-y-4">
+          {% csrf_token %}
+          <input type="hidden" name="product_id" value="{{ product.id }}" />
+          <input type="hidden" name="variation_id" value="{{ variation.id }}" />
+          <input type="hidden" name="next" value="{{ request.get_full_path }}" />
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+            <div class="flex items-center">
+              <input name="quantity" type="number" min="{{ variation.moq }}" value="{{ variation.moq }}" class="w-28 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <span class="ml-3 text-sm text-gray-500">units (MOQ {{ variation.moq }})</span>
+            </div>
+          </div>
+          <div>
+            {% if in_cart %}
+            <button type="button" disabled class="w-full bg-green-50 text-green-700 py-3 px-6 rounded-lg font-semibold">
+              <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              In cart
+            </button>
+            {% else %}
+            <button type="submit" class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+              Add to Cart
+            </button>
+            {% endif %}
+          </div>
+        </form>
+        <a href="{% url 'home:product_detail' product.pk %}" class="block text-center text-sm text-blue-600 hover:text-blue-800 mt-3">Back to product page</a>
+      </div>
+
+      <!-- Description -->
+      {% if product.description %}
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-3">Description</h3>
+        <p class="text-gray-700 leading-relaxed">{{ product.description|linebreaks }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Related Products -->
+  {% if related_products %}
+  <div class="mt-16">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Related Products</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {% for related_product in related_products %}
+      <div class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+        <div class="aspect-w-16 aspect-h-12 bg-gray-200">
+          {% if related_product.images.first %}
+          <img src="{{ related_product.images.first.image.url }}" alt="{{ related_product.name }}" class="w-full h-48 object-cover" />
+          {% else %}
+          <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          {% endif %}
+        </div>
+        <div class="p-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">{{ related_product.name }}</h3>
+          <p class="text-sm text-gray-600 mb-2">{{ related_product.business.name }}</p>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xl font-bold text-blue-600">MOQ: {{ related_product.moq }}</span>
+          </div>
+          <a href="{% url 'home:product_detail' related_product.pk %}"
+             class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors text-center block">
+            View Details
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function changeMainImage(url){
+  var img = document.getElementById('main-image');
+  if (img) img.src = url;
+}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'js/chat.js' %}"></script>
+});
+</script>
+
+<style>
+.line-clamp-2 {
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Promise Fee Modal */
+#promiseFeeModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+#promiseFeeModal[style*="display: flex"] {
+    display: flex !important;
+}
+
+.promise-fee-modal-content {
+    background: white;
+    border-radius: 0.5rem;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.promise-fee-modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.promise-fee-modal-body {
+    padding: 1.5rem;
+}
+
+.promise-fee-modal-close {
+    color: #6b7280;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.25rem;
+}
+
+.promise-fee-modal-close:hover {
+    color: #374151;
+}
+
+.promise-fee-feature-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 1.5rem 0;
+}
+
+.promise-fee-feature-list li {
+    padding: 0.5rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.promise-fee-feature-list li:before {
+    content: "✓";
+    color: #10b981;
+    font-weight: bold;
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+}
+</style>
+
+{% if has_promise_fee %}
+<!-- Promise Fee Modal -->
+<div id="promiseFeeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 py-6" style="display: none;">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-900">✨ Promise Fee Available</h3>
+                <button type="button" onclick="closePromiseFeeModal()" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-gray-700">
+                    This variation offers a <span class="font-semibold">Promise Fee</span> option, allowing you to:
+                </p>
+                <ul class="promise-fee-feature-list">
+                    <li>Reserve this item with a small fee</li>
+                    <li>Inspect the product in person at a local office</li>
+                    <li>Complete the payment only if you're satisfied</li>
+                    <li>No obligation to purchase if the product doesn't meet your expectations</li>
+                </ul>
+                <p class="text-gray-700">
+                    Look for the "Pay Promise Fee" option in the order section.
+                </p>
+                <div class="mt-6">
+                    <button type="button" onclick="closePromiseFeeModal()" class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Got it, thanks!
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show promise fee modal on page load if it exists
+window.addEventListener('DOMContentLoaded', function() {
+    const promiseFeeModal = document.getElementById('promiseFeeModal');
+    if (promiseFeeModal) {
+        // Only show if not already shown in this session
+        if (!sessionStorage.getItem('promiseFeeModalShown_variation')) {
+            promiseFeeModal.style.display = 'flex';
+            sessionStorage.setItem('promiseFeeModalShown_variation', 'true');
+        }
+    }
+});
+
+function closePromiseFeeModal() {
+    const modal = document.getElementById('promiseFeeModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Close modal when clicking outside the content
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('promiseFeeModal');
+    if (event.target === modal) {
+        closePromiseFeeModal();
+    }
+});
+</script>
+{% endif %}
+{% endblock %}

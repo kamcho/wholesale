@@ -28,6 +28,11 @@ if os.path.exists(_env_file):
                 if '=' in _line:
                     _k, _v = _line.split('=', 1)
                     _k = _k.strip()
+                    _v = _v.strip()
+                    # Remove quotes if present
+                    if (_v.startswith('"') and _v.endswith('"')) or (_v.startswith("'") and _v.endswith("'")):
+                        _v = _v[1:-1]
+                    os.environ[_k] = _v
                     _v = _v.strip().strip('"').strip("'")
                     # Do not override already-set env vars
                     if _k and _k not in os.environ:
@@ -149,7 +154,11 @@ AUTH_USER_MODEL = 'users.MyUser'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Media files (uploaded content)
 MEDIA_URL = '/media/'
@@ -159,12 +168,33 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
 # ==============================
 # External APIs: GavaConnect
 # ==============================
 # Base URL for sandbox/production
 GAVA_BASE_URL = os.environ.get('GAVA_BASE_URL', 'https://sbx.kra.go.ke')
-# Client credentials (set in environment)
-GAVA_CLIENT_KEY = os.environ.get('GAVA_CLIENT_KEY', '')
+# Client credentials (set in# OpenAI API Settings
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+if not OPENAI_API_KEY:
+    print("Warning: OPENAI_API_KEY not found in environment variables. Chat functionality will be disabled.")
+
+# GAVA API Settings
+GAVA_CLIENT_ID = os.environ.get('GAVA_CLIENT_ID', '')
 GAVA_CLIENT_SECRET = os.environ.get('GAVA_CLIENT_SECRET', '')
+
+# M-Pesa API Settings
+MPESA_CONSUMER_KEY = os.environ.get('MPESA_CONSUMER_KEY', '')
+MPESA_CONSUMER_SECRET = os.environ.get('MPESA_CONSUMER_SECRET', '')
+MPESA_BUSINESS_SHORTCODE = os.environ.get('MPESA_BUSINESS_SHORTCODE', '')
+MPESA_PASSKEY = os.environ.get('MPESA_PASSKEY', '')
+MPESA_CALLBACK_URL = os.environ.get('MPESA_CALLBACK_URL', 'https://yourdomain.com/api/mpesa-callback/')
+
+# Log M-Pesa configuration status
+if not MPESA_CONSUMER_KEY:
+    print("Warning: MPESA_CONSUMER_KEY not found. M-Pesa payments will be disabled.")
+if not MPESA_CONSUMER_SECRET:
+    print("Warning: MPESA_CONSUMER_SECRET not found. M-Pesa payments will be disabled.")
+if not MPESA_BUSINESS_SHORTCODE:
+    print("Warning: MPESA_BUSINESS_SHORTCODE not found. M-Pesa payments will be disabled.")
+if not MPESA_PASSKEY:
+    print("Warning: MPESA_PASSKEY not found. M-Pesa payments will be disabled.")

@@ -66,3 +66,48 @@ class AgentSearchForm(forms.Form):
         'placeholder': 'City or Country',
         'class': 'form-control'
     }))
+
+# --- Multi-step Agent Creation Forms ---
+
+class AgentBasicInfoForm(forms.ModelForm):
+    class Meta:
+        model = Agent
+        fields = ['name', 'description', 'service_types']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'description': forms.Textarea(attrs={'rows': 4, 'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+        }
+
+    service_types = forms.ModelMultipleChoiceField(
+        queryset=ServiceCategory.objects.all(),
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'rounded border-gray-300 text-blue-600 focus:ring-blue-500'}),
+        required=True,
+        label=_('Service Types')
+    )
+
+
+class AgentContactInfoForm(forms.ModelForm):
+    class Meta:
+        model = Agent
+        fields = ['email', 'phone', 'phone2', 'website', 'address', 'city', 'country']
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'phone': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'phone2': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'website': forms.URLInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'address': forms.Textarea(attrs={'rows': 2, 'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'city': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'country': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+        }
+
+
+class AgentSocialLinksForm(forms.ModelForm):
+    class Meta:
+        model = Agent
+        fields = ['social_facebook', 'social_twitter', 'social_linkedin', 'social_instagram']
+        widgets = {
+            'social_facebook': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'social_twitter': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'social_linkedin': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+            'social_instagram': forms.TextInput(attrs={'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500'}),
+        }

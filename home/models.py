@@ -369,6 +369,16 @@ class ProductVariation(models.Model):
     def __str__(self):
         return f"{self.product.name} - {self.name}"
 
+class PromiseFee(models.Model):
+    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='promise_fees')
+    buy_back_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    percentage_fee = models.DecimalField(max_digits=10, decimal_places=2)
+    must_pay_shipping = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.variation} - {self.fee}" 
 
 class PriceTier(models.Model):
     """Quantity-based pricing for product variations"""

@@ -22,8 +22,8 @@
             {% for item in items %}
             <div class="bg-white rounded-xl shadow-sm p-4 flex gap-4 border border-gray-100" data-unit-price="{{ item.unit_price }}">
                 <div class="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                    {% if item.product.images.first %}
-                        <img src="{{ item.product.images.first.image.url }}" class="w-full h-full object-cover" alt="{{ item.product.name }}">
+                    {% if item.variation.product.images.first %}
+                        <img src="{{ item.variation.product.images.first.image.url }}" class="w-full h-full object-cover" alt="{{ item.variation.product.name }}">
                     {% else %}
                         <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     {% endif %}
@@ -31,7 +31,7 @@
                 <div class="flex-1">
                     <div class="flex items-start justify-between">
                         <div>
-                            <h3 class="font-semibold text-gray-900">{{ item.product.name }}</h3>
+                            <h3 class="font-semibold text-gray-900">{{ item.variation.product.name }}</h3>
                             {% if item.variation %}
                             <div class="text-sm text-gray-500">{{ item.variation.name }}</div>
                             {% endif %}
@@ -45,7 +45,7 @@
                         <form method="post" action="{% url 'home:update_cart_item' item.id %}" class="flex items-center gap-2">
                             {% csrf_token %}
                             <label class="text-sm text-gray-600">Qty</label>
-                            <input data-item-id="{{ item.id }}" type="number" name="quantity" min="{{ item.product.moq }}" value="{{ item.quantity }}" class="w-24 border border-gray-300 rounded px-2 py-1 qty-input">
+                            <input data-item-id="{{ item.id }}" type="number" name="quantity" min="{{ item.variation.product.moq }}" value="{{ item.quantity }}" class="w-24 border border-gray-300 rounded px-2 py-1 qty-input">
                             <button class="px-3 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-sm shadow-sm">Update</button>
                         </form>
                         <form method="post" action="{% url 'home:remove_cart_item' item.id %}">

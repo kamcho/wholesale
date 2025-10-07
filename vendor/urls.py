@@ -30,5 +30,11 @@ urlpatterns = [
     
     # AJAX endpoints
     path('ajax/categories/', views.get_categories, name='get_categories'),
+    
+    # Price tiers
+    path('price-tiers/<int:pk>/delete/', views.delete_price_tier, name='delete_price_tier'),
+    
+    # Promise fee
+    path('promise-fees/<int:pk>/delete/', views.delete_promise_fee, name='delete_promise_fee'),
 ]
 

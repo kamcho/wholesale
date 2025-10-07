@@ -55,7 +55,7 @@
                     </div>
                 </div>
                 {% empty %}
-                <div class="h-full flex flex-col items-center justify-center text-gray-400">
+                <div id="empty-state" class="h-full flex flex-col items-center justify-center text-gray-400">
                     <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                     </svg>
@@ -97,6 +97,12 @@ $(document).ready(function() {
         messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
     }
     
+    // Hide empty state helper
+    function hideEmptyState() {
+        const empty = document.getElementById('empty-state');
+        if (empty) empty.style.display = 'none';
+    }
+
     // Load new messages
     function loadNewMessages() {
         $.get(`{% url 'home:get_chat_messages' variation.id %}?last_message_id=${lastMessageId}`, function(data) {
@@ -127,6 +133,7 @@ $(document).ready(function() {
                     messagesContainer.append(messageHtml);
                     lastMessageId = msg.id;
                 });
+                hideEmptyState();
                 scrollToBottom();
             }
         });
@@ -164,6 +171,8 @@ $(document).ready(function() {
         this.style.height = (this.scrollHeight) + 'px';
     });
     
+    // Initial fetch immediately, then poll every 3 seconds
+    loadNewMessages();
     // Poll for new messages every 3 seconds
     setInterval(loadNewMessages, 3000);
     

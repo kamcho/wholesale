@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Quick Checkout - {{ block.super }}{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Payment Processing Modal -->
+    <div id="processingModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Processing Payment</h3>
+                <p class="text-sm text-gray-500">Please wait while we process your M-Pesa payment request...</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h2 class="text-2xl font-bold text-gray-900">Order Summary</h2>
+            <p class="mt-1 text-sm text-gray-500">Review your order before proceeding to payment.</p>
+        </div>
+        
+        <div class="border-t border-gray-200">
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">Product</dt>
+                <dt class="text-sm font-medium text-gray-500 text-right">Quantity</dt>
+                <dt class="text-sm font-medium text-gray-500 text-right">Price</dt>
+            </div>
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                {% for item in cart_items %}
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 h-16 w-16 rounded-md overflow-hidden">
+                        {% with item.variation.images.all|first as image %}
+                        <img src="{% if image %}{{ image.image.url }}{% else %}{% static 'images/placeholder-product.png' %}{% endif %}" 
+                             alt="{{ item.variation.name }}" 
+                             class="h-full w-full object-cover object-center">
+                        {% endwith %}
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-sm font-medium text-gray-900">{{ item.variation.product.name }}</h3>
+                        <p class="text-sm text-gray-500">{{ item.variation.name }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 sm:mt-0 text-right">
+                    <p class="text-sm text-gray-900">{{ item.quantity }}</p>
+                </div>
+                <div class="mt-4 sm:mt-0 text-right">
+                    <p class="text-sm font-medium text-gray-900">${{ item.variation.price|floatformat:2 }}</p>
+                    <p class="text-sm text-gray-500">${{ item.total_price|floatformat:2 }} total</p>
+                </div>
+                {% if not forloop.last %}
+                <div class="border-t border-gray-200 col-span-3 my-4"></div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:px-6">
+                <div class="flex justify-between text-base font-medium text-gray-900">
+                    <p>Total</p>
+                    <p>${{ total|floatformat:2 }}</p>
+                </div>
+                <p class="mt-0.5 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
+                
+                <!-- Payment Options -->
+                <div class="mt-6 border-t border-gray-200 pt-6">
+                    <h4 class="text-sm font-medium text-gray-900 mb-4">Payment Method</h4>
+                    
+                    <div class="space-y-4">
+                        <!-- M-Pesa -->
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5 mt-1">
+                                <input id="mpesa" name="payment_method" type="radio" value="mpesa" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded" checked>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <div class="flex items-center">
+                                    <img src="https://www.safaricom.co.ke/images/M-PESA-OG-Image-1200x630.jpg" alt="M-Pesa" class="h-6 mr-2">
+                                    <label for="mpesa" class="text-sm font-medium text-gray-700">M-Pesa</label>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1">Pay via M-Pesa mobile money</p>
+                                <div id="mpesa-details" class="mt-3 p-3 bg-gray-50 rounded-md">
+                                    <div class="space-y-2">
+                                        <div>
+                                            <label for="phone" class="block text-sm font-medium text-gray-700">M-Pesa Phone Number</label>
+                                            <input type="tel" 
+                                                   id="phone" 
+                                                   name="phone" 
+                                                   placeholder="e.g. 2547XXXXXXXX" 
+                                                   required
+                                                   pattern="^254[17]\d{8}$"
+                                                   title="Please enter a valid M-Pesa number starting with 254"
+                                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                        </div>
+                                        <p class="text-xs text-gray-500">You will receive an M-Pesa prompt on your phone to complete the payment.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Divider with "or" -->
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-gray-300"></div>
+                            </div>
+                            <div class="relative flex justify-center text-sm">
+                                <span class="px-2 bg-white text-gray-500">OR</span>
+                            </div>
+                        </div>
+                        
+                        <!-- PayPal -->
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5 mt-1">
+                                <input id="paypal" name="payment_method" type="radio" value="paypal" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3">
+                                <div class="flex items-center">
+                                    <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" class="h-6 mr-2">
+                                    <label for="paypal" class="text-sm font-medium text-gray-700">PayPal</label>
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1">Pay with your PayPal account or credit/debit card</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Terms and Conditions -->
+                    <div class="mt-6 flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="terms" name="terms" type="checkbox" required class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="terms" class="font-medium text-gray-700">I agree to the <a href="#" class="text-blue-600 hover:text-blue-500">Terms and Conditions</a> and <a href="#" class="text-blue-600 hover:text-blue-500">Privacy Policy</a></label>
+                        </div>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="mt-6">
+                        <button type="button" id="submitBtn" class="w-full flex justify-center items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Complete Order
+                        </button>
+                        <div id="errorMessage" class="mt-2 text-sm text-red-600 hidden"></div>
+                    </div>
+                <div class="mt-6 flex justify-center text-sm text-center text-gray-500">
+                    <p>
+                        or
+                        <a href="{% url 'home:product_list' %}" class="text-blue-600 font-medium hover:text-blue-500">
+                            Continue Shopping<span aria-hidden="true"> &rarr;</span>
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const submitBtn = document.getElementById('submitBtn');
+    const processingModal = document.getElementById('processingModal');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    // Format phone number as user types
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.startsWith('0')) {
+                value = '254' + value.substring(1);
+            } else if (!value.startsWith('254')) {
+                value = '254' + value;
+            }
+            e.target.value = value.substring(0, 12);
+        });
+    }
+
+    submitBtn.addEventListener('click', async function(e) {
+        e.preventDefault();
+        
+        // Get selected payment method
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        const phoneNumber = document.getElementById('phone').value.trim();
+        const termsChecked = document.getElementById('terms').checked;
+        
+        // Validate form
+        if (!paymentMethod) {
+            showError('Please select a payment method');
+            return;
+        }
+        
+        if (paymentMethod.value === 'mpesa' && !phoneNumber) {
+            showError('Please enter your M-Pesa phone number');
+            return;
+        }
+        
+        if (!termsChecked) {
+            showError('You must agree to the terms and conditions');
+            return;
+        }
+        
+        // Show processing modal
+        processingModal.classList.remove('hidden');
+        submitBtn.disabled = true;
+        errorMessage.classList.add('hidden');
+        
+        try {
+            // For M-Pesa payments
+            if (paymentMethod.value === 'mpesa') {
+                const response = await fetch('{% url "home:process_mpesa_payment" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        phone_number: phoneNumber,
+                        payment_method: 'mpesa'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Show success message
+                    await Swal.fire({
+                        title: 'Payment Request Sent',
+                        text: data.message || 'Please check your phone to complete the M-Pesa payment',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    });
+                    
+                    // Redirect to confirm payment page
+                    if (data.redirect_url) {
+                        window.location.href = data.redirect_url;
+                    } else {
+                        window.location.href = '{% url "home:home" %}';
+                    }
+                } else {
+                    throw new Error(data.error || 'Failed to process payment');
+                }
+            } else if (paymentMethod.value === 'paypal') {
+                // Handle PayPal payment
+                // This would be implemented with PayPal's JavaScript SDK
+                alert('PayPal integration coming soon');
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            showError(error.message || 'An error occurred while processing your payment. Please try again.');
+        } finally {
+            processingModal.classList.add('hidden');
+            submitBtn.disabled = false;
+        }
+    });
+    
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.remove('hidden');
+        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+</script>
+{% endblock %}

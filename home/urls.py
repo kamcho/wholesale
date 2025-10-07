@@ -19,6 +19,13 @@ urlpatterns = [
     path('cart/item/<int:item_id>/update/', views.update_cart_item, name='update_cart_item'),
     path('cart/item/<int:item_id>/remove/', views.remove_cart_item, name='remove_cart_item'),
     path('cart/clear/', views.clear_cart, name='clear_cart'),
+    
+    # Quick Checkout
+    path('quick-checkout/', views.quick_checkout, name='quick_checkout'),
+    path('quick-checkout/page/', views.quick_checkout_page, name='quick_checkout_page'),
+    path('api/process-mpesa-payment/', views.process_mpesa_payment, name='process_mpesa_payment'),
+    path('confirm-payment/<int:order_id>/', views.confirm_payment, name='confirm_payment'),
+    
     # Wishlist
     path('wishlist/', views.wishlist_list, name='wishlist'),
     path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
