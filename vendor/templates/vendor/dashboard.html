@@ -3,13 +3,28 @@
 {% block title %}Dashboard - Vendor Panel{% endblock %}
 
 {% block content %}
+<style>
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+</style>
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">
-        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+        <svg class="w-6 h-6 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        Dashboard
     </h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'vendor:add_product' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Add Product
+        <a href="{% url 'vendor:add_product' %}" class="btn btn-primary hover-lift">
+            <svg class="w-4 h-4 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Add Product
         </a>
     </div>
 </div>
@@ -25,7 +40,9 @@
                         <div class="stats-number">{{ total_products }}</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-box fa-2x text-white-50"></i>
+                        <svg class="w-8 h-8 text-white-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
                     </div>
                 </div>
             </div>
@@ -41,7 +58,9 @@
                         <div class="stats-number">{{ total_businesses }}</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-building fa-2x text-white-50"></i>
+                        <svg class="w-8 h-8 text-white-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
                     </div>
                 </div>
             </div>
@@ -57,7 +76,9 @@
                         <div class="stats-number">0</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-chart-line fa-2x text-white-50"></i>
+                        <svg class="w-8 h-8 text-white-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
                     </div>
                 </div>
             </div>
@@ -73,7 +94,9 @@
                         <div class="stats-number">$0</div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-dollar-sign fa-2x text-white-50"></i>
+                        <svg class="w-8 h-8 text-white-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
                     </div>
                 </div>
             </div>
@@ -86,7 +109,12 @@
     <div class="col-lg-8">
         <div class="bg-[#0f172a] text-gray-200 rounded-2xl shadow-md overflow-hidden">
             <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-                <h5 class="m-0 font-semibold"><i class="fas fa-clock me-2"></i>Recent Products</h5>
+                <h5 class="m-0 font-semibold">
+                    <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Recent Products
+                </h5>
                 <a href="{% url 'vendor:product_list' %}" class="px-3 py-1.5 text-sm rounded-md bg-indigo-600 hover:bg-indigo-700 text-white">View All</a>
             </div>
             {% if recent_products %}
@@ -105,13 +133,17 @@
                     </thead>
                     <tbody class="divide-y divide-gray-800">
                         {% for product in recent_products %}
-                        <tr class="hover:bg-[#0b1220] transition-colors">
+                        <tr class="hover:bg-[#0b1220] transition-colors cursor-pointer" onclick="window.location.href='{% url 'vendor:product_detail' product.id %}'">
                             <td class="px-4 py-3">
                                 <div class="d-flex align-items-center">
                                     {% if product.images.first %}
                                         <img src="{{ product.images.first.image.url }}" class="me-3 rounded-lg" style="width: 48px; height: 48px; object-fit: cover;" alt="{{ product.name }}">
                                     {% else %}
-                                        <div class="me-3 rounded-lg bg-gray-700 flex items-center justify-center" style="width: 48px; height: 48px;"><i class="fas fa-image text-gray-400"></i></div>
+                                        <div class="me-3 rounded-lg bg-gray-700 flex items-center justify-center" style="width: 48px; height: 48px;">
+                                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                        </div>
                                     {% endif %}
                                     <div style="min-width: 0;">
                                         <div class="font-medium text-gray-100 text-truncate" style="max-width: 360px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ product.name }}</div>
@@ -131,9 +163,9 @@
                             <td class="px-4 py-3">{{ product.business.name }}</td>
                             <td class="px-4 py-3">{{ product.created_at|date:"M d, Y" }}</td>
                             <td class="px-4 py-3">
-                                <a href="{% url 'vendor:product_detail' product.id %}" class="px-2 py-1 text-sm rounded-md border border-gray-700 hover:bg-gray-800 text-gray-200">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
                             </td>
                         </tr>
                         {% endfor %}
@@ -142,11 +174,16 @@
             </div>
             {% else %}
             <div class="text-center py-10">
-                <i class="fas fa-box-open fa-3x text-gray-600 mb-3"></i>
+                <svg class="w-16 h-16 text-gray-600 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
                 <h5 class="text-gray-300">No Products Yet</h5>
                 <p class="text-gray-500">Start by adding your first product to get started.</p>
-                <a href="{% url 'vendor:add_product' %}" class="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white">
-                    <i class="fas fa-plus me-2"></i>Add Your First Product
+                <a href="{% url 'vendor:add_product' %}" class="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white hover-lift">
+                    <svg class="w-4 h-4 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Add Your First Product
                 </a>
             </div>
             {% endif %}
@@ -156,27 +193,47 @@
     <!-- Quick Actions & Info -->
     <div class="col-lg-4">
         <!-- Quick Actions -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-bolt me-2"></i>Quick Actions
+        <div class="card mb-4 border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="card-header border-0" style="background: transparent;">
+                <h6 class="card-title mb-0 text-white">
+                    <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Quick Actions
                 </h6>
             </div>
             <div class="card-body">
-                <div class="row g-2">
+                <div class="row g-3">
                     <div class="col-12">
-                        <a href="{% url 'vendor:add_product' %}" class="btn btn-primary w-100">
-                            <i class="fas fa-plus me-2"></i> Add Product
+                        <a href="{% url 'vendor:add_product' %}" class="btn btn-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg shadow-sm hover-lift" style="transition: all 0.3s ease;">
+                            <svg class="w-5 h-5 me-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            <span class="fw-semibold">Add Product</span>
                         </a>
                     </div>
                     <div class="col-12">
-                        <a href="{% url 'vendor:add_business' %}" class="btn btn-outline-primary w-100">
-                            <i class="fas fa-building me-2"></i> Add Business
+                        <a href="{% url 'vendor:add_business' %}" class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg hover-lift" style="transition: all 0.3s ease;">
+                            <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            <span class="fw-semibold">Add Business</span>
                         </a>
                     </div>
                     <div class="col-12">
-                        <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-secondary w-100">
-                            <i class="fas fa-list me-2"></i> View All Products
+                        <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg hover-lift" style="transition: all 0.3s ease;">
+                            <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                            </svg>
+                            <span class="fw-semibold">View All Products</span>
+                        </a>
+                    </div>
+                    <div class="col-12">
+                        <a href="{% url 'vendor:orders' %}" class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg hover-lift" style="transition: all 0.3s ease;">
+                            <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            <span class="fw-semibold">View Orders</span>
                         </a>
                     </div>
                 </div>
@@ -184,10 +241,13 @@
         </div>
         
         <!-- Your Businesses -->
-        <div class="card">
-            <div class="card-header">
+        <div class="card border-0 shadow-lg">
+            <div class="card-header border-0 bg-white">
                 <h6 class="card-title mb-0">
-                    <i class="fas fa-building me-2"></i>Your Businesses
+                    <svg class="w-5 h-5 me-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
+                    Your Businesses
                 </h6>
             </div>
             <div class="card-body">
@@ -199,17 +259,24 @@
                             <small class="text-muted">{{ business.products.count }} products</small>
                         </div>
                         <a href="{% url 'vendor:edit_business' business.id %}" 
-                           class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-edit"></i>
+                           class="btn btn-sm btn-outline-primary hover-lift">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
                         </a>
                     </div>
                     {% if not forloop.last %}<hr>{% endif %}
                     {% endfor %}
                 {% else %}
                     <div class="text-center py-3">
-                        <i class="fas fa-building fa-2x text-muted mb-2"></i>
+                        <svg class="w-12 h-12 text-muted mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
                         <p class="text-muted small">No businesses yet</p>
-                        <a href="{% url 'vendor:add_business' %}" class="btn btn-sm btn-primary">
+                        <a href="{% url 'vendor:add_business' %}" class="btn btn-sm btn-primary hover-lift">
+                            <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
                             Create Business
                         </a>
                     </div>

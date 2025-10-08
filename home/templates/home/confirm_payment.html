@@ -20,8 +20,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+    <div class="w-full max-w-4xl px-4 sm:px-6 lg:px-8">
         <!-- Success Header -->
         <div class="text-center mb-8">
             <div class="success-animation inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
@@ -34,7 +34,7 @@
         </div>
 
         <!-- Order Summary Card -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8 mx-auto w-full max-w-3xl">
             <div class="order-summary px-6 py-4">
                 <h2 class="text-xl font-semibold text-white">Order Summary</h2>
                 <p class="text-white/80">Order #{{ order.id }}</p>
@@ -91,6 +91,7 @@
 
                 <!-- Order Items -->
                 <div class="mb-6">
+                    <div class="border-t border-gray-200 my-4"></div>
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Order Items</h3>
                     <div class="space-y-4">
                         {% for item in order_items %}
@@ -197,3 +198,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+
+

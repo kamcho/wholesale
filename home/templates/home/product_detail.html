@@ -248,13 +248,21 @@
                         </div>
                     </div>
                     {% endif %}
-                    <a href="{% url 'home:product_order_create' product.id %}" class="block sm:col-span-2 mt-3">
-                        <button class="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
-                            Commit to Order
-                        </button>
-                    </a>
+                    <button onclick="openOrderModal()" class="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors sm:col-span-2 mt-3">
+                        Commit to Order
+                    </button>
                 </div>
                 <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                    <!-- Chat with Seller Button -->
+                    <a href="{% url 'home:chat_room' product.id %}"
+                       class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold text-center hover:bg-blue-700 transition-colors">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        Chat with Seller
+                    </a>
+                    
+                    <!-- WhatsApp Button -->
                     {% if product.business.phone %}
                     {% with msg="Hi "|add:product.business.name|add:", I'm interested in "|add:product.name|add:"." %}
                     <a href="https://wa.me/{{ product.business.phone|cut:' '|cut:'-'|cut:'('|cut:')' }}?text={{ msg|urlencode }}"
@@ -774,6 +782,282 @@ document.addEventListener('DOMContentLoaded', function(){
         </div>
     </div>
 </div>
+
+<!-- Order Quantity Modal -->
+<div id="orderModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 py-6" style="display: none;">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-900">Order Quantity</h3>
+                <button type="button" onclick="closeOrderModal()" class="text-gray-400 hover:text-gray-500">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <!-- Product Info -->
+                <div class="flex items-start mb-6 pb-4 border-b border-gray-100">
+                    <div class="flex-shrink-0 w-20 h-20 bg-gray-100 rounded-md overflow-hidden">
+                        <img src="{{ product.images.first.image.url }}" 
+                             alt="{{ product.name }}" 
+                             class="w-full h-full object-cover object-center">
+                    </div>
+                    <div class="ml-4 flex-1">
+                        <h4 class="font-medium text-gray-900">{{ product.name }}</h4>
+                        {% if product.sku %}
+                        <p class="text-sm text-gray-500">SKU: {{ product.sku }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-lg font-semibold text-blue-600">${{ product.price|floatformat:2 }}</p>
+                    </div>
+                </div>
+
+                <form id="orderForm" method="post" action="{% url 'home:quick_checkout' %}" class="space-y-4" onsubmit="return handleOrderFormSubmit(event)">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    
+                    {% if product.variations.all %}
+                    <div class="mt-4 border-t border-gray-200 pt-4">
+                        <h4 class="text-sm font-medium text-gray-900 mb-3">Select Variations</h4>
+                        <div class="space-y-3">
+                            {% for variation in product.variations.all %}
+                            <div class="variation-item p-3 rounded-md border border-gray-200">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ variation.name }}</p>
+                                        <p class="text-sm text-gray-500">
+                                            ${{ variation.price|floatformat:2 }}
+                                            {% if variation.stock_quantity %}
+                                            • {{ variation.stock_quantity }} in stock
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <button type="button" 
+                                                onclick="updateVariationQuantity('{{ variation.id }}', -1)" 
+                                                class="p-1 text-gray-500 hover:text-gray-700">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                            </svg>
+                                        </button>
+                                        <input type="number" 
+                                               name="variation_{{ variation.id }}" 
+                                               id="variation_{{ variation.id }}" 
+                                               min="0" 
+                                               value="0" 
+                                               step="1"
+                                               class="w-16 mx-2 text-center border rounded-md py-1 text-sm variation-quantity"
+                                               data-price="{{ variation.price|floatformat:2 }}"
+                                               data-moq="{{ variation.moq }}"
+                                               onchange="updateOrderTotal()">
+                                        <button type="button" 
+                                                onclick="updateVariationQuantity('{{ variation.id }}', 1)" 
+                                                class="p-1 text-gray-500 hover:text-gray-700">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mt-4 border-t border-gray-200 pt-4">
+                        <h4 class="text-sm font-medium text-gray-900 mb-3">Order Quantity</h4>
+                        <div class="flex items-center justify-between p-3 rounded-md border border-blue-200 bg-blue-50">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ product.name }}</p>
+                                <p class="text-sm text-gray-500">MOQ: {{ product.moq }} units</p>
+                            </div>
+                            <div class="flex items-center">
+                                <button type="button" onclick="decrementQuantity()" class="p-1 text-gray-500 hover:text-gray-700">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                    </svg>
+                                </button>
+                                <input type="number" 
+                                       name="quantity" 
+                                       id="quantity" 
+                                       min="{{ product.moq }}" 
+                                       value="{{ product.moq }}" 
+                                       step="{{ product.moq }}"
+                                       class="w-16 mx-2 text-center border rounded-md py-1 text-sm"
+                                       onchange="updateOrderTotal()">
+                                <button type="button" onclick="incrementQuantity()" class="p-1 text-gray-500 hover:text-gray-700">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="flex justify-between items-center mb-4">
+                            <p class="text-sm font-medium text-gray-900">Order Total</p>
+                            <p class="text-lg font-semibold text-blue-600">$<span id="orderTotal">{{ product.price|floatformat:2 }}</span></p>
+                        </div>
+                        <button type="submit" 
+                                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Proceed to Order
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to handle form submission
+function handleOrderFormSubmit(event) {
+    event.preventDefault();
+    
+    // Create form data
+    const formData = new FormData();
+    const form = event.target;
+    
+    // Add all form data
+    new FormData(form).forEach((value, key) => {
+        formData.append(key, value);
+    });
+    
+    // Add variation quantities
+    document.querySelectorAll('.variation-quantity').forEach(input => {
+        const quantity = parseInt(input.value) || 0;
+        if (quantity > 0) {
+            const variationId = input.id.replace('variation_', '');
+            formData.append(`quantity_${variationId}`, quantity);
+        }
+    });
+    
+    // Submit the form via fetch
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            return response.json().then(data => {
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    throw new Error('Invalid response from server');
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+    });
+    
+    return false;
+}
+
+// Make functions globally available
+window.openOrderModal = function() {
+    document.getElementById('orderModal').style.display = 'flex';
+    updateOrderTotal();
+};
+
+window.closeOrderModal = function() {
+    document.getElementById('orderModal').style.display = 'none';
+};
+
+// Track product price and variations
+const productPrice = parseFloat('{{ product.price|floatformat:2 }}');
+let quantity = parseInt('{{ product.moq|default:1 }}');
+
+function incrementQuantity() {
+    const input = document.getElementById('quantity');
+    const moq = parseInt('{{ product.moq|default:1 }}');
+    input.stepUp(moq);
+    quantity = parseInt(input.value);
+    updateOrderTotal();
+}
+
+function decrementQuantity() {
+    const input = document.getElementById('quantity');
+    const moq = parseInt('{{ product.moq|default:1 }}');
+    if (input.value > moq) {
+        input.stepDown(moq);
+        quantity = parseInt(input.value);
+        updateOrderTotal();
+    }
+}
+
+function updateVariationQuantity(variationId, change) {
+    const input = document.getElementById('variation_' + variationId);
+    const currentValue = parseInt(input.value) || 0;
+    const moq = parseInt(input.dataset.moq) || 1;
+    let newValue = currentValue + change;
+    
+    // If increasing from 0, jump to MOQ
+    if (change > 0 && currentValue === 0) {
+        newValue = moq;
+    } 
+    // If decreasing to below MOQ, go to 0
+    else if (newValue < moq && newValue > 0) {
+        newValue = 0;
+    }
+    // Ensure not going below 0
+    
+    input.value = newValue;
+    updateOrderTotal();
+}
+
+function updateOrderTotal() {
+    let total = 0;
+{{ ... }}
+    
+    // Check if we have variations
+    const variationQuantities = document.querySelectorAll('.variation-quantity');
+    if (variationQuantities.length > 0) {
+        // Calculate total from variations
+        variationQuantities.forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            if (quantity > 0) {
+                const price = parseFloat(input.dataset.price);
+                total += quantity * price;
+                hasValidQuantity = true;
+            }
+        });
+    } else {
+        // Fallback to regular product price
+        total = productPrice * quantity;
+        hasValidQuantity = quantity > 0;
+    }
+    
+    // Update order button state
+    const orderButton = document.querySelector('#orderForm button[type="submit"]');
+    if (orderButton) {
+        orderButton.disabled = !hasValidQuantity;
+    }
+    
+    document.getElementById('orderTotal').textContent = total.toFixed(2);
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('orderModal');
+    if (event.target === modal) {
+        closeOrderModal();
+    }
+});
+</script>
 
 <script>
 // Show promise fee modal on page load if it exists

@@ -1,5 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'users/base.html' %}
 {% load static %}
+{% load math_filters %}
 
 {% block title %}Quick Checkout - {{ block.super }}{% endblock %}
 
@@ -26,45 +27,176 @@
         </div>
         
         <div class="border-t border-gray-200">
-            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt class="text-sm font-medium text-gray-500">Product</dt>
-                <dt class="text-sm font-medium text-gray-500 text-right">Quantity</dt>
-                <dt class="text-sm font-medium text-gray-500 text-right">Price</dt>
+            <!-- Table Headers -->
+            <div class="hidden sm:grid sm:grid-cols-12 gap-4 bg-gray-50 px-4 py-3 sm:px-6">
+                <div class="col-span-5">
+                    <span class="text-sm font-medium text-gray-500">Product</span>
+                </div>
+                <div class="col-span-2 text-center">
+                    <span class="text-sm font-medium text-gray-500">Quantity</span>
+                </div>
+                <div class="col-span-2 text-center">
+                    <span class="text-sm font-medium text-gray-500">Promise Fee</span>
+                </div>
+                <div class="col-span-3 text-right">
+                    <span class="text-sm font-medium text-gray-500">Price</span>
+                </div>
             </div>
-            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+            
+            <!-- Cart Items -->
+            <div class="divide-y divide-gray-200">
                 {% for item in cart_items %}
-                <div class="flex items-center">
-                    <div class="flex-shrink-0 h-16 w-16 rounded-md overflow-hidden">
-                        {% with item.variation.images.all|first as image %}
-                        <img src="{% if image %}{{ image.image.url }}{% else %}{% static 'images/placeholder-product.png' %}{% endif %}" 
-                             alt="{{ item.variation.name }}" 
-                             class="h-full w-full object-cover object-center">
-                        {% endwith %}
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 px-4 py-4 sm:px-6 hover:bg-gray-50">
+                    <!-- Product Info -->
+                    <div class="col-span-5 flex items-start">
+                        <div class="flex-shrink-0 h-20 w-20 rounded-md overflow-hidden border border-gray-200">
+                            {% with item.variation.images.all|first as image %}
+                            <img src="{% if image %}{{ image.image.url }}{% else %}{% static 'images/placeholder-product.png' %}{% endif %}" 
+                                 alt="{{ item.variation.name }}" 
+                                 class="h-full w-full object-cover object-center">
+                            {% endwith %}
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h3 class="text-sm font-medium text-gray-900 line-clamp-2">{{ item.variation.product.name }}</h3>
+                            <p class="mt-1 text-sm text-gray-500">{{ item.variation.name }}</p>
+                            <!-- Mobile view for price -->
+                            <div class="sm:hidden mt-2">
+                                <p class="text-sm font-medium text-gray-900">${{ item.price|floatformat:2 }} × {{ item.quantity }}</p>
+                                <p class="text-sm font-medium text-gray-900">Total: ${{ item.total_price|floatformat:2 }}</p>
+                                {% if item.fee_options %}
+                                <div class="mt-2">
+                                    <select 
+                                        class="block w-full pl-3 pr-10 py-1 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
+                                        data-item-id="{{ item.id }}"
+                                        onchange="showFeeDetails(this)"
+                                    >
+                                        <option value="" selected disabled>Select payment plan</option>
+                                        {% for fee in item.fee_options %}
+                                        <option value="{{ forloop.counter0 }}">
+                                            {{ fee.description }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    
+                                    {% if item.selected_fee %}
+                                    <div class="mt-1 text-xs text-gray-600">
+                                        <div>Now: ${{ item.selected_fee.deposit_amount }}</div>
+                                        <div>On Pickup: ${{ item.selected_fee.pickup_amount }}</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
-                    <div class="ml-4">
-                        <h3 class="text-sm font-medium text-gray-900">{{ item.variation.product.name }}</h3>
-                        <p class="text-sm text-gray-500">{{ item.variation.name }}</p>
+                    
+                    <!-- Quantity (Desktop) -->
+                    <div class="hidden sm:flex col-span-2 items-center justify-center">
+                        <div class="text-center">
+                            <span class="text-sm text-gray-900">{{ item.quantity }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Promise Fee (Desktop) -->
+                    <div class="hidden sm:block col-span-3 items-center">
+                        {% if item.fee_options %}
+                        <div class="relative">
+                            <select 
+                                class="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
+                                data-item-id="{{ item.id }}"
+                                onchange="showFeeDetails(this)"
+                            >
+                                <option value="" selected disabled>Select payment plan</option>
+                                {% for fee in item.fee_options %}
+                                <option value="{{ forloop.counter0 }}">
+                                    {{ fee.description }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        {% else %}
+                        <span class="text-sm text-gray-400">No payment plans available</span>
+                        {% endif %}
+                        
+                        {% if item.selected_fee %}
+                        <div class="mt-2 text-xs text-gray-600">
+                            <div>Now: ${{ item.selected_fee.deposit_amount }}</div>
+                            <div>On Pickup: ${{ item.selected_fee.pickup_amount }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Price (Desktop) -->
+                    <div class="hidden sm:flex col-span-3 items-center justify-end">
+                        <div class="text-right">
+                            <p class="text-sm text-gray-900">${{ item.price|floatformat:2 }} × {{ item.quantity }}</p>
+                            {% if item.selected_fee %}
+                            <p class="text-xs text-green-600">+ ${{ item.selected_fee.amount }} × {{ item.quantity }} ({{ item.selected_fee.percentage_fee }}% + ${{ item.selected_fee.buy_back_fee }})</p>
+                            {% endif %}
+                            <p class="text-sm font-medium text-gray-900">${{ item.total_with_fee|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Mobile view for quantity and promise fee -->
+                    <div class="sm:hidden col-span-12 flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium text-gray-500 mr-2">Qty:</span>
+                            <span class="text-sm text-gray-900">{{ item.quantity }}</span>
+                        </div>
+                        {% if item.selected_fee %}
+                        <div class="flex items-center">
+                            <div class="text-sm text-green-600" id="mobile-fee-{{ item.id }}">
+                                <div>{{ item.selected_fee.description }}</div>
+                                <div class="text-xs text-gray-600">
+                                    <span>Now: ${{ item.selected_fee.deposit_amount }}</span> • 
+                                    <span>Pickup: ${{ item.selected_fee.pickup_amount }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-                <div class="mt-4 sm:mt-0 text-right">
-                    <p class="text-sm text-gray-900">{{ item.quantity }}</p>
-                </div>
-                <div class="mt-4 sm:mt-0 text-right">
-                    <p class="text-sm font-medium text-gray-900">${{ item.variation.price|floatformat:2 }}</p>
-                    <p class="text-sm text-gray-500">${{ item.total_price|floatformat:2 }} total</p>
-                </div>
-                {% if not forloop.last %}
-                <div class="border-t border-gray-200 col-span-3 my-4"></div>
-                {% endif %}
                 {% endfor %}
             </div>
             
             <div class="bg-gray-50 px-4 py-5 sm:px-6">
-                <div class="flex justify-between text-base font-medium text-gray-900">
-                    <p>Total</p>
-                    <p>${{ total|floatformat:2 }}</p>
+                <!-- Subtotal -->
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <p>Subtotal</p>
+                    <p data-subtotal>${{ total|floatformat:2 }}</p>
                 </div>
-                <p class="mt-0.5 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
+                
+                <!-- Deposit and Pickup Amounts -->
+                {% if has_selected_fees %}
+                <!-- Discount Information -->
+                <div class="flex justify-between text-sm text-green-600 mb-1">
+                    <p>Payment Plan Discount</p>
+                    <p>-${{ discount_amount|floatformat:2 }}</p>
+                </div>
+                
+                <!-- Deposit Amount -->
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <p>Deposit Amount (Now)</p>
+                    <p data-deposit>${{ deposit_total|floatformat:2 }}</p>
+                </div>
+                
+                <!-- Amount Due on Pickup -->
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <p>Amount Due on Pickup</p>
+                    <p data-pickup>${{ pickup_total|floatformat:2 }}</p>
+                </div>
+                {% endif %}
+                
+                <!-- Divider -->
+                <div class="fee-divider {% if not has_selected_fees %}hidden{% endif %} border-t border-gray-200 my-2"></div>
+                
+                <!-- Total -->
+                <div class="flex justify-between text-base font-medium text-gray-900 mt-2">
+                    <p>Total</p>
+                    <p data-total>${{ total|floatformat:2 }}</p>
+                </div>
+                
+                <p class="mt-2 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
                 
                 <!-- Payment Options -->
                 <div class="mt-6 border-t border-gray-200 pt-6">
@@ -155,6 +287,285 @@
         </div>
     </div>
 </div>
+
+<!-- Fee Details Modal -->
+<div id="feeModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Payment Plan Details</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    For <span id="modal-product-name"></span>
+                </p>
+                <div class="space-y-4">
+                    <!-- Product Info -->
+                    <div class="bg-gray-50 p-3 rounded-md">
+                        <h4 class="font-medium text-gray-900 mb-2">Order Summary</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Unit Price:</span>
+                                <span id="modal-unit-price"></span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Quantity:</span>
+                                <span id="modal-quantity"></span>
+                            </div>
+                            <div class="flex justify-between text-sm font-medium">
+                                <span class="text-gray-900">Subtotal:</span>
+                                <span id="modal-subtotal"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment Plan -->
+                    <div class="bg-blue-50 p-3 rounded-md">
+                        <h4 class="font-medium text-blue-900 mb-2">Payment Plan</h4>
+                        <div id="modal-fee-desc" class="space-y-2"></div>
+                    </div>
+
+                    <!-- Payment Breakdown -->
+                    <div class="bg-yellow-50 p-3 rounded-md">
+                        <h4 class="font-medium text-yellow-900 mb-2">Payment Breakdown</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-700">To Pay Now (<span id="deposit-percent">0</span>%):</span>
+                                <span id="modal-deposit-amount" class="font-medium">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-700">Remaining on Pickup (<span id="pickup-percent">0</span>%):</span>
+                                <span id="modal-pickup-amount" class="font-medium">$0.00</span>
+                            </div>
+                            <div class="border-t border-yellow-200 my-1"></div>
+                            <div class="flex justify-between font-medium">
+                                <span class="text-gray-900">Total Amount:</span>
+                                <span id="modal-total-amount" class="text-lg">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button onclick="closeModal()" class="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    Got it, thanks!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showFeeDetails(selectElement) {
+        const itemId = selectElement.dataset.itemId;
+        const selectedIndex = selectElement.value;
+        
+        // If no option is selected, do nothing
+        if (selectedIndex === '') {
+            return;
+        }
+        
+        const itemData = JSON.parse(document.getElementById(`item-data-${itemId}`).textContent);
+        const fee = itemData.fee_options[selectedIndex];
+        
+        // Update the selected fee for this item
+        itemData.selected_fee = fee;
+        itemData.selected_fee_index = parseInt(selectedIndex);
+        
+        // Update the display to show the selected plan
+        updateSelectedFeeDisplay(itemId, itemData);
+        
+        // Calculate amounts
+        const productPrice = parseFloat(fee.product_price);
+        const quantity = parseInt(itemData.quantity);
+        const subtotal = (productPrice * quantity).toFixed(2);
+        
+        // Check if this is a promise fee option (not 'none')
+        const isPromiseFee = fee.id !== 'none';
+        
+        // Calculate amounts based on payment type
+        let depositPercent, depositAmount, remainingAmount, totalAmount;
+        
+        if (isPromiseFee) {
+            // For promise fee, deposit is the fee percentage of the total
+            depositPercent = parseFloat(fee.deposit_percent);
+            depositAmount = (productPrice * quantity * depositPercent / 100).toFixed(2);
+            remainingAmount = (productPrice * quantity).toFixed(2); // Full amount due on pickup
+            totalAmount = (parseFloat(depositAmount) + parseFloat(remainingAmount)).toFixed(2);
+        } else {
+            // For full payment, deposit is 100%
+            depositPercent = 100;
+            depositAmount = (productPrice * quantity).toFixed(2);
+            remainingAmount = '0.00';
+            totalAmount = depositAmount;
+        }
+        
+        // Update modal content with product details
+        document.getElementById('modal-product-name').textContent = itemData.name;
+        document.getElementById('modal-unit-price').textContent = `$${productPrice.toFixed(2)}`;
+        document.getElementById('modal-quantity').textContent = quantity;
+        document.getElementById('modal-subtotal').textContent = `$${subtotal}`;
+        
+        // Update payment plan details
+        document.getElementById('modal-fee-desc').innerHTML = `
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-700">${fee.description}</span>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    ${isPromiseFee ? `${depositPercent}% Promise Fee` : 'Full Payment'}
+                </span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+                ${isPromiseFee ? 
+                    `Pay a ${depositPercent}% promise fee of $${depositAmount} now and the remaining $${remainingAmount} when you pick up your order.` :
+                    `Pay the full amount of $${depositAmount} now.`
+                }
+            </p>
+        `;
+        
+        // Update payment breakdown
+        document.getElementById('deposit-percent').textContent = depositPercent;
+        document.getElementById('pickup-percent').textContent = isPromiseFee ? 100 : 0;
+        document.getElementById('modal-deposit-amount').textContent = `$${depositAmount}`;
+        document.getElementById('modal-pickup-amount').textContent = isPromiseFee ? `$${remainingAmount}` : '$0.00';
+        document.getElementById('modal-total-amount').textContent = `$${totalAmount}`;
+        
+        // Show modal
+        document.getElementById('feeModal').classList.remove('hidden');
+    }
+    
+    function closeModal() {
+        document.getElementById('feeModal').classList.add('hidden');
+    }
+    
+    function updateSelectedFeeDisplay(itemId, itemData) {
+        const fee = itemData.selected_fee;
+        if (!fee) return;
+        
+        // Update the selected fee in the data attribute
+        document.getElementById(`item-data-${itemId}`).textContent = JSON.stringify(itemData);
+        
+        // Update the display for mobile
+        const mobileFeeDisplay = document.querySelector(`#mobile-fee-${itemId}`);
+        if (mobileFeeDisplay) {
+            const pickupText = fee.pickup_percent !== '0' ? ` • <span>Pickup: $${fee.pickup_amount}</span>` : '';
+            mobileFeeDisplay.innerHTML = `
+                <div>${fee.description}</div>
+                <div class="text-xs text-gray-600">
+                    <span>Now: $${fee.deposit_amount}</span>${pickupText}
+                </div>
+            `;
+        }
+        
+        // Update the total
+        updateOrderTotal();
+    }
+    
+    // Update the order total based on selected fees
+    function updateOrderTotal() {
+        // Get all items with their selected fees
+        const items = Array.from(document.querySelectorAll('[id^="item-data-"]')).map(el => ({
+            id: el.id.replace('item-data-', ''),
+            data: JSON.parse(el.textContent)
+        }));
+        
+        // Calculate subtotal (sum of all item prices * quantities)
+        const subtotal = items.reduce((sum, item) => {
+            return sum + (parseFloat(item.data.price) * item.data.quantity);
+        }, 0);
+        
+        // Calculate deposit and pickup amounts
+        const selectedFees = items.filter(item => item.data.selected_fee);
+        const depositTotal = selectedFees.reduce((sum, item) => {
+            return sum + parseFloat(item.data.selected_fee.deposit_amount || 0);
+        }, 0);
+        
+        const pickupTotal = selectedFees.reduce((sum, item) => {
+            return sum + parseFloat(item.data.selected_fee.pickup_amount || 0);
+        }, 0);
+        
+        // Calculate total (subtotal + any fees)
+        const total = subtotal + depositTotal + pickupTotal;
+        
+        // Update the UI
+        const subtotalEl = document.querySelector('[data-subtotal]');
+        const depositEl = document.querySelector('[data-deposit]');
+        const pickupEl = document.querySelector('[data-pickup]');
+        const totalEl = document.querySelector('[data-total]');
+        
+        if (subtotalEl) {
+            subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+        }
+        
+        // Show/hide deposit and pickup sections based on whether any fees are selected
+        if (depositEl && pickupEl) {
+            if (selectedFees.length > 0) {
+                depositEl.closest('div').classList.remove('hidden');
+                pickupEl.closest('div').classList.remove('hidden');
+                depositEl.textContent = `$${depositTotal.toFixed(2)}`;
+                pickupEl.textContent = `$${pickupTotal.toFixed(2)}`;
+                // Show the divider
+                const divider = document.querySelector('.fee-divider');
+                if (divider) divider.classList.remove('hidden');
+            } else {
+                depositEl.closest('div').classList.add('hidden');
+                pickupEl.closest('div').classList.add('hidden');
+                // Hide the divider
+                const divider = document.querySelector('.fee-divider');
+                if (divider) divider.classList.add('hidden');
+            }
+        }
+        
+        if (totalEl) {
+            totalEl.textContent = `$${total.toFixed(2)}`;
+        }
+    }
+    
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('feeModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+    
+    // Initialize the total on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateOrderTotal();
+    });
+</script>
+
+<!-- Add item data as JSON for JavaScript access -->
+{% for item in cart_items %}
+<script type="application/json" id="item-data-{{ item.id }}">
+{
+    "id": {{ item.id|safe }},
+    "name": "{{ item.variation.name|default:item.variation.product.name|escapejs }}",
+    "price": {{ item.variation.price|floatformat:2|safe }},
+    "quantity": {{ item.quantity|safe }},
+    "fee_options": [
+        {
+            "id": "none",
+            "description": "Pay in full",
+            "deposit_percent": "100",
+            "pickup_percent": "0",
+            "deposit_amount": "{{ item.variation.price|multiply:item.quantity|floatformat:2|safe }}",
+            "pickup_amount": "0.00",
+            "total_amount": "{{ item.variation.price|multiply:item.quantity|floatformat:2|safe }}",
+            "product_price": "{{ item.variation.price|floatformat:2|safe }}"
+        }{% for fee in item.variation.promise_fees.all %},
+        {
+            "id": "{{ fee.id }}",
+            "description": "{{ fee.get_payment_plan_description|escapejs }}",
+            "deposit_percent": "{{ fee.percentage_fee|floatformat:2 }}",
+            "pickup_percent": "0",
+            "deposit_amount": "{{ item.variation.price|multiply:item.quantity|multiply:fee.percentage_fee|divide:100|floatformat:2 }}",
+            "pickup_amount": "0.00",
+            "total_amount": "{{ item.variation.price|multiply:item.quantity|floatformat:2 }}",
+            "product_price": "{{ item.variation.price|floatformat:2 }}"
+        }{% endfor %}
+    ],
+    "selected_fee_index": 0
+}
+</script>
+{% endfor %}
 {% endblock %}
 
 {% block extra_js %}

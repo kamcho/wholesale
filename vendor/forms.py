@@ -364,8 +364,9 @@ class PromiseFeeForm(forms.ModelForm):
     """Form to add/edit PromiseFee for a variation."""
     class Meta:
         model = PromiseFee
-        fields = ["buy_back_fee", "percentage_fee", "must_pay_shipping"]
+        fields = ["name", "buy_back_fee", "percentage_fee", "must_pay_shipping"]
         widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Basic, Premium, Express"}),
             "buy_back_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
             "percentage_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
             "must_pay_shipping": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -374,6 +375,22 @@ class PromiseFeeForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.variation = kwargs.pop("variation", None)
         super().__init__(*args, **kwargs)
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if name and self.variation:
+            # Check if a promise fee with this name already exists for this variation
+            existing = PromiseFee.objects.filter(
+                variation=self.variation, 
+                name=name
+            ).exclude(pk=self.instance.pk if self.instance else None)
+            
+            if existing.exists():
+                raise forms.ValidationError(
+                    f"A promise fee with the name '{name}' already exists for this variation. "
+                    f"Please choose a different name."
+                )
+        return name
 
     def save(self, commit=True):
         instance = super().save(commit=False)

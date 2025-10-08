@@ -31,8 +31,11 @@ urlpatterns = [
     path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/item/<int:item_id>/remove/', views.remove_from_wishlist, name='remove_from_wishlist'),
     
+    # Order History
+    path('my-orders/', views.order_history, name='order_history'),
+    
     # Chat URLs
-    path('chat/<int:variation_id>/', chat_views.chat_room, name='chat_room'),
-    path('api/chat/<int:variation_id>/messages/', chat_views.get_messages, name='get_chat_messages'),
+    path('chat/<int:product_id>/', chat_views.chat_room, name='chat_room'),
+    path('api/chat/<int:product_id>/messages/', chat_views.get_messages, name='get_chat_messages'),
 ]
 

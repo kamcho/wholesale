@@ -13,10 +13,10 @@ from .models import (
     ProductOrder,
     ProductAttribute,
     ProductAttributeValue,
-    ProductAttributeAssignment,
+    ProductAttributeAssignment,PromiseFee
 )
 
-
+admin.site.register(PromiseFee)
 class ProductVariationInline(admin.TabularInline):
     model = ProductVariation
     extra = 1

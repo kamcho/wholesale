@@ -1,31 +1,85 @@
 {% extends 'base.html' %}
-{% load widget_tweaks %}
+{% load widget_tweaks static %}
 
 {% block title %}{% if form.instance.pk %}Update{% else %}Create{% endif %} Agent - {{ block.super }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .form-section {
+        @apply mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-100;
+    }
+    .form-section-title {
+        @apply text-lg font-semibold text-dark flex items-center mb-6 pb-3 border-b border-gray-100;
+    }
+    .form-section-title i {
+        @apply mr-2 text-primary;
+    }
+    .form-group {
+        @apply mb-5;
+    }
+    .form-label {
+        @apply block text-sm font-medium text-gray-700 mb-1;
+    }
+    .form-control {
+        @apply mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20 transition duration-150 ease-in-out;
+    }
+    .btn-primary {
+        @apply inline-flex items-center px-6 py-2.5 bg-primary text-white font-medium text-sm leading-tight rounded-lg shadow-md hover:bg-primary/90 hover:shadow-lg focus:bg-primary/90 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-primary/90 active:shadow-lg transition duration-150 ease-in-out;
+    }
+    .btn-outline {
+        @apply inline-flex items-center px-6 py-2 border border-gray-300 text-gray-700 font-medium text-sm leading-tight rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 transition duration-150 ease-in-out;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="bg-white shadow overflow-hidden sm:rounded-xl">
-        <div class="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700">
-            <h1 class="text-xl font-semibold text-white">
-                {% if form.instance.pk %}
-                    <i class="fas fa-user-edit mr-2"></i>Update Agent: {{ form.instance.name }}
-                {% else %}
-                    <i class="fas fa-user-plus mr-2"></i>Create New Agent
-                {% endif %}
-            </h1>
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="text-center mb-10">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            {% if form.instance.pk %}
+                Update Agent Profile
+            {% else %}
+                Register as an Agent
+            {% endif %}
+        </h1>
+        <p class="text-gray-600 max-w-2xl mx-auto">
+            {% if form.instance.pk %}
+                Update your agent information to keep your profile current and visible to potential clients.
+            {% else %}
+                Join our network of trusted agents and expand your business opportunities.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Progress Steps -->
+        <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white font-semibold">1</div>
+                    <span class="ml-2 text-sm font-medium text-gray-900">Basic Information</span>
+                </div>
+                <div class="hidden md:block w-1/4 h-1 bg-gray-200 mx-2 rounded-full"></div>
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full border-2 border-gray-300 text-gray-500 font-semibold">2</div>
+                    <span class="ml-2 text-sm font-medium text-gray-500">Business Details</span>
+                </div>
+                <div class="hidden md:block w-1/4 h-1 bg-gray-200 mx-2 rounded-full"></div>
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-full border-2 border-gray-300 text-gray-500 font-semibold">3</div>
+                    <span class="ml-2 text-sm font-medium text-gray-500">Review & Submit</span>
+                </div>
+            </div>
         </div>
 
-        <form method="post" enctype="multipart/form-data" class="space-y-8 p-6">
+        <form method="post" enctype="multipart/form-data" class="divide-y divide-gray-200">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
-                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
+                            <i class="fas fa-exclamation-circle text-red-500"></i>
                         </div>
                         <div class="ml-3">
                             <p class="text-sm font-medium text-red-800">
@@ -36,68 +90,201 @@
                 </div>
             {% endif %}
 
-            <div class="space-y-6">
-                <!-- Basic Information -->
-                <div>
-                    <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>Basic Information
-                    </h3>
-                    <div class="grid grid-cols-1 gap-y-5 gap-x-6 sm:grid-cols-6">
-                        {% for field in form %}
-                            {% if field.name in 'first_name,last_name,email,phone,position,company' %}
-                            <div class="sm:col-span-3">
-                                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                    {{ field.label }}
-                                    {% if field.field.required %}
-                                        <span class="text-red-500">*</span>
-                                    {% endif %}
-                                </label>
-                                <div class="mt-1 relative rounded-md shadow-sm">
-                                    {% if field.name == 'email' %}
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i class="fas fa-envelope text-gray-400"></i>
-                                        </div>
-                                        {{ field|add_class:"focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md h-10" }}
-                                    {% elif field.name == 'phone' %}
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <i class="fas fa-phone text-gray-400"></i>
-                                        </div>
-                                        {{ field|add_class:"focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md h-10" }}
-                                    {% else %}
-                                        {{ field|add_class:"focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md h-10 px-3 py-2" }}
-                                    {% endif %}
+            <div class="p-8 space-y-8">
+                <!-- Personal Information Section -->
+                <div class="form-section">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-user-circle"></i>
+                        Personal Information
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- First Name -->
+                        <div class="form-group">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                {{ form.first_name.label }}
+                                {% if form.first_name.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-user text-gray-400"></i>
                                 </div>
-                                {% if field.help_text %}
-                                    <p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>
-                                {% endif %}
-                                {% if field.errors %}
-                                    {% for error in field.errors %}
-                                        <p class="mt-1 text-xs text-red-600">
-                                            <i class="fas fa-exclamation-circle mr-1"></i>{{ error }}
-                                        </p>
-                                    {% endfor %}
-                                {% endif %}
+                                {{ form.first_name|add_class:"form-control pl-10"|attr:"placeholder:Enter first name" }}
                             </div>
+                            {% if form.first_name.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.first_name.help_text }}</p>
                             {% endif %}
-                        {% endfor %}
+                            {% for error in form.first_name.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Last Name -->
+                        <div class="form-group">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                {{ form.last_name.label }}
+                                {% if form.last_name.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-user text-gray-400"></i>
+                                </div>
+                                {{ form.last_name|add_class:"form-control pl-10"|attr:"placeholder:Enter last name" }}
+                            </div>
+                            {% if form.last_name.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.last_name.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.last_name.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="form-group">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                {{ form.email.label }}
+                                {% if form.email.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-envelope text-gray-400"></i>
+                                </div>
+                                {{ form.email|add_class:"form-control pl-10"|attr:"placeholder:Enter email address" }}
+                            </div>
+                            {% if form.email.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.email.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.email.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="form-group">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                {{ form.phone.label }}
+                                {% if form.phone.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-phone text-gray-400"></i>
+                                </div>
+                                {{ form.phone|add_class:"form-control pl-10"|attr:"placeholder:Enter phone number" }}
+                            </div>
+                            {% if form.phone.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.phone.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.phone.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Company Information -->
+                <div class="form-section">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-building"></i>
+                        Company Information
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Company Name -->
+                        <div class="form-group">
+                            <label for="{{ form.company.id_for_label }}" class="form-label">
+                                {{ form.company.label }}
+                                {% if form.company.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-building text-gray-400"></i>
+                                </div>
+                                {{ form.company|add_class:"form-control pl-10"|attr:"placeholder:Enter company name" }}
+                            </div>
+                            {% if form.company.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.company.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.company.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Position -->
+                        <div class="form-group">
+                            <label for="{{ form.position.id_for_label }}" class="form-label">
+                                {{ form.position.label }}
+                                {% if form.position.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-briefcase text-gray-400"></i>
+                                </div>
+                                {{ form.position|add_class:"form-control pl-10"|attr:"placeholder:Your position" }}
+                            </div>
+                            {% if form.position.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.position.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.position.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
 
                 <!-- Additional Information -->
-                <div class="pt-4">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">
-                        <i class="fas fa-ellipsis-h text-blue-600 mr-2"></i>Additional Information
-                    </h3>
-                    <div class="grid grid-cols-1 gap-y-5 gap-x-6 sm:grid-cols-6">
-                        {% for field in form %}
-                            {% if field.name not in 'first_name,last_name,email,phone,position,company' %}
-                            <div class="{% if field.name in 'bio,notes' %}sm:col-span-6{% else %}sm:col-span-3{% endif %}">
-                                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                    {{ field.label }}
-                                    {% if field.field.required %}
-                                        <span class="text-red-500">*</span>
-                                    {% endif %}
-                                </label>
+                <div class="form-section">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-info-circle"></i>
+                        Additional Information
+                    </h2>
+                    <div class="grid grid-cols-1 gap-6">
+                        <!-- Bio -->
+                        <div class="form-group">
+                            <label for="{{ form.bio.id_for_label }}" class="form-label">
+                                {{ form.bio.label }}
+                                {% if form.bio.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            {{ form.bio|add_class:"form-control"|attr:"rows:4"|attr:"placeholder:Tell us about yourself and your experience..." }}
+                            {% if form.bio.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.bio.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.bio.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Profile Picture -->
+                        <div class="form-group">
+                            <label for="{{ form.profile_picture.id_for_label }}" class="form-label">
+                                {{ form.profile_picture.label }}
+                                {% if form.profile_picture.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="mt-1 flex items-center">
+                                <div class="relative group">
+                                    <div class="w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                                        <div class="relative">
+                                            <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-camera text-gray-400 text-2xl"></i>
+                                            </div>
+                                            <div class="absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                <span class="text-white text-xs font-medium">Change</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {{ form.profile_picture|add_class:"absolute inset-0 w-full h-full opacity-0 cursor-pointer" }}
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-600">
+                                        Upload a professional photo<br>
+                                        <span class="text-xs text-gray-500">JPG, PNG, max 5MB</span>
+                                    </p>
+                                </div>
+                            </div>
+                            {% if form.profile_picture.help_text %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.profile_picture.help_text }}</p>
+                            {% endif %}
+                            {% for error in form.profile_picture.errors %}
+                                <p class="mt-1 text-xs text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                            {% endfor %}
+                        </div>
                                 <div class="mt-1">
                                     {% if field|field_type == 'booleanfield' %}
                                         <div class="flex items-center h-10">
@@ -146,9 +333,104 @@
                     </button>
                 </div>
             </div>
+            </div>
         </form>
     </div>
 </div>
+
+<!-- Success Modal -->
+<div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
+                <i class="fas fa-check text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-xl font-medium text-gray-900 mt-4">Success!</h3>
+            <p class="mt-2 text-gray-600">
+                {% if form.instance.pk %}
+                    Agent profile has been updated successfully.
+                {% else %}
+                    Your agent registration has been submitted for review.
+                {% endif %}
+            </p>
+            <div class="mt-6">
+                <a href="{% if form.instance.pk %}{% url 'agents:agent_detail' form.instance.pk %}{% else %}{% url 'agents:agent_list' %}{% endif %}"
+                   class="btn-primary inline-flex items-center">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    {% if form.instance.pk %}View Profile{% else %}Back to Agents{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form submission handling
+        const form = document.querySelector('form');
+        const successModal = document.getElementById('successModal');
+        
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Client-side validation
+                let isValid = true;
+                const requiredFields = form.querySelectorAll('[required]');
+                
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        field.classList.add('border-red-500');
+                    } else {
+                        field.classList.remove('border-red-500');
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    // Scroll to first error
+                    const firstError = form.querySelector('.border-red-500');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return false;
+                }
+                
+                // If form is valid, show success modal (for demo purposes)
+                // In a real app, you would handle the form submission via AJAX
+                // and show the modal on success response
+                // e.preventDefault();
+                // successModal.classList.remove('hidden');
+            });
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(e) {
+            if (e.target === successModal) {
+                successModal.classList.add('hidden');
+            }
+        });
+        
+        // Profile picture preview
+        const profilePictureInput = document.getElementById('{{ form.profile_picture.id_for_label }}');
+        const profilePicturePreview = document.querySelector('.group .relative .bg-gray-200');
+        
+        if (profilePictureInput && profilePicturePreview) {
+            profilePictureInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        profilePicturePreview.innerHTML = `
+                            <img src="${e.target.result}" alt="Profile preview" class="w-full h-full object-cover rounded-full">
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
                                 Twitter
                             </label>

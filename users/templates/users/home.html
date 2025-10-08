@@ -31,48 +31,142 @@
 {% endif %}
 
 <!-- Hero Section -->
-<div class="relative min-h-screen bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900 overflow-hidden">
-    <!-- Background Image -->
-    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" style="background-image: url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=70');">
-        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/70 via-indigo-800/60 to-purple-900/70"></div>
-        <div class="absolute inset-0 bg-black/30"></div>
+<div class="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden">
+    <!-- Animated Background Elements -->
+    <div class="absolute inset-0">
+        <!-- Floating geometric shapes -->
+        <div class="absolute top-20 left-10 w-20 h-20 bg-blue-500/20 rounded-full animate-pulse"></div>
+        <div class="absolute top-40 right-20 w-16 h-16 bg-indigo-500/20 rounded-lg rotate-45 animate-bounce"></div>
+        <div class="absolute bottom-40 left-20 w-12 h-12 bg-purple-500/20 rounded-full animate-pulse"></div>
+        <div class="absolute bottom-20 right-10 w-24 h-24 bg-cyan-500/20 rounded-lg rotate-12 animate-bounce"></div>
+        
+        <!-- Grid pattern overlay -->
+        <div class="absolute inset-0 bg-grid-pattern opacity-5"></div>
+        
+        <!-- Gradient overlay -->
+        <div class="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-blue-900/70 to-indigo-900/80"></div>
     </div>
     
     <!-- Content -->
     <div class="relative z-10 max-w-7xl mx-auto px-4 py-20">
-        <div class="flex flex-col items-center justify-center min-h-screen text-center">
-            <!-- Trust Badge -->
-            <div class="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 mb-8 border border-white/20">
-                <svg class="w-5 h-5 text-green-300 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <span class="text-white font-medium">Trusted by 1000+ Businesses</span>
-            </div>
-            
-            <!-- Main Content -->
-            <div class="text-white max-w-5xl mb-12">
-                <h1 class="text-6xl lg:text-7xl font-bold mb-8 leading-tight">
-                    Buy Wholesale
-                    <span class="bg-gradient-to-r from-blue-300 via-indigo-300 to-purple-300 bg-clip-text text-transparent">Direct from Vendors</span>
+        <div class="flex flex-col lg:flex-row items-center justify-between min-h-screen">
+            <!-- Left Content -->
+            <div class="lg:w-1/2 text-white mb-12 lg:mb-0">
+                <!-- Trust Badge -->
+                <div class="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 mb-8 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                    <svg class="w-5 h-5 text-green-300 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-white font-medium">Trusted by 1000+ Import Businesses</span>
+                </div>
+                
+                <!-- Main Headline -->
+                <h1 class="text-5xl lg:text-7xl font-bold mb-6 leading-tight">
+                    <span class="block">Crowdsource</span>
+                    <span class="block bg-gradient-to-r from-blue-300 via-cyan-300 to-indigo-300 bg-clip-text text-transparent">
+                        Global Imports
+                    </span>
                 </h1>
-                <p class="text-2xl lg:text-3xl mb-10 text-gray-100 leading-relaxed font-light">
-                    Connect directly with verified vendors and buy products at wholesale prices. Discover thousands of products across multiple categories with guaranteed quality and competitive pricing.
+                
+                <!-- Subtitle -->
+                <p class="text-xl lg:text-2xl mb-8 text-gray-200 leading-relaxed">
+                    Pool orders with other businesses to hit factory MOQs, share container costs, and unlock wholesale pricing on global imports. 
+                    <span class="text-cyan-300 font-semibold">Import smarter, not harder.</span>
                 </p>
                 
+                <!-- Key Benefits -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    <div class="flex items-center bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+                        <svg class="w-5 h-5 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-sm text-gray-200">Hit MOQs</span>
+                    </div>
+                    <div class="flex items-center bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+                        <svg class="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        <span class="text-sm text-gray-200">Share Containers</span>
+                    </div>
+                    <div class="flex items-center bg-white/5 backdrop-blur-sm rounded-lg p-3 border border-white/10">
+                        <svg class="w-5 h-5 text-purple-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-sm text-gray-200">Save 30-50%</span>
+                    </div>
+                </div>
+                
                 <!-- CTA Buttons -->
-                <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                    <a href="{% url 'home:product_list' %}" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
-                        <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a href="{% url 'home:product_list' %}" class="group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                        <svg class="w-6 h-6 inline mr-2 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
-                        Browse Products
+                        Join Group Buys
                     </a>
-                    <a href="{% url 'vendor:dashboard' %}" class="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 border border-white/20">
-                        <svg class="w-6 h-6 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <a href="{% url 'vendor:dashboard' %}" class="group bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 border border-white/20 hover:border-white/40">
+                        <svg class="w-6 h-6 inline mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
-                        Sell Products
+                        Start Selling
                     </a>
+                </div>
+            </div>
+            
+            <!-- Right Content - Interactive Demo/Stats -->
+            <div class="lg:w-1/2 lg:pl-12">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                        <div class="text-3xl font-bold text-cyan-300 mb-2">500+</div>
+                        <div class="text-sm text-gray-300">Active Group Buys</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                        <div class="text-3xl font-bold text-green-300 mb-2">$2.5M</div>
+                        <div class="text-sm text-gray-300">Saved by Buyers</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                        <div class="text-3xl font-bold text-blue-300 mb-2">1000+</div>
+                        <div class="text-sm text-gray-300">Verified Factories</div>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                        <div class="text-3xl font-bold text-purple-300 mb-2">50+</div>
+                        <div class="text-sm text-gray-300">Countries Sourced</div>
+                    </div>
+                </div>
+                
+                <!-- Live Activity Feed -->
+                <div class="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+                    <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                        <div class="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+                        Live Activity
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center text-sm text-gray-300">
+                            <div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                </svg>
+                            </div>
+                            <span>New group buy: Electronics from China</span>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-300">
+                            <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <span>MOQ reached: Fashion accessories</span>
+                        </div>
+                        <div class="flex items-center text-sm text-gray-300">
+                            <div class="w-8 h-8 bg-purple-500/20 rounded-full flex items-center justify-center mr-3">
+                                <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </div>
+                            <span>Container shipped: Home goods</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -80,143 +174,292 @@
 </div>
 
 <!-- Features Section (Why Choose) -->
-<div class="py-24 bg-gray-50">
+<div class="py-24 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
     <div class="max-w-7xl mx-auto px-4">
         <div class="text-center mb-16">
-            <div class="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium mb-4">
-                <span class="mr-2">✔</span> Pool orders. Hit MOQ. Import smarter.
-            </div>
-            <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-5 tracking-tight">Why Choose WholeSaleHub?</h2>
-            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">We enable buyers to form group buys that reach factory MOQs and share container space—cutting unit costs and transport fees without sacrificing quality.</p>
-        </div>
-
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-100 hover:shadow-xl hover:ring-blue-200 transition-all duration-300">
-                <div class="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-6 group-hover:bg-blue-100">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h6m0 0v6m0-6l-8 8M21 17h-6m0 0v-6m0 6l8-8"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Group Buying Pools</h3>
-                <p class="text-gray-600">Join or create pools to combine demand, reach factory MOQs, and unlock factory pricing.</p>
-            </div>
-
-            <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-100 hover:shadow-xl hover:ring-blue-200 transition-all duration-300">
-                <div class="w-14 h-14 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mb-6 group-hover:bg-green-100">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Verified Factories</h3>
-                <p class="text-gray-600">Work with audited factories and authorized exporters for consistent quality and compliance.</p>
-            </div>
-
-            <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-100 hover:shadow-xl hover:ring-blue-200 transition-all duration-300">
-                <div class="w-14 h-14 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-6 group-hover:bg-indigo-100">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3m6 3v1a2 2 0 01-2 2H8a2 2 0 01-2-2v-1a7 7 0 017-7h0a7 7 0 017 7z"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Escrow & Milestones</h3>
-                <p class="text-gray-600">Secure payments with milestone releases tied to production, inspection, and delivery.</p>
-            </div>
-
-            <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-100 hover:shadow-xl hover:ring-blue-200 transition-all duration-300">
-                <div class="w-14 h-14 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-6 group-hover:bg-purple-100">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Shared Container Shipping</h3>
-                <p class="text-gray-600">Split LCL/FCL container costs with your pool to dramatically reduce freight per unit.</p>
-            </div>
-
-            <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-100 hover:shadow-xl hover:ring-blue-200 transition-all duration-300">
-                <div class="w-14 h-14 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-6 group-hover:bg-orange-100">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Flexible MOQs</h3>
-                <p class="text-gray-600">Commit to your share only—our pooling mechanics aggregate to meet the factory minimum.</p>
-            </div>
-
-            <div class="group relative bg-white rounded-2xl p-8 shadow-sm ring-1 ring-gray-100 hover:shadow-xl hover:ring-blue-200 transition-all duration-300">
-                <div class="w-14 h-14 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-6 group-hover:bg-rose-100">
-                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 8a6 6 0 11-12 0 6 6 0 0112 0zM5 20h14a2 2 0 002-2v-1a7 7 0 00-7-7H10a7 7 0 00-7 7v1a2 2 0 002 2z"/>
-                    </svg>
-                </div>
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">Logistics & Customs Help</h3>
-                <p class="text-gray-600">Supported shipping lanes, customs paperwork guidance, and tracking to last-mile delivery.</p>
-            </div>
-        </div>
-
-        <div class="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-            <div class="bg-white rounded-xl p-6 shadow-sm ring-1 ring-gray-100">
-                <div class="text-2xl font-bold text-blue-700">1000+</div>
-                <div class="text-gray-600">Buyers Pooling Orders</div>
-            </div>
-            <div class="bg-white rounded-xl p-6 shadow-sm ring-1 ring-gray-100">
-                <div class="text-2xl font-bold text-blue-700">500+</div>
-                <div class="text-gray-600">Verified Factories</div>
-            </div>
-            <div class="bg-white rounded-xl p-6 shadow-sm ring-1 ring-gray-100">
-                <div class="text-2xl font-bold text-blue-700">10K+</div>
-                <div class="text-gray-600">Pool-Eligible SKUs</div>
-            </div>
-            <div class="bg-white rounded-xl p-6 shadow-sm ring-1 ring-gray-100">
-                <div class="text-2xl font-bold text-blue-700">99%</div>
-                <div class="text-gray-600">Satisfaction</div>
-            </div>
-        </div>
-
-        <div class="mt-10 flex justify-center">
-            <a href="{% url 'home:product_list' %}" class="inline-flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-full transition-all duration-300">
-                Explore Group Buys
-                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            <div class="inline-flex items-center justify-center px-6 py-2 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 text-sm font-medium mb-6 border border-blue-200">
+                <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-            </a>
+                <span>Pool orders. Hit MOQ. Import smarter.</span>
+            </div>
+            <h2 class="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight">
+                Why Choose 
+                <span class="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">WholeSaleHub?</span>
+            </h2>
+            <p class="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+                We're the first crowdsourcing platform that lets businesses pool their import orders to reach factory minimums, 
+                share container costs, and unlock wholesale pricing on global imports. 
+                <span class="font-semibold text-blue-700">Import smarter, not harder.</span>
+            </p>
+        </div>
+
+        <!-- Main Features Grid -->
+        <div class="grid lg:grid-cols-3 gap-8 mb-16">
+            <!-- Left Column -->
+            <div class="space-y-8">
+                <div class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-blue-200 transition-all duration-500 hover-lift">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Crowdsourced Group Buys</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">Join or create buying pools with other businesses to combine demand and reach factory minimum order quantities (MOQs). No more missing out on wholesale deals due to small order sizes.</p>
+                    <div class="flex items-center text-sm text-blue-600 font-medium">
+                        <span class="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                        Pool with 1000+ active buyers
+                    </div>
+                </div>
+
+                <div class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-green-200 transition-all duration-500 hover-lift">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Verified Global Factories</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">Access audited factories and authorized exporters from 50+ countries. All suppliers are vetted for quality, compliance, and reliability before joining our platform.</p>
+                    <div class="flex items-center text-sm text-green-600 font-medium">
+                        <span class="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+                        1000+ verified suppliers worldwide
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Column -->
+            <div class="space-y-8">
+                <div class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-purple-200 transition-all duration-500 hover-lift">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Secure Escrow Payments</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">Payments are held in escrow and released only when milestones are met: production completion, quality inspection, and delivery confirmation. Your money is always protected.</p>
+                    <div class="flex items-center text-sm text-purple-600 font-medium">
+                        <span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>
+                        100% payment protection
+                    </div>
+                </div>
+
+                <div class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-orange-200 transition-all duration-500 hover-lift">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Shared Container Shipping</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">Split LCL/FCL container costs with your buying pool. Dramatically reduce freight costs per unit by sharing container space with other businesses importing similar products.</p>
+                    <div class="flex items-center text-sm text-orange-600 font-medium">
+                        <span class="w-2 h-2 bg-orange-600 rounded-full mr-2"></span>
+                        Save 30-50% on shipping costs
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="space-y-8">
+                <div class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-indigo-200 transition-all duration-500 hover-lift">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Flexible MOQ Management</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">Commit only to your share of the order. Our smart pooling system aggregates orders from multiple buyers to meet factory minimums, so you never have to over-order.</p>
+                    <div class="flex items-center text-sm text-indigo-600 font-medium">
+                        <span class="w-2 h-2 bg-indigo-600 rounded-full mr-2"></span>
+                        Order only what you need
+                    </div>
+                </div>
+
+                <div class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-rose-200 transition-all duration-500 hover-lift">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 8a6 6 0 11-12 0 6 6 0 0112 0zM5 20h14a2 2 0 002-2v-1a7 7 0 00-7-7H10a7 7 0 00-7 7v1a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">End-to-End Logistics</h3>
+                    <p class="text-gray-600 leading-relaxed mb-4">From factory to your doorstep. We handle customs paperwork, shipping coordination, quality inspections, and last-mile delivery. Focus on your business, not logistics.</p>
+                    <div class="flex items-center text-sm text-rose-600 font-medium">
+                        <span class="w-2 h-2 bg-rose-600 rounded-full mr-2"></span>
+                        Complete logistics support
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Impact Stats -->
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-3xl p-12 mb-16">
+            <div class="text-center mb-12">
+                <h3 class="text-3xl font-bold text-white mb-4">Our Impact in Numbers</h3>
+                <p class="text-xl text-blue-100">Real results from our crowdsourcing platform</p>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-white mb-2">500+</div>
+                    <div class="text-blue-100 font-medium">Active Group Buys</div>
+                    <div class="text-sm text-blue-200 mt-1">Live right now</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-white mb-2">$2.5M</div>
+                    <div class="text-blue-100 font-medium">Saved by Buyers</div>
+                    <div class="text-sm text-blue-200 mt-1">This year alone</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-white mb-2">1000+</div>
+                    <div class="text-blue-100 font-medium">Verified Factories</div>
+                    <div class="text-sm text-blue-200 mt-1">Across 50+ countries</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl font-bold text-white mb-2">99%</div>
+                    <div class="text-blue-100 font-medium">Success Rate</div>
+                    <div class="text-sm text-blue-200 mt-1">Orders delivered on time</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="text-center">
+            <div class="inline-flex flex-col sm:flex-row gap-4">
+                <a href="{% url 'home:product_list' %}" class="group inline-flex items-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                    <svg class="w-6 h-6 mr-2 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Explore Group Buys
+                </a>
+                <a href="{% url 'vendor:dashboard' %}" class="group inline-flex items-center bg-white text-blue-600 hover:bg-gray-50 font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 border-2 border-blue-600 hover:border-blue-700">
+                    <svg class="w-6 h-6 mr-2 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Start Selling
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Categories Section -->
-<div class="py-20 bg-white">
+<div class="py-24 bg-gradient-to-br from-gray-50 to-blue-50">
     <div class="max-w-7xl mx-auto px-4">
         <div class="text-center mb-16">
-            <h2 class="text-4xl font-bold text-gray-900 mb-4">Shop by Category</h2>
-            <p class="text-xl text-gray-600">Find products across multiple categories to meet all your business needs.</p>
+            <div class="inline-flex items-center justify-center px-6 py-2 rounded-full bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 text-sm font-medium mb-6 border border-indigo-200">
+                <svg class="w-4 h-4 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                <span>Popular Import Categories</span>
+            </div>
+            <h2 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 tracking-tight">
+                Source from 
+                <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Global Categories</span>
+            </h2>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+                Discover products across multiple categories with active group buys. Join existing pools or create new ones to unlock wholesale pricing.
+            </p>
         </div>
         
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <a href="{% url 'home:product_list' %}?category=1" class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-8 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer">
-                <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                </svg>
-                <h3 class="text-xl font-bold">Electronics</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Electronics -->
+            <a href="{% url 'home:product_list' %}?category=1" class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-blue-200 transition-all duration-500 hover-lift cursor-pointer overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-bl-3xl"></div>
+                <div class="relative">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">Electronics</h3>
+                    <p class="text-gray-600 mb-4 leading-relaxed">Smartphones, laptops, accessories, and consumer electronics from verified manufacturers.</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center text-sm text-blue-600 font-medium">
+                            <span class="w-2 h-2 bg-blue-600 rounded-full mr-2"></span>
+                            45 active pools
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </div>
             </a>
             
-            <a href="{% url 'home:product_list' %}?category=2" class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-8 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer">
-                <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                </svg>
-                <h3 class="text-xl font-bold">Fashion</h3>
+            <!-- Fashion -->
+            <a href="{% url 'home:product_list' %}?category=2" class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-green-200 transition-all duration-500 hover-lift cursor-pointer overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-bl-3xl"></div>
+                <div class="relative">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">Fashion & Apparel</h3>
+                    <p class="text-gray-600 mb-4 leading-relaxed">Clothing, accessories, footwear, and fashion items from global fashion hubs.</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center text-sm text-green-600 font-medium">
+                            <span class="w-2 h-2 bg-green-600 rounded-full mr-2"></span>
+                            32 active pools
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </div>
             </a>
             
-            <a href="{% url 'home:product_list' %}?category=3" class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-8 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer">
-                <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                <h3 class="text-xl font-bold">Office Supplies</h3>
+            <!-- Home & Garden -->
+            <a href="{% url 'home:product_list' %}?category=3" class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-purple-200 transition-all duration-500 hover-lift cursor-pointer overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-bl-3xl"></div>
+                <div class="relative">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">Home & Garden</h3>
+                    <p class="text-gray-600 mb-4 leading-relaxed">Furniture, decor, kitchenware, and outdoor products for your home.</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center text-sm text-purple-600 font-medium">
+                            <span class="w-2 h-2 bg-purple-600 rounded-full mr-2"></span>
+                            28 active pools
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </div>
             </a>
             
-            <a href="{% url 'home:product_list' %}?category=4" class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-8 text-white text-center hover:transform hover:scale-105 transition-all duration-300 cursor-pointer">
-                <svg class="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            <!-- Health & Beauty -->
+            <a href="{% url 'home:product_list' %}?category=4" class="group relative bg-white rounded-2xl p-8 shadow-lg ring-1 ring-gray-100 hover:shadow-2xl hover:ring-orange-200 transition-all duration-500 hover-lift cursor-pointer overflow-hidden">
+                <div class="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-bl-3xl"></div>
+                <div class="relative">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-3">Health & Beauty</h3>
+                    <p class="text-gray-600 mb-4 leading-relaxed">Cosmetics, skincare, supplements, and wellness products from trusted brands.</p>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center text-sm text-orange-600 font-medium">
+                            <span class="w-2 h-2 bg-orange-600 rounded-full mr-2"></span>
+                            19 active pools
+                        </div>
+                        <svg class="w-5 h-5 text-gray-400 group-hover:text-orange-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </div>
+            </a>
+        </div>
+        
+        <!-- View All Categories CTA -->
+        <div class="text-center mt-12">
+            <a href="{% url 'home:product_list' %}" class="inline-flex items-center bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 px-8 rounded-full text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
+                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                 </svg>
-                <h3 class="text-xl font-bold">Health & Beauty</h3>
+                View All Categories
             </a>
         </div>
     </div>
@@ -501,6 +744,77 @@
 }
 .animate-float {
     animation: float 6s ease-in-out infinite;
+}
+
+/* Grid pattern background */
+.bg-grid-pattern {
+    background-image: 
+        linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* Enhanced animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.animate-slide-in-left {
+    animation: slideInLeft 0.8s ease-out;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.8s ease-out;
+}
+
+/* Glassmorphism effect */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Hover effects */
+.hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
 }
 </style>
 {% endblock %}

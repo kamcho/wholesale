@@ -371,14 +371,20 @@ class ProductVariation(models.Model):
 
 class PromiseFee(models.Model):
     variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='promise_fees')
+    name = models.CharField(max_length=100, default='Basic')
     buy_back_fee = models.DecimalField(max_digits=10, decimal_places=2)
     percentage_fee = models.DecimalField(max_digits=10, decimal_places=2)
     must_pay_shipping = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('name', 'variation')
+        verbose_name = 'Promise Fee'
+        verbose_name_plural = 'Promise Fees'
+
     def __str__(self):
-        return f"{self.variation} - {self.fee}" 
+        return f"{self.variation} - {self.name}" 
 
 class PriceTier(models.Model):
     """Quantity-based pricing for product variations"""
@@ -670,11 +676,13 @@ class Payment(models.Model):
 
 
 class ChatMessage(models.Model):
-    """Model for storing chat messages for product variations"""
-    variation = models.ForeignKey(
-        ProductVariation,
+    """Model for storing chat messages for products"""
+    product = models.ForeignKey(
+        Product,
         on_delete=models.CASCADE,
-        related_name='chat_messages'
+        related_name='chat_messages',
+        null=True,  # Temporarily allow null for data migration
+        blank=True
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -688,7 +696,7 @@ class ChatMessage(models.Model):
     class Meta:
         ordering = ['created_at']
         indexes = [
-            models.Index(fields=['variation', 'created_at']),
+            models.Index(fields=['product', 'created_at']),
             models.Index(fields=['user']),
         ]
 

@@ -3,10 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 
-from home.models import Product, ProductCategory, Business, ProductImage, BusinessCategory, ProductVariation, OrderItem, ProductAttributeAssignment, ProductAttribute, ProductAttributeValue, PriceTier
+from home.models import Product, ProductCategory, Business, ProductImage, BusinessCategory, ProductVariation, OrderItem, ProductAttributeAssignment, ProductAttribute, ProductAttributeValue, PriceTier, PromiseFee
 from .forms import (
     ProductForm,
     ProductImageForm,
@@ -477,25 +478,111 @@ def variation_detail(request, pk):
 
     # Handle PromiseFee form submission
     if request.method == 'POST' and 'promise_fee_submit' in request.POST:
-        promise_fee_form = PromiseFeeForm(request.POST, variation=variation)
-        if promise_fee_form.is_valid():
-            promise_fee_form.save()
-            messages.success(request, 'Promise fee saved.')
+        # Debug: Log all POST data
+        print("\n=== DEBUG: POST DATA ===")
+        for key, value in request.POST.items():
+            print(f"{key}: {value}")
+        print("======================\n")
+        
+        # First, delete all existing fees for this variation to avoid duplicates
+        variation.promise_fees.all().delete()
+        
+        # Check if this is a request to clear all fees
+        if 'no_fees' in request.POST and request.POST['no_fees'] == 'true':
+            messages.success(request, 'Promise fees have been cleared.')
             return redirect('vendor:variation_detail', pk=variation.id)
-        else:
-            messages.error(request, 'Please correct the errors below (Promise Fee).')
-    else:
-        # If a PromiseFee already exists, load it for editing; else blank
-        existing = variation.promise_fees.order_by('-created_at').first()
-        promise_fee_form = PromiseFeeForm(instance=existing) if existing else PromiseFeeForm()
-
-    return render(request, 'vendor/variation_detail.html', {
+        
+        # Process multiple promise fees
+        fee_count = 0
+        saved_fees = 0
+        errors = []
+        
+        # Count how many fees were submitted
+        while f'fee_{fee_count}_name' in request.POST:
+            fee_count += 1
+        
+        # If no fees were submitted but the form was submitted, it means we should clear all fees
+        if fee_count == 0:
+            messages.success(request, 'No valid promise fees to save.')
+            return redirect('vendor:variation_detail', pk=variation.id)
+        
+        # Debug: Log fee count
+        print(f"Found {fee_count} fee(s) to process")
+        
+        # Process each fee
+        for i in range(fee_count):
+            fee_data = {
+                'name': request.POST.get(f'fee_{i}_name', '').strip(),
+                'buy_back_fee': request.POST.get(f'fee_{i}_buy_back_fee', '0'),
+                'percentage_fee': request.POST.get(f'fee_{i}_percentage_fee', '0'),
+                'must_pay_shipping': request.POST.get(f'fee_{i}_must_pay_shipping', 'false').lower() == 'true'
+            }
+            
+            # Debug: Log fee data
+            print(f"\nProcessing fee {i}:")
+            print(f"Name: {fee_data['name']}")
+            print(f"Buy Back Fee: {fee_data['buy_back_fee']} (type: {type(fee_data['buy_back_fee']).__name__})")
+            print(f"Percentage Fee: {fee_data['percentage_fee']} (type: {type(fee_data['percentage_fee']).__name__})")
+            print(f"Must Pay Shipping: {fee_data['must_pay_shipping']}")
+            
+            # Convert string values to float, handling empty strings
+            try:
+                fee_data['buy_back_fee'] = float(fee_data['buy_back_fee'] or 0)
+                fee_data['percentage_fee'] = float(fee_data['percentage_fee'] or 0)
+            except (ValueError, TypeError) as e:
+                errors.append(f"Invalid number format in fee {i + 1}: {str(e)}")
+                continue
+            
+            # Only process if name is provided
+            if fee_data['name']:
+                try:
+                    # Create a new PromiseFee instance
+                    promise_fee = PromiseFee(
+                        variation=variation,
+                        name=fee_data['name'],
+                        buy_back_fee=fee_data['buy_back_fee'],
+                        percentage_fee=fee_data['percentage_fee'],
+                        must_pay_shipping=fee_data['must_pay_shipping']
+                    )
+                    promise_fee.full_clean()  # Validate the model
+                    promise_fee.save()
+                    saved_fees += 1
+                except ValidationError as e:
+                    errors.append(f"Validation error for fee '{fee_data['name']}': {str(e)}")
+                except Exception as e:
+                    errors.append(f"Error saving fee '{fee_data['name']}': {str(e)}")
+        
+        if saved_fees > 0:
+            messages.success(request, f'{saved_fees} promise fee(s) saved successfully.')
+        elif not errors and fee_count > 0:
+            messages.warning(request, 'No valid promise fees were provided.')
+            
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+        
+        return redirect('vendor:variation_detail', pk=variation.id)
+    
+    # For GET requests or if not submitting fees, load existing fees
+    promise_fees = variation.promise_fees.all().order_by('-created_at')
+    promise_fee_form = PromiseFeeForm()  # Empty form for adding new fees
+    
+    # Debug output (will be visible in the server console)
+    print(f"Promise fees for variation {variation.id}:", list(promise_fees.values()))
+    
+    context = {
         'product': product,
         'variation': variation,
         'images': images,
         'price_tier_formset': price_tier_formset,
         'promise_fee_form': promise_fee_form,
-    })
+        'promise_fees': promise_fees,
+    }
+    
+    # Debug output of context keys
+    print("Context keys:", context.keys())
+    
+    return render(request, 'vendor/variation_detail.html', context)
 
 @login_required
 def add_variation_attribute(request, pk):

@@ -1,7 +1,7 @@
 {% extends 'users/base.html' %}
 {% load static %}
 
-{% block title %}Chat - {{ variation.product.name }} - {{ variation.name }}{% endblock %}
+{% block title %}Chat - {{ product.name }}{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-100">
@@ -10,18 +10,18 @@
         <div class="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
             <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                 <div class="flex items-center">
-                    <a href="{% url 'home:variation_detail' variation.id %}" class="mr-4 text-blue-100 hover:text-white">
+                    <a href="{% url 'home:product_detail' product.id %}" class="mr-4 text-blue-100 hover:text-white">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
                     </a>
                     <div class="flex-1">
-                        <h1 class="text-xl font-semibold truncate">{{ variation.product.name }}</h1>
-                        <p class="text-sm text-blue-100">{{ variation.name }}</p>
+                        <h1 class="text-xl font-semibold truncate">{{ product.name }}</h1>
+                        <p class="text-sm text-blue-100">{{ product.description|truncatewords:10 }}</p>
                     </div>
-                    {% if variation.images.first %}
+                    {% if product.images.first %}
                     <div class="w-12 h-12 rounded-full bg-white overflow-hidden ml-4 flex-shrink-0">
-                        <img src="{{ variation.images.first.image.url }}" alt="{{ variation.name }}" class="w-full h-full object-cover">
+                        <img src="{{ product.images.first.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
                     </div>
                     {% endif %}
                 </div>
@@ -90,6 +90,7 @@
 $(document).ready(function() {
     const messagesContainer = $('#messages');
     const messageForm = $('#chat-form');
+    const productId = {{ product.id }};
     let lastMessageId = {{ messages.last.id|default:0 }};
     
     // Auto-scroll to bottom of messages
@@ -105,7 +106,8 @@ $(document).ready(function() {
 
     // Load new messages
     function loadNewMessages() {
-        $.get(`{% url 'home:get_chat_messages' variation.id %}?last_message_id=${lastMessageId}`, function(data) {
+        const url = `{% url 'home:get_chat_messages' product.id %}?last_message_id=${lastMessageId}`;
+        $.get(url, function(data) {
             if (data.messages.length > 0) {
                 data.messages.forEach(function(msg) {
                     const isOwn = msg.is_own;

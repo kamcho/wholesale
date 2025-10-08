@@ -1,8 +1,10 @@
+from decimal import Decimal, ROUND_HALF_UP
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.views.decorators.http import require_POST, require_http_methods
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from .models import Order, OrderItem
 from django.core.paginator import Paginator
 from django.db.models import Q, Min, Max
 from django.http import JsonResponse, HttpResponse
@@ -499,18 +501,134 @@ def quick_checkout_page(request):
     
     try:
         cart = Cart.objects.get(id=cart_id)
-        cart_items = cart.items.select_related('variation__product').all()
+        # Optimize the query to fetch all related data efficiently
+        cart_items = cart.items.select_related(
+            'variation__product'
+        ).prefetch_related(
+            'variation__promise_fees'
+        ).all()
         
         if not cart_items:
             messages.warning(request, "Your cart is empty.")
             return redirect('home:product_list')
         
-        # Calculate total
-        total = sum(item.variation.price * item.quantity for item in cart_items)
+        # Calculate total and prepare cart items with promise fee info
+        total = 0
+        processed_items = []
+        
+        for item in cart_items:
+            # Get all promise fees for this variation
+            promise_fees = item.variation.promise_fees.all()
+            
+            # Calculate item total (base price without any fees)
+            item_total = item.variation.price * item.quantity
+            
+            # Prepare promise fee options
+            fee_options = []
+            for fee in promise_fees:
+                # Calculate total product amount
+                total_product_amount = item.variation.price * item.quantity
+                
+                # Calculate deposit amount (buy_back_fee is the deposit percentage)
+                deposit_amount = (total_product_amount * fee.buy_back_fee / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                
+                # Calculate pickup amount (percentage_fee is the pickup percentage)
+                pickup_amount = (total_product_amount * fee.percentage_fee / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                
+                # Total amount to be paid
+                total_amount = deposit_amount + pickup_amount
+                
+                # Create fee option with payment plan details
+                fee_option = {
+                    'id': fee.id,
+                    'description': f"Pay {float(fee.buy_back_fee)}% now, {float(fee.percentage_fee)}% on pickup",
+                    'deposit_percent': str(fee.buy_back_fee),
+                    'pickup_percent': str(fee.percentage_fee),
+                    'deposit_amount': str(deposit_amount),
+                    'pickup_amount': str(pickup_amount),
+                    'total_amount': str(total_amount),
+                    'product_price': str(item.variation.price),
+                    'total_product_amount': str(total_product_amount)
+                }
+                fee_options.append(fee_option)
+            
+            # Don't select any fee by default
+            selected_fee = None
+            
+            # Calculate item total with fee if selected
+            item_total_with_fee = item_total
+            
+            # Create a dictionary with all the item data
+            processed_item = {
+                'id': item.id,
+                'variation': item.variation,
+                'quantity': item.quantity,
+                'price': item.variation.price,
+                'total_price': item_total,
+                'total_with_fee': item_total_with_fee,
+                'fee_options': fee_options,
+                'selected_fee': selected_fee
+            }
+            processed_items.append(processed_item)
+        
+        # Calculate grand total and process selected fees
+        grand_total = Decimal('0')
+        has_selected_fees = False
+        selected_fees = []
+        
+        for item in processed_items:
+            if item['selected_fee']:
+                has_selected_fees = True
+                selected_fees.append(item)
+                # Calculate the total amount for this item with fee
+                total_fee_percentage = (Decimal(item['selected_fee']['deposit_percent']) + 
+                                      Decimal(item['selected_fee']['pickup_percent'])) / 100
+                
+                # Calculate the total amount after fee discount
+                item_total = item['total_price']
+                fee_amount = (item_total * total_fee_percentage).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                item_total_with_fee = item_total - fee_amount
+                
+                # Update the item with the discounted total
+                item['total_with_fee'] = item_total_with_fee
+                grand_total += item_total_with_fee
+            else:
+                grand_total += item['total_price']
+        
+        # Calculate deposit and pickup totals based on the discounted amounts
+        deposit_total = Decimal('0')
+        pickup_total = Decimal('0')
+        total_discount = Decimal('0')
+        
+        for fee in selected_fees:
+            deposit_percent = Decimal(fee['selected_fee']['deposit_percent']) / 100
+            pickup_percent = Decimal(fee['selected_fee']['pickup_percent']) / 100
+            total_fee_percent = deposit_percent + pickup_percent
+            
+            # Calculate the actual amounts based on the discounted total
+            item_total = fee['total_price']
+            discounted_total = item_total * (1 - total_fee_percent)
+            
+            # Calculate discount amount for this item
+            discount_amount = (item_total * total_fee_percent).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            total_discount += discount_amount
+            
+            # Calculate deposit and pickup amounts based on the discounted total
+            deposit_total += (discounted_total * deposit_percent / (1 - total_fee_percent)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            pickup_total += (discounted_total * pickup_percent / (1 - total_fee_percent)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
+        # Ensure all values are Decimal and properly formatted
+        grand_total = Decimal(str(grand_total)).quantize(Decimal('0.01'))
+        deposit_total = Decimal(str(deposit_total)).quantize(Decimal('0.01'))
+        pickup_total = Decimal(str(pickup_total)).quantize(Decimal('0.01'))
         
         context = {
-            'cart_items': cart_items,
-            'total': total,
+            'cart_items': processed_items,
+            'total': grand_total,
+            'has_selected_fees': has_selected_fees,
+            'deposit_total': deposit_total,
+            'pickup_total': pickup_total,
+            'discount_amount': total_discount.quantize(Decimal('0.01')),
         }
         return render(request, 'home/quick_checkout.html', context)
     except Cart.DoesNotExist:
@@ -658,46 +776,55 @@ def process_mpesa_payment(request):
 def confirm_payment(request, order_id):
     """Confirm payment page that shows order details and creates order"""
     try:
-        # Get the order from session or database
-        order_data = request.session.get(f'pending_order_{order_id}')
-        if not order_data:
-            messages.error(request, "Order not found or has expired.")
-            return redirect('home:home')
-        
-        # Get cart items
-        cart_id = order_data.get('cart_id')
-        if not cart_id:
-            messages.error(request, "Cart not found.")
-            return redirect('home:home')
-        
+        # First, check if the order already exists in the database
         try:
-            cart = Cart.objects.get(id=cart_id)
-            cart_items = cart.items.select_related('variation__product').all()
-        except Cart.DoesNotExist:
-            messages.error(request, "Cart not found.")
-            return redirect('home:home')
-        
-        if not cart_items:
-            messages.error(request, "Cart is empty.")
-            return redirect('home:home')
-        
-        # Calculate total
-        total_amount = sum(item.variation.price * item.quantity for item in cart_items)
-        
-        # Create order if it doesn't exist
-        order, created = Order.objects.get_or_create(
-            id=order_id,
-            defaults={
-                'user': request.user if request.user.is_authenticated else None,
-                'session_id': request.session.session_key if not request.user.is_authenticated else None,
-                'total': total_amount,
-                'status': 'pending',
-                'payment_method': 'mpesa',
-                'transaction_id': order_data.get('transaction_id', ''),
+            order = Order.objects.get(id=order_id)
+            # If order exists, render the confirmation page with existing order data
+            context = {
+                'order': order,
+                'order_items': order.items.all(),
+                'total_amount': order.total,
             }
-        )
-        
-        if created:
+            return render(request, 'home/confirm_payment.html', context)
+            
+        except Order.DoesNotExist:
+            # If order doesn't exist, check session for pending order data
+            order_data = request.session.get(f'pending_order_{order_id}')
+            if not order_data:
+                messages.error(request, "Order not found or has expired.")
+                return redirect('home:home')
+            
+            # Get cart items
+            cart_id = order_data.get('cart_id')
+            if not cart_id:
+                messages.error(request, "Cart not found.")
+                return redirect('home:home')
+            
+            try:
+                cart = Cart.objects.get(id=cart_id)
+                cart_items = cart.items.select_related('variation__product').all()
+            except Cart.DoesNotExist:
+                messages.error(request, "Cart not found.")
+                return redirect('home:home')
+            
+            if not cart_items:
+                messages.error(request, "Cart is empty.")
+                return redirect('home:home')
+            
+            # Calculate total
+            total_amount = sum(item.variation.price * item.quantity for item in cart_items)
+            
+            # Create the order
+            order = Order.objects.create(
+                id=order_id,
+                user=request.user if request.user.is_authenticated else None,
+                session_id=request.session.session_key if not request.user.is_authenticated else None,
+                total=total_amount,
+                status='pending',
+                payment_method='mpesa',
+                transaction_id=order_data.get('transaction_id', ''),
+            )
+            
             # Create order items
             for cart_item in cart_items:
                 OrderItem.objects.create(
@@ -707,17 +834,17 @@ def confirm_payment(request, order_id):
                     price=cart_item.variation.price
                 )
             
-            # Clear the cart
+            # Clear the cart and session data
             cart.delete()
             request.session.pop(f'pending_order_{order_id}', None)
             
             messages.success(request, "Order created successfully!")
-        
-        context = {
-            'order': order,
-            'order_items': order.items.all(),
-            'total_amount': total_amount,
-        }
+            
+            context = {
+                'order': order,
+                'order_items': order.items.all(),
+                'total_amount': total_amount,
+            }
         
         return render(request, 'home/confirm_payment.html', context)
         
@@ -725,6 +852,26 @@ def confirm_payment(request, order_id):
         logger.error(f"Error in confirm_payment: {str(e)}")
         messages.error(request, "An error occurred. Please try again.")
         return redirect('home:home')
+
+# ==============================
+# Order History
+# ==============================
+
+def order_history(request):
+    """Display a user's order history"""
+    if not request.user.is_authenticated:
+        messages.warning(request, 'Please log in to view your order history.')
+        return redirect('account_login')
+    
+    # Get user's orders, ordered by most recent first
+    orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    
+    context = {
+        'orders': orders,
+        'title': 'My Orders'
+    }
+    return render(request, 'home/order_history.html', context)
+
 
 # ==============================
 # Wishlist
