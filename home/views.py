@@ -1,31 +1,104 @@
+import json
+import logging
+import time
 from decimal import Decimal, ROUND_HALF_UP
-from django.shortcuts import render, get_object_or_404, redirect
+
 from django.contrib import messages
-from django.views.decorators.http import require_POST, require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Q, Min, Max, Count, Avg
+from django.views.generic import ListView
+from django.core.paginator import Paginator
+
+from .models import Agent, ServiceCategory, ProductServicing
+from .forms import UserRegistrationForm
+from django.contrib import messages
+from django.contrib.auth import login
+from agents.forms import AgentSearchForm
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect, reverse
+from django.views.generic import CreateView, TemplateView
+from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from .models import Order, OrderItem
-from django.core.paginator import Paginator
-from django.db.models import Q, Min, Max
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-import json
-import time
-import logging as logger
-from .models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, Cart, CartItem, ProductVariation, Wishlist, WishlistItem, ProductOrder, Payment
-from django.contrib.auth.decorators import login_required
-import logging
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST, require_http_methods
+from django_countries import countries
+
+from .models import (
+    Order, OrderItem, Product, ProductCategory, Business, ProductImage, 
+    ProductCategoryFilter, Cart, CartItem, ProductVariation, Wishlist, 
+    WishlistItem, ProductOrder, Payment
+)
+class SignUpView(CreateView):
+    form_class = UserRegistrationForm
+    template_name = 'home/signup.html'
+    
+    def get_success_url(self):
+        # Redirect to appropriate dashboard based on user role
+        if self.request.user.role == 'buyer':
+            return reverse_lazy('home:buyer_dashboard')
+        elif self.request.user.role == 'seller':
+            return reverse_lazy('home:seller_dashboard')
+        return reverse_lazy('home:home')
+    
+    def form_valid(self, form):
+        # Save the user with the selected role
+        user = form.save(commit=False)
+        user.role = form.cleaned_data['role']
+        user.save()
+        
+        # Save many-to-many data if needed
+        form.save_m2m()
+        
+        # Log the user in
+        from django.contrib.auth import login
+        login(self.request, user, backend='django.contrib.auth.backends.ModelBackend')
+        
+        # Show success message
+        messages.success(
+            self.request, 
+            f'Account created successfully! Welcome, {user.get_full_name() or user.email}.'
+        )
+        
+        return super().form_valid(form)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Create an Account'
+        return context
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Redirect to home if user is already authenticated
+        if request.user.is_authenticated:
+            return redirect('home:home')
+        return super().dispatch(request, *args, **kwargs)
+
 def home(request):
     return render(request, 'users/home.html')
 
 def product_list(request):
-    """Display all products for customers to browse"""
-    # Get all active products
-    products = Product.objects.all().order_by('-created_at')
-    
-    # Search functionality
+    """Display all products for customers to browse with advanced filtering"""
+    # Get filter parameters
     search_query = request.GET.get('search', '')
+    category_id = request.GET.get('category', '')
+    min_price = request.GET.get('min_price', '')
+    max_price = request.GET.get('max_price', '')
+    country = request.GET.get('country', '')
+    sort = request.GET.get('sort', '-created_at')
+    
+    # Get all active products with related data and price ranges
+    from django.db.models import Min, Max
+    products = Product.objects.prefetch_related('images', 'categories', 'business', 'variations')
+    
+    # Annotate each product with min and max price from its variations
+    products = products.annotate(
+        min_variation_price=Min('variations__price'),
+        max_variation_price=Max('variations__price')
+    )
+    
+    # Apply filters
     if search_query:
         products = products.filter(
             Q(name__icontains=search_query) |
@@ -33,26 +106,54 @@ def product_list(request):
             Q(business__name__icontains=search_query)
         )
     
-    # Category filter (supports many-to-many)
-    category_id = request.GET.get('category', '')
     if category_id:
         products = products.filter(categories__id=category_id)
     
-    # Price range filter
-    min_price = request.GET.get('min_price', '')
-    max_price = request.GET.get('max_price', '')
     if min_price:
         products = products.filter(price__gte=min_price)
     if max_price:
         products = products.filter(price__lte=max_price)
+        
+    # Filter by country
+    if country:
+        products = products.filter(origin=country)
+    
+    # Apply sorting
+    valid_sort_fields = ['name', '-name', 'price', '-price', 'created_at', '-created_at']
+    if sort in valid_sort_fields:
+        products = products.order_by(sort)
+    else:
+        products = products.order_by('-created_at')
+    
+    # Get categories with product counts for the sidebar
+    categories = ProductCategory.objects.annotate(
+        product_count=Count('products')
+    ).filter(product_count__gt=0).order_by('name')
+    
+    # Get unique countries with product counts
+    country_choices = []
+    
+    # Get all distinct country codes that have products
+    country_codes = Product.objects.exclude(origin__isnull=True).exclude(origin='').values_list('origin', flat=True).distinct()
+    
+    if country_codes:
+        # Create a list of (code, name, count) tuples
+        for code in country_codes:
+            if code in countries:
+                count = Product.objects.filter(origin=code).count()
+                if count > 0:
+                    country_choices.append((code, f"{countries.name(code)} ({count})"))
+        
+        # Sort countries by name
+        country_choices.sort(key=lambda x: x[1])
+    else:
+        # If no countries are set, show a message in the template
+        country_choices = [('', 'No countries available')]
     
     # Pagination
     paginator = Paginator(products, 12)
-    page_number = request.GET.get('page')
+    page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
-    
-    # Get categories for filter dropdown
-    categories = ProductCategory.objects.all()
     
     context = {
         'page_obj': page_obj,
@@ -61,6 +162,8 @@ def product_list(request):
         'selected_category': category_id,
         'min_price': min_price,
         'max_price': max_price,
+        'selected_country': country,
+        'country_choices': country_choices,
     }
     
     return render(request, 'home/product_list.html', context)
@@ -104,7 +207,7 @@ def product_detail(request, pk):
     ).exclude(pk=product.pk).distinct()[:4]
     
     # Check if any variation has a promise fee
-    has_promise_fee = product.variations.filter(promise_fees__isnull=False).exists()
+    has_promise_fee = product.variations.filter(promise_fee__isnull=False).exists()
     
     # Variation price range (min/max)
     variation_qs = ProductVariation.objects.filter(product=product).prefetch_related('price_tiers')
@@ -125,6 +228,13 @@ def product_detail(request, pk):
     except Exception:
         cart_variation_ids = set()
 
+    # Get product servicing information
+    product_servicing = None
+    try:
+        product_servicing = ProductServicing.objects.get(product=product)
+    except ProductServicing.DoesNotExist:
+        pass
+
     context = {
         'product': product,
         'images': images,
@@ -138,6 +248,7 @@ def product_detail(request, pk):
         'price_tiers_by_variation': price_tiers_by_variation,
         'cart_variation_ids': cart_variation_ids,
         'has_promise_fee': has_promise_fee,
+        'product_servicing': product_servicing,
     }
     
     return render(request, 'home/product_detail.html', context)
@@ -179,7 +290,7 @@ def variation_detail(request, pk):
         in_cart = False
 
     # Check if this variation has a promise fee
-    has_promise_fee = variation.promise_fees.exists()
+    has_promise_fee = hasattr(variation, 'promise_fee') and variation.promise_fee is not None
     
     # Get all variations for this product with prefetched images
     variations = product.variations.all().select_related('product').prefetch_related('images')
@@ -421,11 +532,14 @@ def update_cart_item(request, item_id):
     except (TypeError, ValueError):
         quantity = item.product.moq
 
-    # Enforce MOQ depending on whether item has a variation
-    if item.variation and item.variation.moq and quantity < item.variation.moq:
-        quantity = item.variation.moq
-    elif quantity < item.product.moq:
-        quantity = item.product.moq
+    # Enforce MOQ from the variation
+    if item.variation and hasattr(item.variation, 'moq') and item.variation.moq:
+        if quantity < item.variation.moq:
+            quantity = item.variation.moq
+    # Fallback to product MOQ if variation MOQ is not set
+    elif hasattr(item.variation, 'product') and hasattr(item.variation.product, 'moq'):
+        if quantity < item.variation.product.moq:
+            quantity = item.variation.product.moq
 
     if quantity <= 0:
         item.delete()
@@ -505,130 +619,36 @@ def quick_checkout_page(request):
         cart_items = cart.items.select_related(
             'variation__product'
         ).prefetch_related(
-            'variation__promise_fees'
+            'variation__promise_fee',
+            'variation__i_rates'
         ).all()
         
         if not cart_items:
             messages.warning(request, "Your cart is empty.")
             return redirect('home:product_list')
         
-        # Calculate total and prepare cart items with promise fee info
-        total = 0
+        # Calculate total and prepare cart items
+        total = Decimal('0')
         processed_items = []
         
         for item in cart_items:
-            # Get all promise fees for this variation
-            promise_fees = item.variation.promise_fees.all()
-            
-            # Calculate item total (base price without any fees)
+            # Calculate item total (base price)
             item_total = item.variation.price * item.quantity
+            total += item_total
             
-            # Prepare promise fee options
-            fee_options = []
-            for fee in promise_fees:
-                # Calculate total product amount
-                total_product_amount = item.variation.price * item.quantity
-                
-                # Calculate deposit amount (buy_back_fee is the deposit percentage)
-                deposit_amount = (total_product_amount * fee.buy_back_fee / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                
-                # Calculate pickup amount (percentage_fee is the pickup percentage)
-                pickup_amount = (total_product_amount * fee.percentage_fee / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                
-                # Total amount to be paid
-                total_amount = deposit_amount + pickup_amount
-                
-                # Create fee option with payment plan details
-                fee_option = {
-                    'id': fee.id,
-                    'description': f"Pay {float(fee.buy_back_fee)}% now, {float(fee.percentage_fee)}% on pickup",
-                    'deposit_percent': str(fee.buy_back_fee),
-                    'pickup_percent': str(fee.percentage_fee),
-                    'deposit_amount': str(deposit_amount),
-                    'pickup_amount': str(pickup_amount),
-                    'total_amount': str(total_amount),
-                    'product_price': str(item.variation.price),
-                    'total_product_amount': str(total_product_amount)
-                }
-                fee_options.append(fee_option)
-            
-            # Don't select any fee by default
-            selected_fee = None
-            
-            # Calculate item total with fee if selected
-            item_total_with_fee = item_total
-            
-            # Create a dictionary with all the item data
+            # Create a dictionary with the item data including promise fee
             processed_item = {
                 'id': item.id,
                 'variation': item.variation,
                 'quantity': item.quantity,
                 'price': item.variation.price,
                 'total_price': item_total,
-                'total_with_fee': item_total_with_fee,
-                'fee_options': fee_options,
-                'selected_fee': selected_fee
             }
             processed_items.append(processed_item)
         
-        # Calculate grand total and process selected fees
-        grand_total = Decimal('0')
-        has_selected_fees = False
-        selected_fees = []
-        
-        for item in processed_items:
-            if item['selected_fee']:
-                has_selected_fees = True
-                selected_fees.append(item)
-                # Calculate the total amount for this item with fee
-                total_fee_percentage = (Decimal(item['selected_fee']['deposit_percent']) + 
-                                      Decimal(item['selected_fee']['pickup_percent'])) / 100
-                
-                # Calculate the total amount after fee discount
-                item_total = item['total_price']
-                fee_amount = (item_total * total_fee_percentage).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                item_total_with_fee = item_total - fee_amount
-                
-                # Update the item with the discounted total
-                item['total_with_fee'] = item_total_with_fee
-                grand_total += item_total_with_fee
-            else:
-                grand_total += item['total_price']
-        
-        # Calculate deposit and pickup totals based on the discounted amounts
-        deposit_total = Decimal('0')
-        pickup_total = Decimal('0')
-        total_discount = Decimal('0')
-        
-        for fee in selected_fees:
-            deposit_percent = Decimal(fee['selected_fee']['deposit_percent']) / 100
-            pickup_percent = Decimal(fee['selected_fee']['pickup_percent']) / 100
-            total_fee_percent = deposit_percent + pickup_percent
-            
-            # Calculate the actual amounts based on the discounted total
-            item_total = fee['total_price']
-            discounted_total = item_total * (1 - total_fee_percent)
-            
-            # Calculate discount amount for this item
-            discount_amount = (item_total * total_fee_percent).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            total_discount += discount_amount
-            
-            # Calculate deposit and pickup amounts based on the discounted total
-            deposit_total += (discounted_total * deposit_percent / (1 - total_fee_percent)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            pickup_total += (discounted_total * pickup_percent / (1 - total_fee_percent)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        
-        # Ensure all values are Decimal and properly formatted
-        grand_total = Decimal(str(grand_total)).quantize(Decimal('0.01'))
-        deposit_total = Decimal(str(deposit_total)).quantize(Decimal('0.01'))
-        pickup_total = Decimal(str(pickup_total)).quantize(Decimal('0.01'))
-        
         context = {
             'cart_items': processed_items,
-            'total': grand_total,
-            'has_selected_fees': has_selected_fees,
-            'deposit_total': deposit_total,
-            'pickup_total': pickup_total,
-            'discount_amount': total_discount.quantize(Decimal('0.01')),
+            'total': total,
         }
         return render(request, 'home/quick_checkout.html', context)
     except Cart.DoesNotExist:
@@ -637,6 +657,69 @@ def quick_checkout_page(request):
 
 
 @require_http_methods(["POST"])
+def create_order(request):
+    """Create an order and redirect to order detail page."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+    try:
+        # Get cart from session
+        cart_id = request.session.get('quick_checkout_cart_id')
+        if not cart_id:
+            return JsonResponse({'error': 'Your session has expired. Please add items to your cart again.'}, status=400)
+        
+        cart = Cart.objects.get(id=cart_id)
+        cart_items = cart.items.select_related('variation__product').all()
+        
+        if not cart_items:
+            return JsonResponse({'error': 'Your cart is empty'}, status=400)
+        
+        # Create order
+        order = Order.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            status='pending',
+            total=Decimal('0.00'),
+            shipping_address=request.user.shipping_address if hasattr(request.user, 'shipping_address') else None
+        )
+        
+        # Add items to order
+        total = Decimal('0.00')
+        for item in cart_items:
+            item_total = item.variation.price * item.quantity
+            total += item_total
+            
+            OrderItem.objects.create(
+                order=order,
+                variation=item.variation,
+                quantity=item.quantity,
+                price=item.variation.price,
+                total=item_total
+            )
+        
+        # Update order total
+        order.total = total
+        order.save()
+        
+        # Clear the cart
+        cart.items.all().delete()
+        if 'quick_checkout_cart_id' in request.session:
+            del request.session['quick_checkout_cart_id']
+        
+        # Return success response with redirect URL
+        return JsonResponse({
+            'success': True,
+            'order_id': order.id,
+            'redirect_url': f'/orders/{order.id}/'
+        })
+        
+    except Cart.DoesNotExist:
+        return JsonResponse({'error': 'Cart not found'}, status=404)
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f'Error creating order: {str(e)}')
+        return JsonResponse({'error': 'An error occurred while creating your order'}, status=500)
+
+
 def process_mpesa_payment(request):
     """Process M-Pesa payment via STK push."""
     logger = logging.getLogger(__name__)
@@ -647,7 +730,9 @@ def process_mpesa_payment(request):
         try:
             data = json.loads(request.body)
             phone_number = data.get('phone_number')
+            payment_plans = data.get('payment_plans', {})
             logger.info(f"Payment request for phone: {phone_number}")
+            logger.info(f"Payment plans: {payment_plans}")
         except json.JSONDecodeError:
             logger.error("Invalid JSON data received")
             return JsonResponse({'error': 'Invalid request data. Please try again.'}, status=400)
@@ -675,9 +760,51 @@ def process_mpesa_payment(request):
             logger.error("Cart is empty")
             return JsonResponse({'error': 'Your cart is empty. Please add items before checking out.'}, status=400)
         
-        # Calculate total amount
-        total_amount = sum(item.variation.price * item.quantity for item in cart_items)
-        logger.info(f"Calculated total amount: {total_amount}")
+        # Calculate total amount based on payment plans with interest rates
+        total_amount = Decimal('0')
+        pay_now_amount = Decimal('0')
+        pay_later_amount = Decimal('0')
+        total_interest = Decimal('0')
+        
+        for item in cart_items:
+            item_total = item.variation.price * item.quantity
+            
+            # Check if this item has a payment plan
+            item_id = str(item.id)
+            if item_id in payment_plans and payment_plans[item_id].get('enabled', False):
+                # Calculate payment plan amounts
+                percentage = Decimal(str(payment_plans[item_id].get('percentage', 0)))
+                
+                # Find the appropriate interest rate for this percentage
+                interest_rate = Decimal('0')
+                i_rates = item.variation.i_rates.all().order_by('lower_range')
+                
+                for i_rate in i_rates:
+                    if i_rate.lower_range <= percentage <= i_rate.upper_range:
+                        interest_rate = i_rate.rate
+                        logger.info(f"Item {item_id}: Found interest rate {interest_rate}% for percentage {percentage}%")
+                        break
+                
+                # Calculate amounts with interest
+                pay_now_item = (item_total * percentage / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                remaining_amount = item_total - pay_now_item
+                
+                # Apply interest rate to the remaining amount
+                interest_amount = (remaining_amount * interest_rate / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                pay_later_item = remaining_amount + interest_amount
+                
+                pay_now_amount += pay_now_item
+                pay_later_amount += pay_later_item
+                total_interest += interest_amount
+                total_amount += pay_now_item  # Only charge the pay now amount
+                
+                logger.info(f"Item {item_id}: Base ${item_total}, Pay Now ${pay_now_item} ({percentage}%), Pay Later ${pay_later_item} (Interest: ${interest_amount} at {interest_rate}%)")
+            else:
+                # No payment plan, pay full amount now
+                total_amount += item_total
+                logger.info(f"Item {item_id}: No payment plan, full amount ${item_total}")
+        
+        logger.info(f"Final amounts - Total: ${total_amount}, Pay Now: ${pay_now_amount}, Pay Later: ${pay_later_amount}, Total Interest: ${total_interest}")
         
         # Format phone number to M-Pesa format (254XXXXXXXXX)
         phone = str(phone_number).strip()
@@ -854,8 +981,83 @@ def confirm_payment(request, order_id):
         return redirect('home:home')
 
 # ==============================
+# Checkout
+# ==============================
+
+@login_required
+def checkout(request):
+    """Display the checkout page with order summary and shipping/payment forms"""
+    cart = _get_or_create_cart(request)
+    cart_items = cart.items.select_related('variation__product').all()
+    
+    if not cart_items.exists():
+        messages.warning(request, _("Your cart is empty. Please add items to your cart before checking out."))
+        return redirect('home:cart_detail')
+    
+    # Calculate cart totals
+    subtotal = sum(float(item.subtotal()) for item in cart_items)
+    # For now, we'll use a flat shipping rate and tax rate
+    # You can replace these with your actual shipping and tax calculation logic
+    shipping_cost = 5.00  # Example flat rate shipping
+    tax_rate = 0.16  # Example 16% tax rate
+    tax = round(subtotal * tax_rate, 2)
+    total = subtotal + shipping_cost + tax
+    
+    context = {
+        'cart_items': cart_items,
+        'subtotal': subtotal,
+        'shipping_cost': shipping_cost,
+        'tax': tax,
+        'total': total,
+    }
+    
+    return render(request, 'home/checkout.html', context)
+
+# ==============================
 # Order History
 # ==============================
+
+class AgentListView(ListView):
+    model = Agent
+    template_name = 'home/agent_list.html'
+    context_object_name = 'agents'
+    paginate_by = 12
+    
+    def get_queryset(self):
+        queryset = Agent.objects.filter(is_verified=True).select_related('owner').prefetch_related('service_types')
+        
+        # Handle search
+        search_form = AgentSearchForm(self.request.GET or None)
+        if search_form.is_valid():
+            query = search_form.cleaned_data.get('query')
+            service_type = search_form.cleaned_data.get('service_type')
+            location = search_form.cleaned_data.get('location')
+            
+            if query:
+                queryset = queryset.filter(
+                    Q(name__icontains=query) |
+                    Q(description__icontains=query) |
+                    Q(city__icontains=query) |
+                    Q(country__icontains(query))
+                )
+            
+            if service_type:
+                queryset = queryset.filter(service_types=service_type)
+                
+            if location:
+                queryset = queryset.filter(
+                    Q(city__icontains=location) |
+                    Q(country__icontains(location))
+                )
+        
+        return queryset.order_by('-created_at')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['search_form'] = AgentSearchForm(self.request.GET or None)
+        context['service_categories'] = ServiceCategory.objects.all()
+        return context
+
 
 def order_history(request):
     """Display a user's order history"""

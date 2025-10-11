@@ -1,0 +1,869 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ agent.get_full_name }} - Agent Profile{% endblock %}
+
+{% block content %}
+<div class="bg-white" x-data="agentDetail()">
+    <!-- Header with cover photo and profile -->
+    <div class="relative">
+        <!-- Cover Photo -->
+        <div class="h-48 w-full bg-gray-200 overflow-hidden">
+            {% if agent.photo %}
+                <img src="{{ agent.photo.url }}" alt="Cover photo" class="w-full h-full object-cover">
+            {% else %}
+                <div class="w-full h-full bg-gray-300 flex items-center justify-center">
+                    <span class="text-gray-500">No cover photo</span>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Profile Info -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="-mt-12 sm:-mt-16 sm:flex sm:items-end sm:space-x-5">
+                <div class="flex items-start space-x-4">
+                    <!-- Agent Photo -->
+                    <div class="relative">
+                        <div class="h-24 w-24 rounded-full ring-4 ring-white sm:h-32 sm:w-32 bg-white overflow-hidden">
+                            {% if agent.photo %}
+                                <img class="h-full w-full object-cover" src="{{ agent.photo.url }}" alt="{{ agent.get_full_name }}">
+                            {% else %}
+                                <div class="h-full w-full bg-gray-200 flex items-center justify-center">
+                                    <span class="text-gray-400 text-2xl">{{ agent.get_initials }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if is_owner or can_edit %}
+                        <button type="button" class="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100"
+                                @click="document.getElementById('photo-upload').click()">
+                            <svg class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <input id="photo-upload" type="file" class="hidden" accept="image/*" @change="handlePhotoUpload">
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Company Logo -->
+                    {% if agent.logo %}
+                    <div class="relative">
+                        <div class="h-24 w-24 rounded-lg ring-4 ring-white sm:h-32 sm:w-32 bg-white overflow-hidden flex items-center justify-center p-2">
+                            <img class="max-h-full max-w-full object-contain" src="{{ agent.logo.url }}" alt="{{ agent.name }} Logo">
+                        </div>
+                        {% if is_owner or can_edit %}
+                        <button type="button" class="absolute -bottom-2 -right-2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100"
+                                @click="document.getElementById('logo-upload').click()">
+                            <svg class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <input id="logo-upload" type="file" class="hidden" accept="image/*" @change="handleLogoUpload">
+                        </button>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="mt-6 sm:flex-1 sm:min-w-0 sm:flex sm:items-center sm:justify-end sm:space-x-6 sm:pb-1">
+                    <div class="sm:hidden 2xl:block mt-6 min-w-0 flex-1">
+                        <h1 class="text-2xl font-bold text-gray-900 truncate">{{ agent.get_full_name }}</h1>
+                        {% if agent.title %}
+                            <p class="text-lg text-gray-600">{{ agent.title }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-6 flex flex-col justify-stretch space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4">
+                        {% if is_owner or can_edit %}
+                            <a href="{% url 'agents:agent_update' agent.pk %}" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                Edit Profile
+                            </a>
+                        {% endif %}
+                        <button type="button" class="inline-flex justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                            Message
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="hidden sm:block 2xl:hidden mt-6 min-w-0 flex-1">
+                <h1 class="text-2xl font-bold text-gray-900">{{ agent.get_full_name }}</h1>
+                {% if agent.title %}
+                    <p class="text-lg text-gray-600">{{ agent.title }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="lg:grid lg:grid-cols-3 lg:gap-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2">
+                <!-- About Section -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h2 class="text-lg leading-6 font-medium text-gray-900">About</h2>
+                        {% if agent.bio %}
+                            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                                {{ agent.bio|linebreaksbr }}
+                            </p>
+                        {% else %}
+                            <p class="mt-1 text-sm text-gray-500">No bio provided.</p>
+                        {% endif %}
+                    </div>
+                    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                        <dl class="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
+                            {% if agent.company %}
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Company</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ agent.company }}</dd>
+                                </div>
+                            {% endif %}
+                            {% if agent.service_types.exists %}
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Services</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        {% for service in agent.service_types.all %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 mr-1 mb-1">
+                                                {{ service.name }}
+                                            </span>
+                                        {% endfor %}
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            {% if agent.phone %}
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <a href="tel:{{ agent.phone }}" class="text-emerald-600 hover:text-emerald-900">
+                                            {{ agent.phone }}
+                                        </a>
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            {% if agent.email %}
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Email</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <a href="mailto:{{ agent.email }}" class="text-emerald-600 hover:text-emerald-900">
+                                            {{ agent.email }}
+                                        </a>
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            {% if agent.website %}
+                                <div class="sm:col-span-1">
+                                    <dt class="text-sm font-medium text-gray-500">Website</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <a href="{{ agent.website }}" target="_blank" rel="noopener noreferrer" class="text-emerald-600 hover:text-emerald-900">
+                                            {{ agent.website }}
+                                        </a>
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            {% if agent.address %}
+                                <div class="sm:col-span-2">
+                                    <dt class="text-sm font-medium text-gray-500">Address</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ agent.address|linebreaksbr }}</dd>
+                                </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Gallery Section -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+                    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                        <h2 class="text-lg leading-6 font-medium text-gray-900">Gallery</h2>
+                        {% if is_owner or can_edit %}
+                        <button type="button" 
+                                @click="showImageUpload = !showImageUpload" 
+                                class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                            <svg class="-ml-1 mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add Photos
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Single Image Upload Form -->
+                    {% if is_owner or can_edit %}
+                    <div x-show="showImageUpload" x-transition class="border-t border-gray-200 px-4 py-5 sm:p-6">
+                        <form id="image-upload-form"
+                              method="post" 
+                              enctype="multipart/form-data"
+                              action="{% url 'agents:agent_add_image' agent.pk %}"
+                              class="space-y-4"
+                              @submit.prevent="uploadImage">
+                            {% csrf_token %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Upload Image
+                                </label>
+                                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md"
+                                     @dragover.prevent="isDragging = true"
+                                     @dragleave.prevent="isDragging = false"
+                                     @drop.prevent="handleFileDrop($event)"
+                                     :class="{'border-emerald-500 bg-emerald-50': isDragging}">
+                                    <div class="space-y-1 text-center" x-show="!selectedFile">
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <div class="flex text-sm text-gray-600 justify-center">
+                                            <label for="image-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-emerald-500">
+                                                <span>Upload a file</span>
+                                                <input id="image-upload" name="image" type="file" class="sr-only" @change="handleFileSelect" accept="image/*">
+                                            </label>
+                                            <p class="pl-1">or drag and drop</p>
+                                        </div>
+                                        <p class="text-xs text-gray-500">
+                                            PNG, JPG, GIF up to 10MB
+                                        </p>
+                                    </div>
+                                    <div x-show="selectedFile" class="text-center">
+                                        <img :src="imagePreview" class="mx-auto max-h-48 max-w-full rounded-md" alt="Preview">
+                                        <p class="mt-2 text-sm text-gray-600" x-text="selectedFile.name"></p>
+                                        <p class="text-xs text-gray-500" x-text="formatFileSize(selectedFile.size)"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <button type="submit" 
+                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                    Upload Image
+                                </button>
+                                <button type="button" 
+                                        @click="cancelUpload" 
+                                        class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Gallery Grid -->
+                    <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
+                        {% if agent.images.exists %}
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 p-4" id="gallery-grid">
+                                {% for image in agent.images.all %}
+                                    {% include 'agents/partials/agent_image.html' with image=image is_agent_owner=is_owner %}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-12">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <h3 class="mt-2 text-sm font-medium text-gray-900">No images</h3>
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Get started by uploading some photos.
+                                </p>
+                                {% if is_owner or can_edit %}
+                                <div class="mt-6">
+                                    <button type="button" 
+                                            @click="showImageUpload = true" 
+                                            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                        <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                        </svg>
+                                        Upload Photos
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Reviews Section -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                        <h2 class="text-lg leading-6 font-medium text-gray-900">Reviews</h2>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {{ rating_stats.count }} reviews
+                        </span>
+                    </div>
+                    <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                        {% if rating_stats.count > 0 %}
+                            <div class="flex items-center mb-6">
+                                <div class="flex items-center">
+                                    <!-- Star Rating -->
+                                    <div class="flex items-center">
+                                        {% for i in "12345"|make_list %}
+                                            {% if forloop.counter <= rating_stats.average|floatformat:0|add:0 %}
+                                                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                </svg>
+                                            {% else %}
+                                                <svg class="h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                </svg>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <p class="ml-2 text-sm font-medium text-gray-900">{{ rating_stats.average|floatformat:1 }}</p>
+                                    <p class="ml-2 text-sm text-gray-500">out of 5</p>
+                                </div>
+                            </div>
+
+                            <!-- Rating Distribution -->
+                            <div class="space-y-3">
+                                {% for rating, count in rating_stats.distribution.items %}
+                                    <div class="flex items-center">
+                                        <p class="w-8 text-sm font-medium text-gray-900">{{ rating }} star{{ rating|pluralize }}</p>
+                                        <div class="flex-1 h-4 mx-4 bg-gray-200 rounded-full overflow-hidden">
+                                            <div class="h-full bg-yellow-400" style="width: {% widthratio count rating_stats.count 100 %}%"></div>
+                                        </div>
+                                        <p class="w-8 text-right text-sm font-medium text-gray-900">
+                                            {{ count }}
+                                        </p>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-gray-500">No reviews yet.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Reviews List -->
+                    {% if reviews %}
+                        <div class="border-t border-gray-200 px-4 py-5 sm:px-6">
+                            <div class="space-y-8">
+                                {% for review in reviews %}
+                                    <div class="flex space-x-4">
+                                        <div class="flex-shrink-0">
+                                            {% if review.user.photo %}
+                                                <img class="h-10 w-10 rounded-full" src="{{ review.user.photo.url }}" alt="">
+                                            {% else %}
+                                                <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                    <span class="text-gray-500">{{ review.user.get_initials }}</span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-center">
+                                                <h3 class="text-sm font-medium text-gray-900">{{ review.user.get_full_name }}</h3>
+                                                <div class="ml-1 flex text-yellow-400">
+                                                    {% for i in "12345"|make_list %}
+                                                        {% if forloop.counter <= review.rating %}
+                                                            <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                            </svg>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            <div class="mt-1 text-sm text-gray-500">
+                                                <p>{{ review.comment }}</p>
+                                            </div>
+                                            <div class="mt-2 text-sm text-gray-400">
+                                                <time datetime="{{ review.created_at|date:'Y-m-d' }}">
+                                                    {{ review.created_at|date:"F j, Y" }}
+                                                </time>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="mt-12 lg:mt-0">
+                <!-- Contact Card -->
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Contact Information</h3>
+                    </div>
+                    <div class="border-t border-gray-200 px-4 py-5 sm:p-6">
+                        <dl class="space-y-4">
+                            {% if agent.phone %}
+                                <div class="flex">
+                                    <dt class="flex-shrink-0">
+                                        <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                        </svg>
+                                    </dt>
+                                    <dd class="ml-3">
+                                        <p class="text-sm text-gray-500">Phone</p>
+                                        <a href="tel:{{ agent.phone }}" class="text-base font-medium text-gray-900 hover:text-emerald-600">
+                                            {{ agent.phone }}
+                                        </a>
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            
+                            {% if agent.email %}
+                                <div class="flex">
+                                    <dt class="flex-shrink-0">
+                                        <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                    </dt>
+                                    <dd class="ml-3">
+                                        <p class="text-sm text-gray-500">Email</p>
+                                        <a href="mailto:{{ agent.email }}" class="text-base font-medium text-gray-900 hover:text-emerald-600">
+                                            {{ agent.email }}
+                                        </a>
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            
+                            {% if agent.website %}
+                                <div class="flex">
+                                    <dt class="flex-shrink-0">
+                                        <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                        </svg>
+                                    </dt>
+                                    <dd class="ml-3">
+                                        <p class="text-sm text-gray-500">Website</p>
+                                        <a href="{{ agent.website }}" target="_blank" rel="noopener noreferrer" class="text-base font-medium text-gray-900 hover:text-emerald-600">
+                                            {{ agent.website|truncatechars:30 }}
+                                        </a>
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            
+                            {% if agent.address %}
+                                <div class="flex">
+                                    <dt class="flex-shrink-0">
+                                        <svg class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </dt>
+                                    <dd class="ml-3">
+                                        <p class="text-sm text-gray-500">Address</p>
+                                        <p class="text-base font-medium text-gray-900">{{ agent.address|linebreaksbr }}</p>
+                                    </dd>
+                                </div>
+                            {% endif %}
+                        </dl>
+                        
+                        <div class="mt-6">
+                            <a href="#" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                                </svg>
+                                Send Message
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Image upload is now handled by the main gallery section -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('agentDetail', () => ({
+            // State for UI elements
+            showImageUpload: false,
+            isUploading: false,
+            uploadProgress: 0,
+            selectedFiles: [],
+            selectedFile: null,
+            imagePreview: null,
+            isDragging: false,
+            
+            // Initialize component
+            init() {
+                this.setupDragAndDrop();
+                this.setupImagePreview();
+                this.setupFormSubmit();
+                this.setupImageEventListeners();
+            },
+            
+            // Handle photo upload
+            async handlePhotoUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                await this.uploadImage(file, 'photo');
+                // Refresh the page to show the new photo
+                window.location.reload();
+            },
+            
+            // Handle logo upload
+            async handleLogoUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                await this.uploadImage(file, 'logo');
+                // Refresh the page to show the new logo
+                window.location.reload();
+            },
+            
+            // Setup drag and drop for file upload
+            setupDragAndDrop() {
+                const dropZone = document.querySelector('.border-dashed');
+                if (!dropZone) return;
+                
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, this.preventDefaults, false);
+                });
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => {
+                        dropZone.classList.add('border-emerald-500', 'bg-emerald-50');
+                    }, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => {
+                        dropZone.classList.remove('border-emerald-500', 'bg-emerald-50');
+                    }, false);
+                });
+                
+                dropZone.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    this.handleFiles(files);
+                }, false);
+            },
+            
+            // Handle file selection
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.selectedFile = file;
+                    this.createImagePreview(file);
+                }
+            },
+            
+            // Create image preview
+            createImagePreview(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.imagePreview = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            },
+            
+            // Handle file drop
+            handleFileDrop(event) {
+                this.isDragging = false;
+                const files = event.dataTransfer.files;
+                if (files.length > 0) {
+                    const file = files[0];
+                    this.selectedFile = file;
+                    this.createImagePreview(file);
+                }
+            },
+            
+            // Cancel upload
+            cancelUpload() {
+                this.selectedFile = null;
+                this.imagePreview = null;
+                this.showImageUpload = false;
+                const form = document.getElementById('image-upload-form');
+                if (form) {
+                    form.reset();
+                }
+            },
+            
+            // Format file size
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            },
+            
+            
+            
+            // Setup image preview for file inputs
+            setupImagePreview() {
+                const fileInput = document.getElementById('image-upload');
+                if (fileInput) {
+                    fileInput.addEventListener('change', (e) => {
+                        this.handleFileSelect(e);
+                    });
+                }
+            },
+            
+            // Setup form submission
+            setupFormSubmit() {
+                const form = document.getElementById('image-upload-form');
+                if (!form) return;
+                
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    if (this.selectedFiles.length === 0) {
+                        this.showNotification('Please select at least one image to upload', 'error');
+                        return;
+                    }
+                    
+                    this.isUploading = true;
+                    this.uploadProgress = 0;
+                    
+                    try {
+                        const formData = new FormData();
+                        
+                        // Add all selected files to form data
+                        this.selectedFiles.forEach((file, index) => {
+                            formData.append('images', file);
+                        });
+                        
+                        // Add CSRF token
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        formData.append('csrfmiddlewaretoken', csrfToken);
+                        
+                        // Submit the form data
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.showNotification('Images uploaded successfully!', 'success');
+                            // Reset form and update gallery
+                            form.reset();
+                            this.selectedFiles = [];
+                            this.updateFileList();
+                            this.showImageUpload = false;
+                            
+                            // Reload the page to show new images
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            throw new Error(data.error || 'Failed to upload images');
+                        }
+                    } catch (error) {
+                        console.error('Error uploading images:', error);
+                        this.showNotification(error.message || 'An error occurred while uploading the images', 'error');
+                    } finally {
+                        this.isUploading = false;
+                    }
+                });
+            },
+            
+            // Handle file upload when form is submitted
+            async uploadImage() {
+                const form = document.getElementById('image-upload-form');
+                const fileInput = form.querySelector('input[type="file"]');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    this.showNotification('Please select an image to upload', 'error');
+                    return;
+                }
+
+                this.isUploading = true;
+                const formData = new FormData(form);
+                
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Upload failed');
+                    }
+                    
+                    if (data.success) {
+                        this.showNotification('Image uploaded successfully!', 'success');
+                        
+                        // Add the new image to the gallery
+                        if (data.image_html) {
+                            const galleryGrid = document.getElementById('gallery-grid');
+                            if (galleryGrid) {
+                                // Create a temporary container to parse the HTML
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = data.image_html;
+                                const newImageElement = tempDiv.firstElementChild;
+                                
+                                // Add the new image to the gallery
+                                galleryGrid.appendChild(newImageElement);
+                                
+                                // Setup event listeners for the new image
+                                this.setupImageEventListeners(newImageElement);
+                            }
+                        }
+                        
+                        // Reset the form
+                        form.reset();
+                        this.selectedFile = null;
+                        this.showImageUpload = false;
+                        
+                        // Hide the empty state if it exists
+                        const emptyState = document.querySelector('.text-center.py-12');
+                        if (emptyState) {
+                            emptyState.style.display = 'none';
+                        }
+                    } else {
+                        throw new Error(data.error || 'Failed to upload image');
+                    }
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    this.showNotification(error.message || 'An error occurred while uploading the image', 'error');
+                } finally {
+                    this.isUploading = false;
+                }
+            },
+            
+            // Set an image as primary
+            async setPrimaryImage(imageId) {
+                try {
+                    const response = await fetch(`/agents/image/${imageId}/set-primary/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ is_primary: true })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showNotification('Primary image updated successfully!', 'success');
+                        // Reload the page to update the UI
+                        window.location.reload();
+                    } else {
+                        throw new Error(data.error || 'Failed to update primary image');
+                    }
+                } catch (error) {
+                    console.error('Error setting primary image:', error);
+                    this.showNotification(error.message || 'An error occurred while updating the primary image', 'error');
+                }
+            },
+            
+            // Setup event listeners for image operations
+            setupImageEventListeners() {
+                // Setup delete image buttons
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.delete-image')) {
+                        e.preventDefault();
+                        const button = e.target.closest('.delete-image');
+                        const imageId = button.dataset.imageId;
+                        this.deleteImage(imageId);
+                    }
+                });
+                
+                // Setup set primary image buttons
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.set-primary-image')) {
+                        e.preventDefault();
+                        const button = e.target.closest('.set-primary-image');
+                        const imageId = button.dataset.imageId;
+                        this.setPrimaryImage(imageId);
+                    }
+                });
+            },
+            
+            // Delete an image
+            async deleteImage(imageId) {
+                if (!confirm('Are you sure you want to delete this image? This action cannot be undone.')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/agents/image/${imageId}/delete/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': '{{ csrf_token }}',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showNotification('Image deleted successfully!', 'success');
+                        // Remove the image element from the DOM
+                        const imageElement = document.querySelector(`[data-image-id="${imageId}"]`);
+                        if (imageElement) {
+                            imageElement.remove();
+                        }
+                        // If no images left, show the empty state
+                        if (document.querySelectorAll('#gallery-grid [data-image-id]').length === 0) {
+                            this.showEmptyState();
+                        }
+                    } else {
+                        throw new Error(data.error || 'Failed to delete image');
+                    }
+                } catch (error) {
+                    console.error('Error deleting image:', error);
+                    this.showNotification(error.message || 'An error occurred while deleting the image', 'error');
+                }
+            },
+            
+            // Show empty state for gallery
+            showEmptyState() {
+                const galleryGrid = document.getElementById('gallery-grid');
+                if (galleryGrid) {
+                    galleryGrid.innerHTML = `
+                        <div class="col-span-full text-center py-12">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">No images</h3>
+                            <p class="mt-1 text-sm text-gray-500">
+                                Get started by uploading some photos.
+                            </p>
+                            <div class="mt-6">
+                                <button type="button" 
+                                        @click="showImageUpload = true" 
+                                        class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                    <svg class="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    Upload Photos
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+            
+            // Prevent default drag and drop behavior
+            preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            },
+            
+            // Show notification
+            showNotification(message, type = 'success') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 z-50 px-6 py-4 rounded-md shadow-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                // Remove notification after 3 seconds
+                setTimeout(() => {
+                    notification.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 500);
+                }, 3000);
+            }
+        }));
+    });
+</script>
+{% endblock %}

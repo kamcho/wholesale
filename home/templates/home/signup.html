@@ -1,0 +1,296 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Sign Up - WholeSaleHub{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <!-- Logo -->
+        <div class="flex justify-center">
+            <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-teal-500 rounded-xl flex items-center justify-center shadow-md">
+                <svg class="h-10 w-10 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                </svg>
+            </div>
+        </div>
+        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Create your account
+        </h2>
+        <p class="mt-2 text-center text-sm text-gray-600">
+            Or
+            <a href="{% url 'login' %}" class="font-medium text-blue-600 hover:text-blue-500">
+                sign in to your existing account
+            </a>
+        </p>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-8 px-6 shadow-lg rounded-lg sm:px-10">
+            <form class="space-y-6" method="post" action="{% url 'home:signup' %}">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-700">
+                                    {{ form.non_field_errors.0 }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Role Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">
+                        I want to register as: <span class="text-red-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="role-container">
+                        {% for choice in form.role.field.choices %}
+                        <div class="relative">
+                            <input type="radio" 
+                                   id="role-{{ forloop.counter }}" 
+                                   name="{{ form.role.name }}" 
+                                   value="{{ choice.0 }}" 
+                                   class="absolute opacity-0 w-0 h-0"
+                                   {% if form.role.value == choice.0 or forloop.first and not form.role.value %}checked{% endif %}>
+                            <label for="role-{{ forloop.counter }}" 
+                                   class="role-option flex items-center w-full p-4 border-2 border-gray-200 rounded-lg cursor-pointer transition-colors duration-200 hover:border-blue-300 hover:bg-blue-50">
+                                <div class="radio-dot w-5 h-5 rounded-full border-2 border-gray-300 mr-3 relative flex-shrink-0">
+                                    <div class="radio-inner absolute inset-0 m-auto w-2.5 h-2.5 bg-white rounded-full scale-0 transition-transform duration-200"></div>
+                                </div>
+                                <span class="text-gray-700 font-medium">{{ choice.1 }}</span>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if form.role.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.role.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Name Fields -->
+                <div class="grid grid-cols-1 gap-y-5 gap-x-6 sm:grid-cols-2">
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            First name
+                        </label>
+                        <div class="mt-1">
+                            <input type="text" 
+                                   name="{{ form.first_name.name }}" 
+                                   id="{{ form.first_name.id_for_label }}"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                   placeholder="Enter your first name"
+                                   value="{{ form.first_name.value|default:'' }}">
+                            {% if form.first_name.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Last name
+                        </label>
+                        <div class="mt-1">
+                            <input type="text" 
+                                   name="{{ form.last_name.name }}" 
+                                   id="{{ form.last_name.id_for_label }}"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                   placeholder="Enter your last name"
+                                   value="{{ form.last_name.value|default:'' }}">
+                            {% if form.last_name.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Email address
+                    </label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                            </svg>
+                        </div>
+                        <input type="email" 
+                               name="{{ form.email.name }}" 
+                               id="{{ form.email.id_for_label }}"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="you@example.com"
+                               value="{{ form.email.value|default:'' }}">
+                    </div>
+                    {% if form.email.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Password -->
+                <div>
+                    <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Password
+                    </label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <input type="password" 
+                               name="{{ form.password1.name }}" 
+                               id="{{ form.password1.id_for_label }}"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="••••••••"
+                               {% if form.password1.value %}value="{{ form.password1.value }}"{% endif %}>
+                    </div>
+                    {% if form.password1.help_text %}
+                        <p class="mt-1 text-xs text-gray-500">{{ form.password1.help_text }}</p>
+                    {% endif %}
+                    {% if form.password1.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Confirm Password -->
+                <div>
+                    <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Confirm password
+                    </label>
+                    <div class="mt-1 relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <input type="password" 
+                               name="{{ form.password2.name }}" 
+                               id="{{ form.password2.id_for_label }}"
+                               class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                               placeholder="••••••••"
+                               {% if form.password2.value %}value="{{ form.password2.value }}"{% endif %}>
+                    </div>
+                    {% if form.password2.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Terms and Conditions -->
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="terms" 
+                               name="terms" 
+                               type="checkbox" 
+                               class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" 
+                               required>
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="terms" class="text-gray-600">
+                            I agree to the 
+                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">Terms of Service</a> 
+                            and 
+                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">Privacy Policy</a>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div>
+                    <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                        Create Account
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add JavaScript for radio button functionality -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all radio inputs and their containers
+    const radioInputs = document.querySelectorAll('input[type="radio"][name="{{ form.role.name }}"]');
+    const hiddenInput = document.getElementById('{{ form.role.id_for_label }}');
+    
+    // Function to update the UI when a radio is selected
+    function updateRadioUI(selectedInput) {
+        if (!selectedInput) return;
+        
+        // Reset all radio button styles
+        document.querySelectorAll('.role-option').forEach(label => {
+            const dot = label.querySelector('.radio-dot');
+            const inner = label.querySelector('.radio-inner');
+            
+            dot.classList.remove('border-blue-500', 'bg-blue-500');
+            inner.classList.remove('scale-100');
+            label.classList.remove('border-blue-500', 'bg-blue-50');
+        });
+        
+        // Update the selected radio button
+        const label = selectedInput.nextElementSibling;
+        const dot = label.querySelector('.radio-dot');
+        const inner = label.querySelector('.radio-inner');
+        
+        dot.classList.add('border-blue-500', 'bg-blue-500');
+        inner.classList.add('scale-100');
+        label.classList.add('border-blue-500', 'bg-blue-50');
+        
+        // Update the hidden input value
+        hiddenInput.value = selectedInput.value;
+    }
+    
+    // Add click event listeners to all radio inputs
+    radioInputs.forEach(radio => {
+        // Update UI when radio is changed
+        radio.addEventListener('change', function() {
+            updateRadioUI(this);
+        });
+    });
+    
+    // Add click event to labels for better mobile support
+    document.querySelectorAll('.role-option').forEach(label => {
+        label.addEventListener('click', function(e) {
+            const radio = this.previousElementSibling;
+            if (radio && radio.type === 'radio') {
+                radio.checked = true;
+                updateRadioUI(radio);
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Initialize the form with any pre-checked radio button
+    const initialChecked = document.querySelector('input[type="radio"][name="{{ form.role.name }}"]:checked');
+    if (initialChecked) {
+        updateRadioUI(initialChecked);
+    } else if (radioInputs.length > 0) {
+        // If no radio is checked, don't select any by default
+        hiddenInput.value = '';
+    }
+    
+    // Add form validation to ensure a role is selected
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            if (!hiddenInput.value) {
+                e.preventDefault();
+                alert('Please select a role');
+                return false;
+            }
+            return true;
+        });
+    }
+});
+</script>
+{% endblock %}

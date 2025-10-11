@@ -102,12 +102,12 @@
         <div class="row g-4">
           <!-- Image Upload -->
           <div class="col-12">
-            <div id="drop-zone" class="border-2 border-dashed rounded-3 p-5 text-center bg-gradient-to-br from-gray-50 to-gray-100 hover-lift" style="cursor: pointer;">
+            <div id="drop-zone" class="border-2 border-dashed rounded-3 p-5 text-center bg-gradient-to-br from-gray-50 to-gray-100 hover-lift" style="cursor: pointer;" onclick="document.getElementById('id_image').click()">
               <div id="image-preview" class="mb-3" style="display: none;">
                 <img id="preview" src="#" alt="Preview" class="img-fluid rounded-3 shadow-sm" style="max-height: 300px;">
               </div>
               <div class="file-input-wrapper">
-                {{ form.image }}
+                <input type="file" name="image" required id="id_image" class="d-none" accept="image/*" onchange="previewImage(this)">
                 <div id="upload-area" class="file-input-label">
                   <div class="w-16 h-16 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">

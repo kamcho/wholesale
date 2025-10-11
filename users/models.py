@@ -30,12 +30,14 @@ class MyUser(AbstractUser):
         ('Admin', 'Admin'),
         ('Supervisor', 'Supervisor'),
         ('Manager', 'Manager'),
+        ('Agent', 'Agent'),
+        ('Customer', 'Customer'),
     ]
     role = models.CharField(
         _('Role'),
         max_length=20,
         choices=ROLE_CHOICES,
-        default='Manager',  
+        default='Customer',  
         help_text=_('User role in the system')
     )
 

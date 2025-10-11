@@ -1,7 +1,7 @@
 import base64
 from typing import Tuple, Dict, Any
 from django.conf import settings
-import requests
+import requests, os
 
 
 class GavaConnectError(Exception):
@@ -19,9 +19,9 @@ def get_access_token() -> Tuple[str, int]:
 
     Returns (access_token, expires_in_seconds)
     """
-    base_url = getattr(settings, "GAVA_BASE_URL", "https://sbx.kra.go.ke")
-    client_key = getattr(settings, "GAVA_CLIENT_KEY", "")
-    client_secret = getattr(settings, "GAVA_CLIENT_SECRET", "")
+    base_url = os.getenv("GAVA_BASE_URL", "https://sbx.kra.go.ke")
+    client_key = os.getenv("GAVA_CLIENT_KEY")
+    client_secret = os.getenv("GAVA_CLIENT_SECRET")
 
     if not client_key or not client_secret:
         raise GavaConnectError("Missing GavaConnect client credentials")

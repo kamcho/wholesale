@@ -38,11 +38,29 @@ class MyUserCreationForm(UserCreationForm):
         self.fields['password2'].label = 'Confirm Password'
 
 class MyAuthenticationForm(AuthenticationForm):
-    username = forms.EmailField(label='Email', max_length=50)
+    username = forms.EmailField(
+        label='Email',
+        max_length=50,
+        widget=forms.EmailInput(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition duration-200',
+            'placeholder': 'Enter your email address',
+            'autocomplete': 'email',
+            'autofocus': True
+        })
+    )
+    password = forms.CharField(
+        label='Password',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition duration-200',
+            'placeholder': 'Enter your password',
+            'autocomplete': 'current-password'
+        })
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].widget.attrs.update({'autofocus': True, 'placeholder': 'Email'})
+        self.fields['username'].label = 'Email Address'
 
 class ProfileEditForm(forms.ModelForm):
     class Meta:

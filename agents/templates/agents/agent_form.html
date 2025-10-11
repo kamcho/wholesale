@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Agent Profile - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                {% if object %}Edit{% else %}Create{% endif %} Agent Profile
+            </h3>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="divide-y divide-gray-200">
+            {% csrf_token %}
+            
+            {% csrf_token %}
+            
+            <!-- Form Fields -->
+            <div class="px-6 py-5 space-y-6">
+                <!-- Photo Upload -->
+                <div class="space-y-1">
+                    <label for="id_photo" class="block text-sm font-medium text-gray-700">
+                        Profile Photo
+                    </label>
+                    <div class="mt-1 flex items-center">
+                        <div class="h-24 w-24 rounded-full overflow-hidden bg-gray-100">
+                            {% if form.instance.photo %}
+                                <img src="{{ form.instance.photo.url }}" alt="" class="h-full w-full object-cover">
+                            {% else %}
+                                <div class="h-full w-full bg-gray-200 flex items-center justify-center">
+                                    <span class="text-gray-400">No photo</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="ml-4">
+                            <label for="id_photo" class="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                Change
+                            </label>
+                            <input type="file" name="photo" id="id_photo" class="sr-only" accept="image/*">
+                        </div>
+                    </div>
+                    {% if form.photo.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            <svg class="h-4 w-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            {{ form.photo.errors.0 }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <!-- Logo Upload -->
+                <div class="space-y-1">
+                    <label for="id_logo" class="block text-sm font-medium text-gray-700">
+                        Company Logo
+                    </label>
+                    <div class="mt-1 flex items-center">
+                        <div class="h-24 w-24 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
+                            {% if form.instance.logo %}
+                                <img src="{{ form.instance.logo.url }}" alt="" class="max-h-full max-w-full object-contain">
+                            {% else %}
+                                <div class="h-full w-full bg-gray-200 flex items-center justify-center">
+                                    <span class="text-gray-400">No logo</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="ml-4">
+                            <label for="id_logo" class="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                                {{ form.instance.logo|yesno:"Change,Add" }}
+                            </label>
+                            <input type="file" name="logo" id="id_logo" class="sr-only" accept="image/*">
+                        </div>
+                    </div>
+                    {% if form.logo.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            <svg class="h-4 w-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            {{ form.logo.errors.0 }}
+                        </p>
+                    {% endif %}
+                </div>
+
+                <!-- Other form fields -->
+                {% for field in form.visible_fields %}
+                    {% if field.name not in 'photo,logo' %}
+                        <div class="space-y-1">
+                            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                {{ field.label }}
+                                {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            
+                            {% if field.name == 'service_types' %}
+                                <div class="mt-2 space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {% for checkbox in field %}
+                                            <div class="flex items-center">
+                                                <div class="flex items-center h-5">
+                                                    <input type="checkbox" name="{{ checkbox.data.name }}" value="{{ checkbox.data.value }}" 
+                                                        {% if checkbox.data.selected %}checked{% endif %}
+                                                        class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                                </div>
+                                                <label for="{{ checkbox.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
+                                                    {{ checkbox.choice_label }}
+                                                </label>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% elif field.field.widget.input_type == 'select' %}
+                                <div class="relative mt-1">
+                                    {{ field|add_class:"block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm" }}
+                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                        <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            {% elif field.field.widget.input_type == 'textarea' %}
+                                {{ field|add_class:"mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" }}
+                            {% else %}
+                                {{ field|add_class:"mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" }}
+                            {% endif %}
+                            
+                            {% if field.help_text %}
+                                <p class="mt-2 text-sm text-gray-500">{{ field.help_text }}</p>
+                            {% endif %}
+                            
+                            {% if field.errors %}
+                                <p class="mt-2 text-sm text-red-600">
+                                    <svg class="h-4 w-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                    {{ field.errors.0 }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+                
+                <!-- Form Actions -->
+                <div class="pt-5 border-t border-gray-200">
+                    <div class="flex justify-between">
+                        <a href="{% if object %}{% url 'agents:agent_detail' object.pk %}{% else %}{% url 'agents:agent_list' %}{% endif %}" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                            Cancel
+                        </a>
+                        <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to handle file uploads via AJAX
+    function handleFileUpload(input, fieldName) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append(fieldName, file);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        // Show loading state
+        const button = input.closest('.space-y-1').querySelector('button');
+        const originalText = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="inline-block animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full" role="status" aria-hidden="true"></span> Uploading...';
+
+        fetch('{% if object %}{% url "agents:agent_update" object.pk %}{% else %}{% url "agents:agent_create" %}{% endif %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the preview
+                const preview = input.closest('.space-y-1').querySelector('img');
+                if (preview) {
+                    preview.src = data[`${fieldName}_url`];
+                } else {
+                    const previewContainer = input.closest('.space-y-1').querySelector('.h-24');
+                    const img = document.createElement('img');
+                    img.src = data[`${fieldName}_url`];
+                    img.className = 'h-full w-full object-cover';
+                    previewContainer.innerHTML = '';
+                    previewContainer.appendChild(img);
+                }
+                // Show success message
+                showNotification(data.message, 'success');
+            } else {
+                throw new Error(data.error || 'Failed to upload file');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification(error.message || 'An error occurred while uploading the file', 'error');
+        })
+        .finally(() => {
+            // Reset button state
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
+    }
+
+    // Function to show notification
+    function showNotification(message, type = 'success') {
+        // You can implement a notification system here or use browser's alert
+        alert(`${type.toUpperCase()}: ${message}`);
+    }
+
+    // Handle photo upload
+    const photoInput = document.getElementById('id_photo');
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            handleFileUpload(this, 'photo');
+        });
+    }
+
+    // Handle logo upload
+    const logoInput = document.getElementById('id_logo');
+    if (logoInput) {
+        logoInput.addEventListener('change', function(e) {
+            handleFileUpload(this, 'logo');
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -6,6 +6,61 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+/* Payment Plan Slider Styles */
+.payment-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.payment-slider::-webkit-slider-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.payment-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #3b82f6;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.payment-slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+}
+
+.payment-slider::-moz-range-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+}
+
+.payment-slider::-moz-range-thumb {
+    background: #3b82f6;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.payment-slider::-moz-range-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -16,10 +71,11 @@
             <div class="text-center">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Processing Payment</h3>
-                <p class="text-sm text-gray-500">Please wait while we process your M-Pesa payment request...</p>
+                <p class="text-sm text-gray-500">Please wait while we process your payment request...</p>
             </div>
         </div>
     </div>
+    
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6">
             <h2 class="text-2xl font-bold text-gray-900">Order Summary</h2>
@@ -35,10 +91,10 @@
                 <div class="col-span-2 text-center">
                     <span class="text-sm font-medium text-gray-500">Quantity</span>
                 </div>
-                <div class="col-span-2 text-center">
-                    <span class="text-sm font-medium text-gray-500">Promise Fee</span>
+                <div class="col-span-3 text-center">
+                    <span class="text-sm font-medium text-gray-500">Payment Plan</span>
                 </div>
-                <div class="col-span-3 text-right">
+                <div class="col-span-2 text-right">
                     <span class="text-sm font-medium text-gray-500">Price</span>
                 </div>
             </div>
@@ -63,29 +119,6 @@
                             <div class="sm:hidden mt-2">
                                 <p class="text-sm font-medium text-gray-900">${{ item.price|floatformat:2 }} × {{ item.quantity }}</p>
                                 <p class="text-sm font-medium text-gray-900">Total: ${{ item.total_price|floatformat:2 }}</p>
-                                {% if item.fee_options %}
-                                <div class="mt-2">
-                                    <select 
-                                        class="block w-full pl-3 pr-10 py-1 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
-                                        data-item-id="{{ item.id }}"
-                                        onchange="showFeeDetails(this)"
-                                    >
-                                        <option value="" selected disabled>Select payment plan</option>
-                                        {% for fee in item.fee_options %}
-                                        <option value="{{ forloop.counter0 }}">
-                                            {{ fee.description }}
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                    
-                                    {% if item.selected_fee %}
-                                    <div class="mt-1 text-xs text-gray-600">
-                                        <div>Now: ${{ item.selected_fee.deposit_amount }}</div>
-                                        <div>On Pickup: ${{ item.selected_fee.pickup_amount }}</div>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -97,59 +130,140 @@
                         </div>
                     </div>
                     
-                    <!-- Promise Fee (Desktop) -->
-                    <div class="hidden sm:block col-span-3 items-center">
-                        {% if item.fee_options %}
-                        <div class="relative">
-                            <select 
-                                class="block w-full pl-3 pr-10 py-2 text-sm border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md"
-                                data-item-id="{{ item.id }}"
-                                onchange="showFeeDetails(this)"
-                            >
-                                <option value="" selected disabled>Select payment plan</option>
-                                {% for fee in item.fee_options %}
-                                <option value="{{ forloop.counter0 }}">
-                                    {{ fee.description }}
-                                </option>
-                                {% endfor %}
-                            </select>
+                    <!-- Payment Plan (Desktop) -->
+                    <div class="hidden sm:block col-span-3">
+                        {% if item.variation.promise_fee %}
+                        <div class="space-y-3">
+                            <!-- Payment Plan Toggle -->
+                            <div class="flex items-center">
+                                <input type="checkbox" 
+                                       id="payment-plan-{{ item.id }}" 
+                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                       onchange="togglePaymentPlan({{ item.id }})">
+                                <label for="payment-plan-{{ item.id }}" class="ml-2 text-sm text-gray-700">
+                                    Use Payment Plan
+                                </label>
+                            </div>
+                            
+                            <!-- Payment Plan Details -->
+                            <div id="payment-plan-details-{{ item.id }}" class="hidden space-y-2">
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm font-medium text-gray-700">Pay Now:</span>
+                                        <span id="pay-now-percent-{{ item.id }}" class="text-sm font-bold text-blue-600">{{ item.variation.promise_fee.min_percent|floatformat:0 }}%</span>
+                                    </div>
+                                    
+                                    <!-- Percentage Slider -->
+                                    <input type="range" 
+                                           id="payment-slider-{{ item.id }}"
+                                           min="{{ item.variation.promise_fee.min_percent|floatformat:0 }}" 
+                                           max="{{ item.variation.promise_fee.max_percent|floatformat:0 }}" 
+                                           value="{{ item.variation.promise_fee.min_percent|floatformat:0 }}" 
+                                           step="1"
+                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer payment-slider"
+                                           oninput="updatePaymentPlan({{ item.id }})">
+                                    
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>{{ item.variation.promise_fee.min_percent|floatformat:0 }}%</span>
+                                        <span>{{ item.variation.promise_fee.max_percent|floatformat:0 }}%</span>
+                                    </div>
+                                    
+                                    <!-- Payment Breakdown -->
+                                    <div class="mt-3 space-y-1 text-xs">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Pay Now:</span>
+                                            <span id="pay-now-amount-{{ item.id }}" class="font-medium text-blue-600">$0.00</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Pay at Pickup:</span>
+                                            <span id="pay-later-amount-{{ item.id }}" class="font-medium text-gray-500">$0.00</span>
+                                        </div>
+                                        <div class="flex justify-between text-orange-600" id="interest-display-{{ item.id }}" style="display: none;">
+                                            <span>Interest Rate:</span>
+                                            <span id="interest-rate-{{ item.id }}">0%</span>
+                                        </div>
+                                        <div class="flex justify-between text-orange-600" id="interest-amount-display-{{ item.id }}" style="display: none;">
+                                            <span>Interest Amount:</span>
+                                            <span id="interest-amount-{{ item.id }}">$0.00</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         {% else %}
                         <span class="text-sm text-gray-400">No payment plans available</span>
                         {% endif %}
-                        
-                        {% if item.selected_fee %}
-                        <div class="mt-2 text-xs text-gray-600">
-                            <div>Now: ${{ item.selected_fee.deposit_amount }}</div>
-                            <div>On Pickup: ${{ item.selected_fee.pickup_amount }}</div>
-                        </div>
-                        {% endif %}
                     </div>
                     
                     <!-- Price (Desktop) -->
-                    <div class="hidden sm:flex col-span-3 items-center justify-end">
+                    <div class="hidden sm:flex col-span-2 items-center justify-end">
                         <div class="text-right">
                             <p class="text-sm text-gray-900">${{ item.price|floatformat:2 }} × {{ item.quantity }}</p>
-                            {% if item.selected_fee %}
-                            <p class="text-xs text-green-600">+ ${{ item.selected_fee.amount }} × {{ item.quantity }} ({{ item.selected_fee.percentage_fee }}% + ${{ item.selected_fee.buy_back_fee }})</p>
-                            {% endif %}
-                            <p class="text-sm font-medium text-gray-900">${{ item.total_with_fee|floatformat:2 }}</p>
+                            <p class="text-sm font-medium text-gray-900">${{ item.total_price|floatformat:2 }}</p>
                         </div>
                     </div>
                     
-                    <!-- Mobile view for quantity and promise fee -->
-                    <div class="sm:hidden col-span-12 flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
-                        <div class="flex items-center">
-                            <span class="text-sm font-medium text-gray-500 mr-2">Qty:</span>
-                            <span class="text-sm text-gray-900">{{ item.quantity }}</span>
+                    <!-- Mobile view for quantity and payment plan -->
+                    <div class="sm:hidden col-span-12 mt-2 pt-3 border-t border-gray-100">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center">
+                                <span class="text-sm font-medium text-gray-500 mr-2">Qty:</span>
+                                <span class="text-sm text-gray-900">{{ item.quantity }}</span>
+                            </div>
                         </div>
-                        {% if item.selected_fee %}
-                        <div class="flex items-center">
-                            <div class="text-sm text-green-600" id="mobile-fee-{{ item.id }}">
-                                <div>{{ item.selected_fee.description }}</div>
-                                <div class="text-xs text-gray-600">
-                                    <span>Now: ${{ item.selected_fee.deposit_amount }}</span> • 
-                                    <span>Pickup: ${{ item.selected_fee.pickup_amount }}</span>
+                        
+                        <!-- Mobile Payment Plan -->
+                        {% if item.variation.promise_fee %}
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input type="checkbox" 
+                                       id="mobile-payment-plan-{{ item.id }}" 
+                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                       onchange="toggleMobilePaymentPlan({{ item.id }})">
+                                <label for="mobile-payment-plan-{{ item.id }}" class="ml-2 text-sm text-gray-700">
+                                    Use Payment Plan
+                                </label>
+                            </div>
+                            
+                            <div id="mobile-payment-plan-details-{{ item.id }}" class="hidden space-y-2">
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm font-medium text-gray-700">Pay Now:</span>
+                                        <span id="mobile-pay-now-percent-{{ item.id }}" class="text-sm font-bold text-blue-600">{{ item.variation.promise_fee.min_percent|floatformat:0 }}%</span>
+                                    </div>
+                                    
+                                    <input type="range" 
+                                           id="mobile-payment-slider-{{ item.id }}"
+                                           min="{{ item.variation.promise_fee.min_percent|floatformat:0 }}" 
+                                           max="{{ item.variation.promise_fee.max_percent|floatformat:0 }}" 
+                                           value="{{ item.variation.promise_fee.min_percent|floatformat:0 }}" 
+                                           step="1"
+                                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer payment-slider"
+                                           oninput="updateMobilePaymentPlan({{ item.id }})">
+                                    
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>{{ item.variation.promise_fee.min_percent|floatformat:0 }}%</span>
+                                        <span>{{ item.variation.promise_fee.max_percent|floatformat:0 }}%</span>
+                                    </div>
+                                    
+                                    <div class="mt-3 space-y-1 text-xs">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Pay Now:</span>
+                                            <span id="mobile-pay-now-amount-{{ item.id }}" class="font-medium text-blue-600">$0.00</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-600">Pay at Pickup:</span>
+                                            <span id="mobile-pay-later-amount-{{ item.id }}" class="font-medium text-gray-500">$0.00</span>
+                                        </div>
+                                        <div class="flex justify-between text-orange-600" id="mobile-interest-display-{{ item.id }}" style="display: none;">
+                                            <span>Interest Rate:</span>
+                                            <span id="mobile-interest-rate-{{ item.id }}">0%</span>
+                                        </div>
+                                        <div class="flex justify-between text-orange-600" id="mobile-interest-amount-display-{{ item.id }}" style="display: none;">
+                                            <span>Interest Amount:</span>
+                                            <span id="mobile-interest-amount-{{ item.id }}">$0.00</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -166,34 +280,48 @@
                     <p data-subtotal>${{ total|floatformat:2 }}</p>
                 </div>
                 
-                <!-- Deposit and Pickup Amounts -->
-                {% if has_selected_fees %}
-                <!-- Discount Information -->
-                <div class="flex justify-between text-sm text-green-600 mb-1">
-                    <p>Payment Plan Discount</p>
-                    <p>-${{ discount_amount|floatformat:2 }}</p>
+                <!-- Payment Plan Summary -->
+                <div id="payment-plan-summary" class="hidden">
+                    <div class="flex justify-between text-sm text-blue-600 mb-1">
+                        <p>Pay Now (Deposit)</p>
+                        <p data-pay-now-total>$0.00</p>
+                    </div>
+                    <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <p>Pay at Pickup</p>
+                        <p data-pay-later-total>$0.00</p>
+                    </div>
+                    <div class="flex justify-between text-sm text-orange-600 mb-1" id="total-interest-display" style="display: none;">
+                        <p>Interest Charges</p>
+                        <p data-total-interest>$0.00</p>
+                    </div>
+                    <div class="border-t border-gray-200 my-2"></div>
                 </div>
-                
-                <!-- Deposit Amount -->
-                <div class="flex justify-between text-sm text-gray-600 mb-1">
-                    <p>Deposit Amount (Now)</p>
-                    <p data-deposit>${{ deposit_total|floatformat:2 }}</p>
-                </div>
-                
-                <!-- Amount Due on Pickup -->
-                <div class="flex justify-between text-sm text-gray-600 mb-2">
-                    <p>Amount Due on Pickup</p>
-                    <p data-pickup>${{ pickup_total|floatformat:2 }}</p>
-                </div>
-                {% endif %}
                 
                 <!-- Divider -->
-                <div class="fee-divider {% if not has_selected_fees %}hidden{% endif %} border-t border-gray-200 my-2"></div>
+                <div class="border-t border-gray-200 my-2"></div>
+                
+                <!-- Original Total (without payment plans) -->
+                <div class="flex justify-between text-sm text-gray-500 mb-1" id="original-total-display">
+                    <p>Original Total (No Payment Plans)</p>
+                    <p data-original-total>${{ total|floatformat:2 }}</p>
+                </div>
                 
                 <!-- Total -->
                 <div class="flex justify-between text-base font-medium text-gray-900 mt-2">
                     <p>Total</p>
                     <p data-total>${{ total|floatformat:2 }}</p>
+                </div>
+                
+                <!-- Total with Interest (when payment plans are active) -->
+                <div id="total-with-interest" class="hidden">
+                    <div class="flex justify-between text-base font-medium text-orange-600 mt-1">
+                        <p>Total with Interest</p>
+                        <p data-total-with-interest>$0.00</p>
+                    </div>
+                    <div class="flex justify-between text-sm text-red-600 mt-1" id="cost-difference" style="display: none;">
+                        <p>Additional Cost</p>
+                        <p data-cost-difference>+$0.00</p>
+                    </div>
                 </div>
                 
                 <p class="mt-2 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
@@ -203,59 +331,7 @@
                     <h4 class="text-sm font-medium text-gray-900 mb-4">Payment Method</h4>
                     
                     <div class="space-y-4">
-                        <!-- M-Pesa -->
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5 mt-1">
-                                <input id="mpesa" name="payment_method" type="radio" value="mpesa" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded" checked>
-                            </div>
-                            <div class="ml-3 flex-1">
-                                <div class="flex items-center">
-                                    <img src="https://www.safaricom.co.ke/images/M-PESA-OG-Image-1200x630.jpg" alt="M-Pesa" class="h-6 mr-2">
-                                    <label for="mpesa" class="text-sm font-medium text-gray-700">M-Pesa</label>
-                                </div>
-                                <p class="text-sm text-gray-500 mt-1">Pay via M-Pesa mobile money</p>
-                                <div id="mpesa-details" class="mt-3 p-3 bg-gray-50 rounded-md">
-                                    <div class="space-y-2">
-                                        <div>
-                                            <label for="phone" class="block text-sm font-medium text-gray-700">M-Pesa Phone Number</label>
-                                            <input type="tel" 
-                                                   id="phone" 
-                                                   name="phone" 
-                                                   placeholder="e.g. 2547XXXXXXXX" 
-                                                   required
-                                                   pattern="^254[17]\d{8}$"
-                                                   title="Please enter a valid M-Pesa number starting with 254"
-                                                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                                        </div>
-                                        <p class="text-xs text-gray-500">You will receive an M-Pesa prompt on your phone to complete the payment.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Divider with "or" -->
-                        <div class="relative">
-                            <div class="absolute inset-0 flex items-center">
-                                <div class="w-full border-t border-gray-300"></div>
-                            </div>
-                            <div class="relative flex justify-center text-sm">
-                                <span class="px-2 bg-white text-gray-500">OR</span>
-                            </div>
-                        </div>
-                        
-                        <!-- PayPal -->
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5 mt-1">
-                                <input id="paypal" name="payment_method" type="radio" value="paypal" class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded">
-                            </div>
-                            <div class="ml-3">
-                                <div class="flex items-center">
-                                    <img src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg" alt="PayPal" class="h-6 mr-2">
-                                    <label for="paypal" class="text-sm font-medium text-gray-700">PayPal</label>
-                                </div>
-                                <p class="text-sm text-gray-500 mt-1">Pay with your PayPal account or credit/debit card</p>
-                            </div>
-                        </div>
+                        <p class="text-sm text-gray-500">Please contact us for payment instructions.</p>
                     </div>
                     
                     <!-- Terms and Conditions -->
@@ -275,6 +351,8 @@
                         </button>
                         <div id="errorMessage" class="mt-2 text-sm text-red-600 hidden"></div>
                     </div>
+                </div>
+                
                 <div class="mt-6 flex justify-center text-sm text-center text-gray-500">
                     <p>
                         or
@@ -287,290 +365,18 @@
         </div>
     </div>
 </div>
-
-<!-- Fee Details Modal -->
-<div id="feeModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">Payment Plan Details</h3>
-            <div class="mt-2 px-7 py-3">
-                <p class="text-sm text-gray-500">
-                    For <span id="modal-product-name"></span>
-                </p>
-                <div class="space-y-4">
-                    <!-- Product Info -->
-                    <div class="bg-gray-50 p-3 rounded-md">
-                        <h4 class="font-medium text-gray-900 mb-2">Order Summary</h4>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Unit Price:</span>
-                                <span id="modal-unit-price"></span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Quantity:</span>
-                                <span id="modal-quantity"></span>
-                            </div>
-                            <div class="flex justify-between text-sm font-medium">
-                                <span class="text-gray-900">Subtotal:</span>
-                                <span id="modal-subtotal"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Plan -->
-                    <div class="bg-blue-50 p-3 rounded-md">
-                        <h4 class="font-medium text-blue-900 mb-2">Payment Plan</h4>
-                        <div id="modal-fee-desc" class="space-y-2"></div>
-                    </div>
-
-                    <!-- Payment Breakdown -->
-                    <div class="bg-yellow-50 p-3 rounded-md">
-                        <h4 class="font-medium text-yellow-900 mb-2">Payment Breakdown</h4>
-                        <div class="space-y-2">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-700">To Pay Now (<span id="deposit-percent">0</span>%):</span>
-                                <span id="modal-deposit-amount" class="font-medium">$0.00</span>
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-700">Remaining on Pickup (<span id="pickup-percent">0</span>%):</span>
-                                <span id="modal-pickup-amount" class="font-medium">$0.00</span>
-                            </div>
-                            <div class="border-t border-yellow-200 my-1"></div>
-                            <div class="flex justify-between font-medium">
-                                <span class="text-gray-900">Total Amount:</span>
-                                <span id="modal-total-amount" class="text-lg">$0.00</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="items-center px-4 py-3">
-                <button onclick="closeModal()" class="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    Got it, thanks!
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    function showFeeDetails(selectElement) {
-        const itemId = selectElement.dataset.itemId;
-        const selectedIndex = selectElement.value;
-        
-        // If no option is selected, do nothing
-        if (selectedIndex === '') {
-            return;
-        }
-        
-        const itemData = JSON.parse(document.getElementById(`item-data-${itemId}`).textContent);
-        const fee = itemData.fee_options[selectedIndex];
-        
-        // Update the selected fee for this item
-        itemData.selected_fee = fee;
-        itemData.selected_fee_index = parseInt(selectedIndex);
-        
-        // Update the display to show the selected plan
-        updateSelectedFeeDisplay(itemId, itemData);
-        
-        // Calculate amounts
-        const productPrice = parseFloat(fee.product_price);
-        const quantity = parseInt(itemData.quantity);
-        const subtotal = (productPrice * quantity).toFixed(2);
-        
-        // Check if this is a promise fee option (not 'none')
-        const isPromiseFee = fee.id !== 'none';
-        
-        // Calculate amounts based on payment type
-        let depositPercent, depositAmount, remainingAmount, totalAmount;
-        
-        if (isPromiseFee) {
-            // For promise fee, deposit is the fee percentage of the total
-            depositPercent = parseFloat(fee.deposit_percent);
-            depositAmount = (productPrice * quantity * depositPercent / 100).toFixed(2);
-            remainingAmount = (productPrice * quantity).toFixed(2); // Full amount due on pickup
-            totalAmount = (parseFloat(depositAmount) + parseFloat(remainingAmount)).toFixed(2);
-        } else {
-            // For full payment, deposit is 100%
-            depositPercent = 100;
-            depositAmount = (productPrice * quantity).toFixed(2);
-            remainingAmount = '0.00';
-            totalAmount = depositAmount;
-        }
-        
-        // Update modal content with product details
-        document.getElementById('modal-product-name').textContent = itemData.name;
-        document.getElementById('modal-unit-price').textContent = `$${productPrice.toFixed(2)}`;
-        document.getElementById('modal-quantity').textContent = quantity;
-        document.getElementById('modal-subtotal').textContent = `$${subtotal}`;
-        
-        // Update payment plan details
-        document.getElementById('modal-fee-desc').innerHTML = `
-            <div class="flex justify-between items-center">
-                <span class="text-sm font-medium text-gray-700">${fee.description}</span>
-                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    ${isPromiseFee ? `${depositPercent}% Promise Fee` : 'Full Payment'}
-                </span>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">
-                ${isPromiseFee ? 
-                    `Pay a ${depositPercent}% promise fee of $${depositAmount} now and the remaining $${remainingAmount} when you pick up your order.` :
-                    `Pay the full amount of $${depositAmount} now.`
-                }
-            </p>
-        `;
-        
-        // Update payment breakdown
-        document.getElementById('deposit-percent').textContent = depositPercent;
-        document.getElementById('pickup-percent').textContent = isPromiseFee ? 100 : 0;
-        document.getElementById('modal-deposit-amount').textContent = `$${depositAmount}`;
-        document.getElementById('modal-pickup-amount').textContent = isPromiseFee ? `$${remainingAmount}` : '$0.00';
-        document.getElementById('modal-total-amount').textContent = `$${totalAmount}`;
-        
-        // Show modal
-        document.getElementById('feeModal').classList.remove('hidden');
-    }
-    
-    function closeModal() {
-        document.getElementById('feeModal').classList.add('hidden');
-    }
-    
-    function updateSelectedFeeDisplay(itemId, itemData) {
-        const fee = itemData.selected_fee;
-        if (!fee) return;
-        
-        // Update the selected fee in the data attribute
-        document.getElementById(`item-data-${itemId}`).textContent = JSON.stringify(itemData);
-        
-        // Update the display for mobile
-        const mobileFeeDisplay = document.querySelector(`#mobile-fee-${itemId}`);
-        if (mobileFeeDisplay) {
-            const pickupText = fee.pickup_percent !== '0' ? ` • <span>Pickup: $${fee.pickup_amount}</span>` : '';
-            mobileFeeDisplay.innerHTML = `
-                <div>${fee.description}</div>
-                <div class="text-xs text-gray-600">
-                    <span>Now: $${fee.deposit_amount}</span>${pickupText}
-                </div>
-            `;
-        }
-        
-        // Update the total
-        updateOrderTotal();
-    }
-    
-    // Update the order total based on selected fees
-    function updateOrderTotal() {
-        // Get all items with their selected fees
-        const items = Array.from(document.querySelectorAll('[id^="item-data-"]')).map(el => ({
-            id: el.id.replace('item-data-', ''),
-            data: JSON.parse(el.textContent)
-        }));
-        
-        // Calculate subtotal (sum of all item prices * quantities)
-        const subtotal = items.reduce((sum, item) => {
-            return sum + (parseFloat(item.data.price) * item.data.quantity);
-        }, 0);
-        
-        // Calculate deposit and pickup amounts
-        const selectedFees = items.filter(item => item.data.selected_fee);
-        const depositTotal = selectedFees.reduce((sum, item) => {
-            return sum + parseFloat(item.data.selected_fee.deposit_amount || 0);
-        }, 0);
-        
-        const pickupTotal = selectedFees.reduce((sum, item) => {
-            return sum + parseFloat(item.data.selected_fee.pickup_amount || 0);
-        }, 0);
-        
-        // Calculate total (subtotal + any fees)
-        const total = subtotal + depositTotal + pickupTotal;
-        
-        // Update the UI
-        const subtotalEl = document.querySelector('[data-subtotal]');
-        const depositEl = document.querySelector('[data-deposit]');
-        const pickupEl = document.querySelector('[data-pickup]');
-        const totalEl = document.querySelector('[data-total]');
-        
-        if (subtotalEl) {
-            subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-        }
-        
-        // Show/hide deposit and pickup sections based on whether any fees are selected
-        if (depositEl && pickupEl) {
-            if (selectedFees.length > 0) {
-                depositEl.closest('div').classList.remove('hidden');
-                pickupEl.closest('div').classList.remove('hidden');
-                depositEl.textContent = `$${depositTotal.toFixed(2)}`;
-                pickupEl.textContent = `$${pickupTotal.toFixed(2)}`;
-                // Show the divider
-                const divider = document.querySelector('.fee-divider');
-                if (divider) divider.classList.remove('hidden');
-            } else {
-                depositEl.closest('div').classList.add('hidden');
-                pickupEl.closest('div').classList.add('hidden');
-                // Hide the divider
-                const divider = document.querySelector('.fee-divider');
-                if (divider) divider.classList.add('hidden');
-            }
-        }
-        
-        if (totalEl) {
-            totalEl.textContent = `$${total.toFixed(2)}`;
-        }
-    }
-    
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-        const modal = document.getElementById('feeModal');
-        if (event.target == modal) {
-            closeModal();
-        }
-    }
-    
-    // Initialize the total on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        updateOrderTotal();
-    });
-</script>
-
-<!-- Add item data as JSON for JavaScript access -->
-{% for item in cart_items %}
-<script type="application/json" id="item-data-{{ item.id }}">
-{
-    "id": {{ item.id|safe }},
-    "name": "{{ item.variation.name|default:item.variation.product.name|escapejs }}",
-    "price": {{ item.variation.price|floatformat:2|safe }},
-    "quantity": {{ item.quantity|safe }},
-    "fee_options": [
-        {
-            "id": "none",
-            "description": "Pay in full",
-            "deposit_percent": "100",
-            "pickup_percent": "0",
-            "deposit_amount": "{{ item.variation.price|multiply:item.quantity|floatformat:2|safe }}",
-            "pickup_amount": "0.00",
-            "total_amount": "{{ item.variation.price|multiply:item.quantity|floatformat:2|safe }}",
-            "product_price": "{{ item.variation.price|floatformat:2|safe }}"
-        }{% for fee in item.variation.promise_fees.all %},
-        {
-            "id": "{{ fee.id }}",
-            "description": "{{ fee.get_payment_plan_description|escapejs }}",
-            "deposit_percent": "{{ fee.percentage_fee|floatformat:2 }}",
-            "pickup_percent": "0",
-            "deposit_amount": "{{ item.variation.price|multiply:item.quantity|multiply:fee.percentage_fee|divide:100|floatformat:2 }}",
-            "pickup_amount": "0.00",
-            "total_amount": "{{ item.variation.price|multiply:item.quantity|floatformat:2 }}",
-            "product_price": "{{ item.variation.price|floatformat:2 }}"
-        }{% endfor %}
-    ],
-    "selected_fee_index": 0
-}
-</script>
-{% endfor %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Payment Plan Data Storage
+const paymentPlans = {};
+
+// Initialize payment plans on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all payment plans
+    initializePaymentPlans();
+    
     const submitBtn = document.getElementById('submitBtn');
     const processingModal = document.getElementById('processingModal');
     const errorMessage = document.getElementById('errorMessage');
@@ -592,21 +398,8 @@ document.addEventListener('DOMContentLoaded', function() {
     submitBtn.addEventListener('click', async function(e) {
         e.preventDefault();
         
-        // Get selected payment method
-        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
-        const phoneNumber = document.getElementById('phone').value.trim();
-        const termsChecked = document.getElementById('terms').checked;
-        
         // Validate form
-        if (!paymentMethod) {
-            showError('Please select a payment method');
-            return;
-        }
-        
-        if (paymentMethod.value === 'mpesa' && !phoneNumber) {
-            showError('Please enter your M-Pesa phone number');
-            return;
-        }
+        const termsChecked = document.getElementById('terms').checked;
         
         if (!termsChecked) {
             showError('You must agree to the terms and conditions');
@@ -619,48 +412,31 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.classList.add('hidden');
         
         try {
-            // For M-Pesa payments
-            if (paymentMethod.value === 'mpesa') {
-                const response = await fetch('{% url "home:process_mpesa_payment" %}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}'
-                    },
-                    body: JSON.stringify({
-                        phone_number: phoneNumber,
-                        payment_method: 'mpesa'
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Show success message
-                    await Swal.fire({
-                        title: 'Payment Request Sent',
-                        text: data.message || 'Please check your phone to complete the M-Pesa payment',
-                        icon: 'success',
-                        confirmButtonText: 'OK'
-                    });
-                    
-                    // Redirect to confirm payment page
-                    if (data.redirect_url) {
-                        window.location.href = data.redirect_url;
-                    } else {
-                        window.location.href = '{% url "home:home" %}';
-                    }
+            // Create order
+            const response = await fetch('{% url "home:create_order" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({})
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Redirect to order detail page
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
                 } else {
-                    throw new Error(data.error || 'Failed to process payment');
+                    window.location.href = '{% url "home:home" %}';
                 }
-            } else if (paymentMethod.value === 'paypal') {
-                // Handle PayPal payment
-                // This would be implemented with PayPal's JavaScript SDK
-                alert('PayPal integration coming soon');
+            } else {
+                throw new Error(data.error || 'Failed to create order');
             }
         } catch (error) {
-            console.error('Payment error:', error);
-            showError(error.message || 'An error occurred while processing your payment. Please try again.');
+            console.error('Order creation error:', error);
+            showError(error.message || 'An error occurred while creating your order. Please try again.');
         } finally {
             processingModal.classList.add('hidden');
             submitBtn.disabled = false;
@@ -673,5 +449,322 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 });
+
+// Find interest rate for a given percentage
+function findInterestRate(itemId, percentage) {
+    const plan = paymentPlans[itemId];
+    if (!plan || !plan.iRates) return { rate: 0, must_pay_shipping: false };
+    
+    for (const iRate of plan.iRates) {
+        if (percentage >= iRate.lower_range && percentage <= iRate.upper_range) {
+            return iRate;
+        }
+    }
+    return { rate: 0, must_pay_shipping: false };
+}
+
+// Initialize payment plans for all items
+function initializePaymentPlans() {
+    {% for item in cart_items %}
+    {% if item.variation.promise_fee %}
+    paymentPlans[{{ item.id }}] = {
+        enabled: false,
+        percentage: {{ item.variation.promise_fee.min_percent|floatformat:0 }},
+        price: {{ item.price|floatformat:2 }},
+        quantity: {{ item.quantity }},
+        total: {{ item.total_price|floatformat:2 }},
+        minPercent: {{ item.variation.promise_fee.min_percent|floatformat:0 }},
+        maxPercent: {{ item.variation.promise_fee.max_percent|floatformat:0 }},
+        iRates: [
+            {% for i_rate in item.variation.i_rates.all %}
+            {
+                lower_range: {{ i_rate.lower_range }},
+                upper_range: {{ i_rate.upper_range }},
+                rate: {{ i_rate.rate|floatformat:2 }},
+                must_pay_shipping: {{ i_rate.must_pay_shipping|yesno:"true,false" }}
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    };
+    {% endif %}
+    {% endfor %}
+}
+
+// Toggle payment plan for desktop
+function togglePaymentPlan(itemId) {
+    const checkbox = document.getElementById(`payment-plan-${itemId}`);
+    const details = document.getElementById(`payment-plan-details-${itemId}`);
+    const mobileCheckbox = document.getElementById(`mobile-payment-plan-${itemId}`);
+    
+    if (checkbox.checked) {
+        details.classList.remove('hidden');
+        paymentPlans[itemId].enabled = true;
+        updatePaymentPlan(itemId);
+        
+        // Sync with mobile
+        if (mobileCheckbox) {
+            mobileCheckbox.checked = true;
+            toggleMobilePaymentPlan(itemId);
+        }
+    } else {
+        details.classList.add('hidden');
+        paymentPlans[itemId].enabled = false;
+        
+        // Sync with mobile
+        if (mobileCheckbox) {
+            mobileCheckbox.checked = false;
+            toggleMobilePaymentPlan(itemId);
+        }
+    }
+    
+    updateOrderSummary();
+}
+
+// Toggle payment plan for mobile
+function toggleMobilePaymentPlan(itemId) {
+    const checkbox = document.getElementById(`mobile-payment-plan-${itemId}`);
+    const details = document.getElementById(`mobile-payment-plan-details-${itemId}`);
+    const desktopCheckbox = document.getElementById(`payment-plan-${itemId}`);
+    
+    if (checkbox.checked) {
+        details.classList.remove('hidden');
+        paymentPlans[itemId].enabled = true;
+        updateMobilePaymentPlan(itemId);
+        
+        // Sync with desktop
+        if (desktopCheckbox) {
+            desktopCheckbox.checked = true;
+            togglePaymentPlan(itemId);
+        }
+    } else {
+        details.classList.add('hidden');
+        paymentPlans[itemId].enabled = false;
+        
+        // Sync with desktop
+        if (desktopCheckbox) {
+            desktopCheckbox.checked = false;
+            togglePaymentPlan(itemId);
+        }
+    }
+    
+    updateOrderSummary();
+}
+
+// Update payment plan calculations for desktop
+function updatePaymentPlan(itemId) {
+    const slider = document.getElementById(`payment-slider-${itemId}`);
+    const percentage = parseInt(slider.value);
+    
+    paymentPlans[itemId].percentage = percentage;
+    
+    // Find interest rate for this percentage
+    const interestRate = findInterestRate(itemId, percentage);
+    
+    // Calculate amounts
+    const total = paymentPlans[itemId].total;
+    const payNowAmount = (total * percentage / 100).toFixed(2);
+    const remainingAmount = total - parseFloat(payNowAmount);
+    const interestAmount = (remainingAmount * interestRate.rate / 100).toFixed(2);
+    const payLaterAmount = (remainingAmount + parseFloat(interestAmount)).toFixed(2);
+    const totalWithInterest = (parseFloat(payNowAmount) + parseFloat(payLaterAmount)).toFixed(2);
+    
+    // Update display
+    document.getElementById(`pay-now-percent-${itemId}`).textContent = percentage + '%';
+    document.getElementById(`pay-now-amount-${itemId}`).textContent = '$' + payNowAmount;
+    document.getElementById(`pay-later-amount-${itemId}`).textContent = '$' + payLaterAmount;
+    
+    // Update interest rate display
+    const interestDisplay = document.getElementById(`interest-display-${itemId}`);
+    const interestAmountDisplay = document.getElementById(`interest-amount-display-${itemId}`);
+    const interestRateElement = document.getElementById(`interest-rate-${itemId}`);
+    const interestAmountElement = document.getElementById(`interest-amount-${itemId}`);
+    
+    if (interestRate.rate > 0) {
+        interestDisplay.style.display = 'flex';
+        interestAmountDisplay.style.display = 'flex';
+        interestRateElement.textContent = interestRate.rate + '%';
+        interestAmountElement.textContent = '$' + interestAmount;
+    } else {
+        interestDisplay.style.display = 'none';
+        interestAmountDisplay.style.display = 'none';
+    }
+    
+    // Update mobile display
+    document.getElementById(`mobile-pay-now-percent-${itemId}`).textContent = percentage + '%';
+    document.getElementById(`mobile-pay-now-amount-${itemId}`).textContent = '$' + payNowAmount;
+    document.getElementById(`mobile-pay-later-amount-${itemId}`).textContent = '$' + payLaterAmount;
+    
+    // Update mobile interest rate display
+    const mobileInterestDisplay = document.getElementById(`mobile-interest-display-${itemId}`);
+    const mobileInterestAmountDisplay = document.getElementById(`mobile-interest-amount-display-${itemId}`);
+    const mobileInterestRateElement = document.getElementById(`mobile-interest-rate-${itemId}`);
+    const mobileInterestAmountElement = document.getElementById(`mobile-interest-amount-${itemId}`);
+    
+    if (interestRate.rate > 0) {
+        mobileInterestDisplay.style.display = 'flex';
+        mobileInterestAmountDisplay.style.display = 'flex';
+        mobileInterestRateElement.textContent = interestRate.rate + '%';
+        mobileInterestAmountElement.textContent = '$' + interestAmount;
+    } else {
+        mobileInterestDisplay.style.display = 'none';
+        mobileInterestAmountDisplay.style.display = 'none';
+    }
+    
+    // Sync mobile slider
+    const mobileSlider = document.getElementById(`mobile-payment-slider-${itemId}`);
+    if (mobileSlider) {
+        mobileSlider.value = percentage;
+    }
+    
+    updateOrderSummary();
+}
+
+// Update payment plan calculations for mobile
+function updateMobilePaymentPlan(itemId) {
+    const slider = document.getElementById(`mobile-payment-slider-${itemId}`);
+    const percentage = parseInt(slider.value);
+    
+    paymentPlans[itemId].percentage = percentage;
+    
+    // Find interest rate for this percentage
+    const interestRate = findInterestRate(itemId, percentage);
+    
+    // Calculate amounts
+    const total = paymentPlans[itemId].total;
+    const payNowAmount = (total * percentage / 100).toFixed(2);
+    const remainingAmount = total - parseFloat(payNowAmount);
+    const interestAmount = (remainingAmount * interestRate.rate / 100).toFixed(2);
+    const payLaterAmount = (remainingAmount + parseFloat(interestAmount)).toFixed(2);
+    const totalWithInterest = (parseFloat(payNowAmount) + parseFloat(payLaterAmount)).toFixed(2);
+    
+    // Update display
+    document.getElementById(`mobile-pay-now-percent-${itemId}`).textContent = percentage + '%';
+    document.getElementById(`mobile-pay-now-amount-${itemId}`).textContent = '$' + payNowAmount;
+    document.getElementById(`mobile-pay-later-amount-${itemId}`).textContent = '$' + payLaterAmount;
+    
+    // Update mobile interest rate display
+    const mobileInterestDisplay = document.getElementById(`mobile-interest-display-${itemId}`);
+    const mobileInterestAmountDisplay = document.getElementById(`mobile-interest-amount-display-${itemId}`);
+    const mobileInterestRateElement = document.getElementById(`mobile-interest-rate-${itemId}`);
+    const mobileInterestAmountElement = document.getElementById(`mobile-interest-amount-${itemId}`);
+    
+    if (interestRate.rate > 0) {
+        mobileInterestDisplay.style.display = 'flex';
+        mobileInterestAmountDisplay.style.display = 'flex';
+        mobileInterestRateElement.textContent = interestRate.rate + '%';
+        mobileInterestAmountElement.textContent = '$' + interestAmount;
+    } else {
+        mobileInterestDisplay.style.display = 'none';
+        mobileInterestAmountDisplay.style.display = 'none';
+    }
+    
+    // Update desktop display
+    document.getElementById(`pay-now-percent-${itemId}`).textContent = percentage + '%';
+    document.getElementById(`pay-now-amount-${itemId}`).textContent = '$' + payNowAmount;
+    document.getElementById(`pay-later-amount-${itemId}`).textContent = '$' + payLaterAmount;
+    
+    // Update desktop interest rate display
+    const interestDisplay = document.getElementById(`interest-display-${itemId}`);
+    const interestAmountDisplay = document.getElementById(`interest-amount-display-${itemId}`);
+    const interestRateElement = document.getElementById(`interest-rate-${itemId}`);
+    const interestAmountElement = document.getElementById(`interest-amount-${itemId}`);
+    
+    if (interestRate.rate > 0) {
+        interestDisplay.style.display = 'flex';
+        interestAmountDisplay.style.display = 'flex';
+        interestRateElement.textContent = interestRate.rate + '%';
+        interestAmountElement.textContent = '$' + interestAmount;
+    } else {
+        interestDisplay.style.display = 'none';
+        interestAmountDisplay.style.display = 'none';
+    }
+    
+    // Sync desktop slider
+    const desktopSlider = document.getElementById(`payment-slider-${itemId}`);
+    if (desktopSlider) {
+        desktopSlider.value = percentage;
+    }
+    
+    updateOrderSummary();
+}
+
+// Update order summary with payment plan totals
+function updateOrderSummary() {
+    let payNowTotal = 0;
+    let payLaterTotal = 0;
+    let totalInterest = 0;
+    let hasPaymentPlans = false;
+    let itemsWithoutPaymentPlans = 0;
+    
+    // Calculate totals for all payment plans
+    for (const [itemId, plan] of Object.entries(paymentPlans)) {
+        if (plan.enabled) {
+            hasPaymentPlans = true;
+            const interestRate = findInterestRate(itemId, plan.percentage);
+            const payNowAmount = plan.total * plan.percentage / 100;
+            const remainingAmount = plan.total - payNowAmount;
+            const interestAmount = remainingAmount * interestRate.rate / 100;
+            const payLaterAmount = remainingAmount + interestAmount;
+            
+            payNowTotal += payNowAmount;
+            payLaterTotal += payLaterAmount;
+            totalInterest += interestAmount;
+        } else {
+            // Items without payment plans pay full amount now
+            itemsWithoutPaymentPlans += plan.total;
+        }
+    }
+    
+    // Calculate final totals
+    const originalTotal = payNowTotal + payLaterTotal + itemsWithoutPaymentPlans - totalInterest; // Original total without interest
+    const totalWithInterest = payNowTotal + payLaterTotal + itemsWithoutPaymentPlans; // Total with interest
+    const costDifference = totalWithInterest - originalTotal;
+    
+    // Update payment plan summary
+    const summary = document.getElementById('payment-plan-summary');
+    const totalWithInterestDiv = document.getElementById('total-with-interest');
+    const totalInterestDisplay = document.getElementById('total-interest-display');
+    const costDifferenceDiv = document.getElementById('cost-difference');
+    
+    if (hasPaymentPlans) {
+        summary.classList.remove('hidden');
+        document.querySelector('[data-pay-now-total]').textContent = '$' + payNowTotal.toFixed(2);
+        document.querySelector('[data-pay-later-total]').textContent = '$' + payLaterTotal.toFixed(2);
+        
+        // Show interest details if there's any interest
+        if (totalInterest > 0) {
+            totalInterestDisplay.style.display = 'flex';
+            document.querySelector('[data-total-interest]').textContent = '$' + totalInterest.toFixed(2);
+            totalWithInterestDiv.classList.remove('hidden');
+            document.querySelector('[data-total-with-interest]').textContent = '$' + totalWithInterest.toFixed(2);
+            
+            // Show cost difference
+            if (costDifference > 0) {
+                costDifferenceDiv.style.display = 'flex';
+                document.querySelector('[data-cost-difference]').textContent = '+$' + costDifference.toFixed(2);
+            } else {
+                costDifferenceDiv.style.display = 'none';
+            }
+        } else {
+            totalInterestDisplay.style.display = 'none';
+            totalWithInterestDiv.classList.add('hidden');
+            costDifferenceDiv.style.display = 'none';
+        }
+        
+        // Update the main total to show the amount they'll actually pay now
+        document.querySelector('[data-total]').textContent = '$' + (payNowTotal + itemsWithoutPaymentPlans).toFixed(2);
+    } else {
+        summary.classList.add('hidden');
+        totalWithInterestDiv.classList.add('hidden');
+        totalInterestDisplay.style.display = 'none';
+        costDifferenceDiv.style.display = 'none';
+        
+        // Show original total when no payment plans
+        document.querySelector('[data-total]').textContent = '$' + originalTotal.toFixed(2);
+    }
+    
+    // Always update the original total display
+    document.querySelector('[data-original-total]').textContent = '$' + originalTotal.toFixed(2);
+}
 </script>
 {% endblock %}

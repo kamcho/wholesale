@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue, PriceTier, PromiseFee
+from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue, PriceTier, PromiseFee, ProductKB, IRate
 
 User = get_user_model()
 
@@ -99,56 +99,55 @@ class ProductImageForm(forms.ModelForm):
 
 
 class ProductVariationImageForm(forms.ModelForm):
-    """Form for adding images/videos attached to a ProductVariation."""
-    MEDIA_TYPE_CHOICES = [
-        ('image', 'Image'),
-        ('video', 'Video')
-    ]
-    media_type = forms.ChoiceField(
-        choices=MEDIA_TYPE_CHOICES,
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
-        initial='image'
-    )
-
+    """Form for adding images attached to a ProductVariation."""
     class Meta:
         model = ProductImage
-        fields = ['image', 'video', 'caption', 'is_default']
+        fields = ['image', 'caption', 'is_default']
         widgets = {
             'image': forms.FileInput(attrs={
-                'class': 'form-control image-upload',
+                'class': 'form-control',
                 'accept': 'image/*',
-                'style': 'display: none;'
-            }),
-            'video': forms.FileInput(attrs={
-                'class': 'form-control video-upload',
-                'accept': 'video/*',
-                'style': 'display: none;'
+                'required': True
             }),
             'caption': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Media caption (optional)'
+                'placeholder': 'Image caption (optional)'
             }),
             'is_default': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             })
         }
+    
+    def __init__(self, *args, **kwargs):
+        self.variation = kwargs.pop('variation', None)
+        super().__init__(*args, **kwargs)
+        self.fields['image'].required = True
         
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Set initial media type based on which field has a value
-        if self.instance and self.instance.video:
-            self.fields['media_type'].initial = 'video'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Make image field not required for formsets (can be added later)
-        self.fields['image'].required = False
-
-    def _post_clean(self):
-        """Override _post_clean to skip model validation for excluded fields"""
-        # Don't run model validation since we're manually setting product/variation fields
-        # in the view, and they're excluded from form validation
-        pass
+        # Set the variation on the instance if provided
+        if self.variation and not self.instance.pk:
+            self.instance.variation = self.variation
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.variation:
+            raise forms.ValidationError("Variation is required")
+        
+        # Ensure the variation is set and product is not set
+        self.instance.variation = self.variation
+        self.instance.product = None  # Explicitly set product to None
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        # Ensure variation is set and product is None before saving
+        self.instance.variation = self.variation
+        self.instance.product = None
+        
+        if commit:
+            self.instance.save()
+            
+        return self.instance
+        return self.instance
 
 class ProductSearchForm(forms.Form):
     """Form for searching products"""
@@ -296,25 +295,43 @@ class ProductAttributeAssignmentForm(forms.ModelForm):
 
     class Meta:
         model = ProductAttributeAssignment
-        fields = []  # We'll handle all fields manually
+        fields = ['product', 'value']  # Include the required fields
+        widgets = {
+            'product': forms.HiddenInput(),
+            'value': forms.HiddenInput()
+        }
 
     def __init__(self, *args, **kwargs):
         self.variation = kwargs.pop('variation', None)
         super().__init__(*args, **kwargs)
 
+        # Set initial values for the form
         if self.variation:
-            # Set the variation as the initial value for the variation field
-            self.fields['variation'].initial = self.variation
+            self.fields['product'].initial = self.variation
+            self.fields['product'].widget = forms.HiddenInput()
             
+            # Get all attribute values that are already assigned to this variation
+            assigned_values = self.variation.attribute_assignments.values_list('value_id', flat=True)
             
+            # Exclude already assigned values from the queryset
+            self.fields['existing_value'].queryset = ProductAttributeValue.objects.exclude(
+                id__in=assigned_values
+            )
         else:
             self.fields['existing_value'].queryset = ProductAttributeValue.objects.none()
+            
+        # Make the value field not required since we'll set it in the view
+        self.fields['value'].required = False
 
     def clean(self):
         cleaned_data = super().clean()
         new_attribute_name = cleaned_data.get('new_attribute_name')
         new_attribute_value = cleaned_data.get('new_attribute_value')
         existing_value = cleaned_data.get('existing_value')
+        
+        # If variation was provided in the form data, use it
+        if not hasattr(self, 'variation') and 'variation' in cleaned_data:
+            self.variation = cleaned_data['variation']
 
         # Validate that either new attribute/value is provided OR existing value is selected
         if not new_attribute_name and not new_attribute_value and not existing_value:
@@ -329,6 +346,54 @@ class ProductAttributeAssignmentForm(forms.ModelForm):
             )
 
         return cleaned_data
+
+
+class ProductKBForm(forms.ModelForm):
+    """Form for adding/editing product knowledge base entries"""
+    content = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 8,
+            'placeholder': 'Enter any product information or notes here. You can use any format you prefer.'
+        })
+    )
+    
+    def clean_content(self):
+        # Get the new content from the form
+        new_content = self.cleaned_data.get('content', '').strip()
+        return new_content
+    
+    class Meta:
+        model = ProductKB
+        fields = ['content']
+        
+    def __init__(self, *args, **kwargs):
+        self.variation = kwargs.pop('variation', None)
+        self.product = kwargs.pop('product', None)
+        super().__init__(*args, **kwargs)
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        # No JSON validation needed - accept any text as-is
+        return cleaned_data
+        
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.variation:
+            instance.variation = self.variation
+        elif self.product:
+            instance.product = self.product
+            
+        # If this is an update and there's new content, append it
+        if instance.pk and self.cleaned_data.get('content'):
+            existing_content = instance.content or ''
+            if existing_content:
+                instance.content = f"{existing_content}\n{self.cleaned_data['content']}"
+            
+        if commit:
+            instance.save()
+        return instance
         
     def save(self, commit=True):
         # This method is required but won't be used directly
@@ -364,12 +429,11 @@ class PromiseFeeForm(forms.ModelForm):
     """Form to add/edit PromiseFee for a variation."""
     class Meta:
         model = PromiseFee
-        fields = ["name", "buy_back_fee", "percentage_fee", "must_pay_shipping"]
+        fields = ["name", "min_percent", "max_percent"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g., Basic, Premium, Express"}),
-            "buy_back_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
-            "percentage_fee": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0"}),
-            "must_pay_shipping": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "min_percent": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "Minimum percentage %"}),
+            "max_percent": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "Maximum percentage %"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -391,6 +455,42 @@ class PromiseFeeForm(forms.ModelForm):
                     f"Please choose a different name."
                 )
         return name
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.variation is not None:
+            instance.variation = self.variation
+        if commit:
+            instance.save()
+        return instance
+
+
+class IRateForm(forms.ModelForm):
+    """Form to add/edit IRate for a variation."""
+    class Meta:
+        model = IRate
+        fields = ["lower_range", "upper_range", "must_pay_shipping", "rate"]
+        widgets = {
+            "lower_range": forms.NumberInput(attrs={"class": "form-control", "min": "1", "placeholder": "Minimum quantity"}),
+            "upper_range": forms.NumberInput(attrs={"class": "form-control", "min": "1", "placeholder": "Maximum quantity (0 for no limit)"}),
+            "must_pay_shipping": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "rate": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "Rate amount"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.variation = kwargs.pop("variation", None)
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        lower_range = cleaned_data.get('lower_range')
+        upper_range = cleaned_data.get('upper_range')
+        
+        if lower_range and upper_range and upper_range > 0:
+            if lower_range >= upper_range:
+                raise forms.ValidationError("Lower range must be less than upper range.")
+        
+        return cleaned_data
 
     def save(self, commit=True):
         instance = super().save(commit=False)

@@ -1,34 +1,63 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib import messages
+from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import update_session_auth_hash
+from django.urls import reverse
 from .forms import MyUserCreationForm, MyAuthenticationForm, ProfileEditForm, CustomPasswordChangeForm
 from .models import PersonalProfile
+
+def redirect_user_by_role(user):
+    """
+    Helper function to redirect users based on their role
+    """
+    if not hasattr(user, 'role'):
+        return redirect('home:home')
+    
+    role = user.role.lower()
+    
+    # Define role-based redirects
+    role_redirects = {
+        'admin': 'vendor:dashboard',
+        'supervisor': 'vendor:dashboard',
+        'manager': 'vendor:dashboard',
+        'agent': 'agents:agent_dashboard',
+    }
+    
+    # Get the URL name for the role, default to home if role not found
+    url_name = role_redirects.get(role, 'home:home')
+    
+    try:
+        # Try to get the URL, fallback to home if it doesn't exist
+        return redirect(reverse(url_name))
+    except:
+        return redirect(reverse('home:home'))
 
 # Create your views here.
 
 def login_view(request):
     if request.user.is_authenticated:
         next_url = request.GET.get('next') or request.POST.get('next')
-        return redirect(next_url or 'home:home')
+        if next_url:
+            return redirect(next_url)
+        # If already logged in, redirect based on role
+        return redirect_user_by_role(request.user)
     
     if request.method == 'POST':
         form = MyAuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            user = authenticate(username=username, password=password)
-            if user is not None:
-                login(request, user)
-                messages.success(request, f'Welcome back, {username}!')
-                next_url = request.GET.get('next') or request.POST.get('next')
-                return redirect(next_url or 'home:home')
-            else:
-                messages.error(request, 'Invalid email or password.')
+            user = form.get_user()
+            login(request, user)
+            messages.success(request, f'Welcome back, {user.email}!')
+            
+            # Check for next URL first
+            next_url = request.GET.get('next') or request.POST.get('next')
+            if next_url:
+                return redirect(next_url)
+                
+            # Redirect based on user role
+            return redirect_user_by_role(user)
         else:
-            messages.error(request, 'Please correct the errors below.')
+            messages.error(request, 'Invalid email or password.')
     else:
         form = MyAuthenticationForm()
 

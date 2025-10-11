@@ -54,6 +54,11 @@ DEBUG = True
 ALLOWED_HOSTS = []
 
 
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -89,6 +94,13 @@ import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# Custom user model
+AUTH_USER_MODEL = 'users.MyUser'
+
+# Login/Logout URLs
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'profile'  # Will be overridden by the custom authentication backend
 
 TEMPLATES = [
     {

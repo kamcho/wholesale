@@ -5,6 +5,17 @@ from django.conf import settings   # use settings.AUTH_USER_MODEL instead of har
                                    # so it works with custom User models
 import uuid
 from decimal import Decimal
+from django_countries.fields import CountryField
+
+class ExchangeRate(models.Model):
+    currency = models.CharField(max_length=3)
+    rate = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.currency} - {self.rate}"
+
 # ==============================
 # BUSINESS & REVIEWS
 # ==============================
@@ -105,6 +116,20 @@ class Agent(models.Model):
         help_text="Select the types of services this agent provides"
     )
     
+    # Profile Images
+    photo = models.ImageField(
+        upload_to='agent_photos/',
+        blank=True,
+        null=True,
+        help_text='Profile photo of the agent'
+    )
+    logo = models.ImageField(
+        upload_to='agent_logos/',
+        blank=True,
+        null=True,
+        help_text='Company logo (if applicable)'
+    )
+    
     # Contact Information
     email = models.EmailField()
     phone = models.CharField(max_length=20)
@@ -143,6 +168,22 @@ class Agent(models.Model):
     def get_primary_image(self):
         """Return the primary image or the first available image"""
         return self.images.filter(is_primary=True).first() or self.images.first()
+        
+    @property
+    def display_photo(self):
+        """Return the agent's photo or a default avatar"""
+        if self.photo:
+            return self.photo.url
+        return static('images/default-avatar.png')
+        
+    @property
+    def display_logo(self):
+        """Return the agent's logo or the photo if no logo exists"""
+        if self.logo:
+            return self.logo.url
+        if self.photo:
+            return self.photo.url
+        return static('images/default-logo.png')
 
 
 class AgentImage(models.Model):
@@ -275,9 +316,21 @@ class Product(models.Model):
     moq = models.PositiveIntegerField(default=1)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    origin = CountryField(blank_label='(Select country)', null=True, blank=True)
     # price = models.DecimalField(max_digits=10, decimal_places=2)  # Unit price when MOQ is met
     # price_single = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Unit price for single/below MOQ
 
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class ProductServicing(models.Model):
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name="servicings")
+    shipping = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name="shippings", null=True, blank=True)
+    sourcing = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name="sourcing", null=True, blank=True)
+    customs = models.ForeignKey(Agent, on_delete=models.CASCADE, related_name="customs", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -369,12 +422,18 @@ class ProductVariation(models.Model):
     def __str__(self):
         return f"{self.product.name} - {self.name}"
 
+class ProductKB(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="kb", null=True, blank=True)
+    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name="kb", null=True, blank=True)
+    content = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
 class PromiseFee(models.Model):
-    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='promise_fees')
+    variation = models.OneToOneField(ProductVariation, on_delete=models.CASCADE, related_name='promise_fee')
     name = models.CharField(max_length=100, default='Basic')
-    buy_back_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    percentage_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    must_pay_shipping = models.BooleanField(default=False)
+    min_percent = models.DecimalField(max_digits=10, decimal_places=2)
+    max_percent = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -385,6 +444,15 @@ class PromiseFee(models.Model):
 
     def __str__(self):
         return f"{self.variation} - {self.name}" 
+
+class IRate(models.Model):
+    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='i_rates')
+    lower_range= models.PositiveIntegerField()
+    upper_range = models.PositiveIntegerField()
+    must_pay_shipping = models.BooleanField(default=False)
+    rate = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class PriceTier(models.Model):
     """Quantity-based pricing for product variations"""

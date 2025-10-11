@@ -1,0 +1,33 @@
+/* Mobile Menu Fix CSS */
+@media (max-width: 768px) {
+    .mobile-menu {
+        display: none;
+    }
+    
+    .mobile-menu.active {
+        display: block;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
+    }
+    
+    .desktop-menu {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-menu {
+        display: none;
+    }
+    
+    .mobile-menu-toggle {
+        display: none;
+    }
+    
+    .desktop-menu {
+        display: block;
+    }
+}
+

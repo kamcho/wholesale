@@ -68,7 +68,7 @@
                 <span class="text-gray-600">Total</span>
                 <span class="text-xl font-bold text-blue-600">$<span id="cart-total">{{ total }}</span></span>
             </div>
-            <button class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">Proceed to Checkout</button>
+            <a href="{% url 'home:checkout' %}" class="block w-full bg-blue-600 text-white py-3 px-4 text-center rounded-lg font-semibold hover:bg-blue-700">Proceed to Checkout</a>
         </aside>
     </div>
     {% else %}

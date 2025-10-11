@@ -325,7 +325,201 @@
     max-height: 90vh;
     overflow-y: auto;
   }
+
+  /* Payment Plan Slider Styles */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .slider::-webkit-slider-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #3b82f6;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+  }
+
+  .slider::-moz-range-track {
+    background: #e5e7eb;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+  }
+
+  .slider::-moz-range-thumb {
+    background: #3b82f6;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-moz-range-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+  }
+
+  /* Payment plan animation */
+  .payment-plan-transition {
+    transition: all 0.3s ease-in-out;
+  }
 </style>
+
+<script>
+// Payment Plan Variables - Define globally
+let currentVariationPrice = 0;
+let currentQuantity = 1;
+let isPaymentPlanEnabled = false;
+
+// Payment Plan Functions - Make them globally accessible immediately
+window.togglePaymentPlan = function() {
+    const checkbox = document.getElementById('enable-payment-plan');
+    const paymentPlanDetails = document.getElementById('payment-plan-details');
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    
+    if (!checkbox || !paymentPlanDetails || !addToCartBtn) {
+        console.error('Payment plan elements not found');
+        return;
+    }
+    
+    isPaymentPlanEnabled = checkbox.checked;
+    
+    if (isPaymentPlanEnabled) {
+        paymentPlanDetails.classList.remove('hidden');
+        paymentPlanDetails.classList.add('payment-plan-transition');
+        addToCartBtn.textContent = 'Add to Cart with Payment Plan';
+        addToCartBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        addToCartBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+        
+        // Initialize payment plan calculations
+        window.updatePaymentPlan();
+    } else {
+        paymentPlanDetails.classList.add('hidden');
+        addToCartBtn.textContent = 'Add to Cart';
+        addToCartBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        addToCartBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+    }
+};
+
+window.updatePaymentPlan = function() {
+    if (!isPaymentPlanEnabled) return;
+    
+    const slider = document.getElementById('payment-slider');
+    if (!slider) return;
+    
+    const percentage = parseInt(slider.value);
+    
+    // Update quantity from the form
+    const quantityInput = document.querySelector('input[name="quantity"]');
+    currentQuantity = parseInt(quantityInput.value) || 1;
+    
+    // Calculate total cost
+    const totalCost = currentVariationPrice * currentQuantity;
+    
+    // Calculate payment amounts
+    const payNowAmount = (totalCost * percentage / 100);
+    const payLaterAmount = totalCost - payNowAmount;
+    const payLaterPercentage = 100 - percentage;
+    
+    // Update display elements
+    const elements = {
+        'payment-percentage': percentage + '%',
+        'pay-now-percent': percentage,
+        'pay-later-percent': payLaterPercentage,
+        'total-cost': '$' + totalCost.toFixed(2),
+        'pay-now-amount': '$' + payNowAmount.toFixed(2),
+        'pay-later-amount': '$' + payLaterAmount.toFixed(2),
+        'remaining-balance': '$' + payLaterAmount.toFixed(2)
+    };
+    
+    for (const [id, value] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+    
+    // Add payment plan data to form
+    addPaymentPlanDataToForm(percentage, payNowAmount, payLaterAmount);
+};
+
+function addPaymentPlanDataToForm(percentage, payNowAmount, payLaterAmount) {
+    // Remove existing payment plan inputs
+    const existingInputs = document.querySelectorAll('input[name^="payment_plan_"]');
+    existingInputs.forEach(input => input.remove());
+    
+    if (isPaymentPlanEnabled) {
+        const form = document.querySelector('form[action*="add_to_cart"]');
+        if (!form) return;
+        
+        // Add payment plan data as hidden inputs
+        const percentageInput = document.createElement('input');
+        percentageInput.type = 'hidden';
+        percentageInput.name = 'payment_plan_percentage';
+        percentageInput.value = percentage;
+        form.appendChild(percentageInput);
+        
+        const payNowInput = document.createElement('input');
+        payNowInput.type = 'hidden';
+        payNowInput.name = 'payment_plan_pay_now';
+        payNowInput.value = payNowAmount.toFixed(2);
+        form.appendChild(payNowInput);
+        
+        const payLaterInput = document.createElement('input');
+        payLaterInput.type = 'hidden';
+        payLaterInput.name = 'payment_plan_pay_later';
+        payLaterInput.value = payLaterAmount.toFixed(2);
+        form.appendChild(payLaterInput);
+        
+        const enabledInput = document.createElement('input');
+        enabledInput.type = 'hidden';
+        enabledInput.name = 'payment_plan_enabled';
+        enabledInput.value = 'true';
+        form.appendChild(enabledInput);
+    }
+}
+
+// Initialize payment plan when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Set the current variation price
+    currentVariationPrice = parseFloat('{{ variation.price|floatformat:2 }}') || 0;
+    currentQuantity = {{ variation.moq|default:1 }};
+    
+    // Set up quantity change listener
+    const quantityInput = document.querySelector('input[name="quantity"]');
+    if (quantityInput) {
+        quantityInput.addEventListener('input', function() {
+            if (isPaymentPlanEnabled) {
+                window.updatePaymentPlan();
+            }
+        });
+    }
+    
+    // Initialize payment plan on page load
+    window.updatePaymentPlan();
+});
+</script>
 {% endblock %}
 
 {% block title %}{{ product.name }} – {{ variation.name }} - WholeSaleHub{% endblock %}
@@ -549,6 +743,80 @@
               <span class="ml-3 text-sm text-gray-500">units (MOQ {{ variation.moq }})</span>
             </div>
           </div>
+
+          <!-- Payment Plan Selection -->
+          <div class="border-t border-gray-200 pt-4">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-medium text-gray-900">Payment Options</h3>
+              <div class="flex items-center">
+                <input type="checkbox" id="enable-payment-plan" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" onchange="togglePaymentPlan()">
+                <label for="enable-payment-plan" class="ml-2 text-sm text-gray-700">Use Payment Plan</label>
+              </div>
+            </div>
+
+            <!-- Payment Plan Details -->
+            <div id="payment-plan-details" class="hidden space-y-4">
+              <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-sm font-medium text-gray-700">Pay Now Percentage</span>
+                  <span id="payment-percentage" class="text-lg font-bold text-blue-600">50%</span>
+                </div>
+                
+                <!-- Percentage Slider -->
+                <div class="relative">
+                  <input type="range" 
+                         id="payment-slider" 
+                         min="10" 
+                         max="100" 
+                         value="50" 
+                         step="5"
+                         class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                         oninput="updatePaymentPlan()">
+                  <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>10%</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                <!-- Payment Breakdown -->
+                <div class="mt-4 space-y-2">
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Total Cost:</span>
+                    <span id="total-cost" class="font-medium">$0.00</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Pay Now (<span id="pay-now-percent">50</span>%):</span>
+                    <span id="pay-now-amount" class="font-medium text-blue-600">$0.00</span>
+                  </div>
+                  <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">Pay Later (<span id="pay-later-percent">50</span>%):</span>
+                    <span id="pay-later-amount" class="font-medium text-gray-500">$0.00</span>
+                  </div>
+                  <div class="border-t border-gray-200 pt-2">
+                    <div class="flex justify-between text-sm font-medium">
+                      <span class="text-gray-900">Remaining Balance:</span>
+                      <span id="remaining-balance" class="text-gray-900">$0.00</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Payment Plan Benefits -->
+              <div class="bg-blue-50 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">Payment Plan Benefits</h4>
+                <ul class="text-xs text-blue-800 space-y-1">
+                  <li>• Secure your order with a partial payment</li>
+                  <li>• Flexible payment schedule</li>
+                  <li>• No additional fees for payment plans</li>
+                  <li>• Easy balance management</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
           <div>
             {% if in_cart %}
             <button type="button" disabled class="w-full bg-green-50 text-green-700 py-3 px-6 rounded-lg font-semibold">
@@ -558,7 +826,7 @@
               In cart
             </button>
             {% else %}
-            <button type="submit"
+            <button type="submit" id="add-to-cart-btn"
               class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
               Add to Cart
             </button>
@@ -853,6 +1121,8 @@ const variationPrices = {
     {% endfor %}
 };
 
+// Payment Plan Variables - Already defined at top of page
+
 // Track quantities for each variation
 let quantities = {
     '{{ variation.id }}': {{ variation.moq|default:1 }}  // Default to MOQ for current variation
@@ -948,6 +1218,10 @@ if (variationsForm) {
         }
     });
 }
+
+// Payment Plan Functions - Already defined at top of page
+
+// Payment plan initialization - Already handled at top of page
 </script>
 
 {% if has_promise_fee %}

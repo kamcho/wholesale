@@ -1,0 +1,161 @@
+{% extends 'agents/agent_base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Become an Agent - Step {{ wizard.steps.step1 }} of {{ wizard.steps.count }}{% endblock %}
+
+{% block agent_content %}
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <!-- Header -->
+    <div class="px-6 py-5 border-b border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900">Become a Verified Agent</h2>
+        <p class="mt-1 text-sm text-gray-500">
+            Complete the form below to register as an agent and start connecting with clients.
+        </p>
+    </div>
+    
+    <!-- Progress Steps -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            {% for step_name, step_form in wizard.steps.current.items %}
+                {% with step_number=forloop.counter %}
+                    <div class="flex items-center">
+                        <div class="flex flex-col items-center">
+                            <div class="flex items-center justify-center w-10 h-10 rounded-full {% if step_number < wizard.steps.step1 %}bg-emerald-100 text-emerald-600{% elif step_number == wizard.steps.step1 %}bg-blue-100 text-blue-600{% else %}bg-gray-100 text-gray-500{% endif %} font-medium">
+                                {{ step_number }}
+                            </div>
+                            <span class="mt-2 text-xs font-medium text-gray-500">
+                                {{ step_name|title }}
+                            </span>
+                        </div>
+                        {% if not forloop.last %}
+                            <div class="flex-auto border-t-2 mx-4 {% if step_number < wizard.steps.step1 %}border-emerald-500{% else %}border-gray-200{% endif %}"></div>
+                        {% endif %}
+                    </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Form Section -->
+    <form method="post" enctype="multipart/form-data" class="divide-y divide-gray-200">
+        {% csrf_token %}
+        {{ wizard.management_form }}
+        
+        {% if wizard.form.non_field_errors %}
+            <div class="px-6 py-4 bg-red-50">
+                <div class="text-sm text-red-600">
+                    {{ wizard.form.non_field_errors }}
+                </div>
+            </div>
+        {% endif %}
+        
+        <div class="px-6 py-5 space-y-6">
+            {% for field in wizard.form %}
+                <div class="space-y-1">
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                    </label>
+                    
+                    {% if field.name == 'service_types' %}
+                        <div class="mt-2 space-y-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {% for checkbox in field %}
+                                    <div class="flex items-center">
+                                        <div class="flex items-center h-5">
+                                            <input type="checkbox" name="{{ checkbox.data.name }}" value="{{ checkbox.data.value }}" 
+                                                {% if checkbox.data.selected %}checked{% endif %}
+                                                class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                                        </div>
+                                        <label for="{{ checkbox.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
+                                            {{ checkbox.choice_label }}
+                                        </label>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% elif field.field.widget.input_type == 'select' %}
+                        <div class="relative mt-1">
+                            {{ field|add_class:"block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm rounded-md shadow-sm" }}
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                    {% elif field.field.widget.input_type == 'file' %}
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                            <div class="space-y-1 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="{{ field.id_for_label }}" class="relative cursor-pointer bg-white rounded-md font-medium text-emerald-600 hover:text-emerald-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-emerald-500">
+                                        <span>Upload a file</span>
+                                        {{ field|add_class:"sr-only" }}
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    {{ field.help_text|default:"PNG, JPG, GIF up to 10MB" }}
+                                </p>
+                            </div>
+                        </div>
+                    {% else %}
+                        {{ field|add_class:"mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm py-2 px-3 border" }}
+                    {% endif %}
+                    
+                    {% if field.help_text and field.field.widget.input_type != 'file' %}
+                        <p class="mt-2 text-sm text-gray-500">{{ field.help_text }}</p>
+                    {% endif %}
+                    
+                    {% if field.errors %}
+                        <p class="mt-2 text-sm text-red-600">
+                            <svg class="h-4 w-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            {{ field.errors|join:", " }}
+                        </p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="px-6 py-4 bg-gray-50 flex justify-between">
+            {% if wizard.steps.prev %}
+                <button name="wizard_goto_step" 
+                        type="submit" 
+                        value="{{ wizard.steps.prev }}" 
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    Previous
+                </button>
+            {% else %}
+                <div></div> <!-- Empty div for flex spacing -->
+            {% endif %}
+            
+            {% if wizard.steps.next %}
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500">
+                    Next
+                    <svg class="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            {% else %}
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Submit Application
+                    <svg class="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+{% endblock %}
+          

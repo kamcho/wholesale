@@ -13,16 +13,20 @@ from .models import (
     ProductOrder,
     ProductAttribute,
     ProductAttributeValue,
-    ProductAttributeAssignment,PromiseFee
-)
+    ProductAttributeAssignment,PromiseFee,ProductKB, ServiceCategory,Agent, AgentImage, AgentReview, AgentAIKnowledgeBase, ExchangeRate)
 
 admin.site.register(PromiseFee)
+admin.site.register(ServiceCategory)
+admin.site.register(Agent)
+admin.site.register(ExchangeRate)
 class ProductVariationInline(admin.TabularInline):
     model = ProductVariation
     extra = 1
     fields = ("name", "moq", "price")
-
-
+admin.site.register(ProductKB)
+admin.site.register(AgentImage)
+admin.site.register(AgentReview)
+admin.site.register(AgentAIKnowledgeBase)
 class ProductImageInlineForProduct(admin.TabularInline):
     model = ProductImage
     fk_name = "product"

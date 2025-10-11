@@ -228,7 +228,7 @@
         </h5>
       </div>
       <div class="card-body">
-        <form method="post" class="needs-validation" novalidate>
+        <form method="post" class="needs-validation" novalidate id="price-tier-form">
           {% csrf_token %}
           <input type="hidden" name="price_tier_submit" value="1" />
           
@@ -272,16 +272,18 @@
                 <div class="col-md-1 d-flex align-items-end justify-content-end">
                   <div class="delete-tier">
                     {% if price_tier_formset.can_delete and form.instance.pk %}
-                      <form method="post" action="{% url 'vendor:delete_price_tier' form.instance.pk %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="button" class="btn btn-sm btn-outline-danger delete-btn" 
-                                data-bs-toggle="tooltip" title="Delete this tier">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </form>
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger delete-tier-btn" 
+                              data-tier-id="{{ form.instance.pk }}"
+                              data-bs-toggle="tooltip" 
+                              title="Delete this tier">
+                        <i class="fas fa-trash"></i>
+                      </button>
                     {% elif price_tier_formset.can_delete %}
-                      <button type="button" class="btn btn-sm btn-outline-danger remove-tier-btn" 
-                              data-bs-toggle="tooltip" title="Remove this tier">
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger remove-tier-btn" 
+                              data-bs-toggle="tooltip" 
+                              title="Remove this tier">
                         <i class="fas fa-trash"></i>
                       </button>
                     {% endif %}
@@ -338,30 +340,20 @@
                   {% endif %}
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label fw-bold">Buy-back fee</label>
+                  <label class="form-label fw-bold">Min Percentage (%)</label>
                   <div class="input-group">
-                    <span class="input-group-text">$</span>
-                    <input type="number" name="fee_{{ forloop.counter0 }}_buy_back_fee" class="form-control" value="{{ fee.buy_back_fee }}" step="0.01" min="0">
+                    <input type="number" name="fee_{{ forloop.counter0 }}_min_percent" class="form-control" value="{{ fee.min_percent }}" step="0.01" min="0" max="100">
+                    <span class="input-group-text">%</span>
                   </div>
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label fw-bold">Percentage fee (%)</label>
+                  <label class="form-label fw-bold">Max Percentage (%)</label>
                   <div class="input-group">
-                    <input type="number" name="fee_{{ forloop.counter0 }}_percentage_fee" class="form-control" value="{{ fee.percentage_fee }}" step="0.01" min="0" max="100">
+                    <input type="number" name="fee_{{ forloop.counter0 }}_max_percent" class="form-control" value="{{ fee.max_percent }}" step="0.01" min="0" max="100">
                     <span class="input-group-text">%</span>
                   </div>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
-                  <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" name="fee_{{ forloop.counter0 }}_must_pay_shipping" {% if fee.must_pay_shipping %}checked{% endif %}>
-                    <label class="form-check-label ms-2 fw-bold">
-                      Must pay shipping
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div class="row g-3 mt-2">
-                <div class="col-12 d-flex justify-content-end">
                   <button type="button" class="btn btn-outline-danger btn-sm delete-promise-fee hover-lift" data-fee-id="{{ fee.id }}">
                     <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -395,9 +387,163 @@
         </div>
       </div>
     </div>
+
+    <!-- IRate Card -->
+    <div class="card border-0 shadow-lg mb-4 hover-lift">
+      <div class="card-header border-0 bg-gradient-to-r from-amber-50 to-orange-50">
+        <h5 class="card-title mb-0 d-flex align-items-center">
+          <div class="w-8 h-8 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center me-3">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <span>Interest Rates</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        <form method="post" class="needs-validation" novalidate id="i-rate-form">
+          {% csrf_token %}
+          <input type="hidden" name="i_rate_submit" value="1" />
+          
+          <div id="i-rates-container">
+            {{ i_rate_formset.management_form }}
+            {% for form in i_rate_formset %}
+              <div class="row g-3 align-items-end i-rate-row mb-4 p-3 bg-light rounded-3">
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Lower Range</label>
+                  {{ form.lower_range }}
+                  {% if form.lower_range.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.lower_range.errors|striptags }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Upper Range</label>
+                  <div class="input-group">
+                    {{ form.upper_range }}
+                    <span class="input-group-text">0 for no limit</span>
+                  </div>
+                  {% if form.upper_range.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.upper_range.errors|striptags }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Rate</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ form.rate }}
+                  </div>
+                  {% if form.rate.errors %}
+                    <div class="invalid-feedback d-block">
+                      {{ form.rate.errors|striptags }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                  <div class="form-check form-switch">
+                    {{ form.must_pay_shipping }}
+                    <label class="form-check-label ms-2 fw-bold" for="{{ form.must_pay_shipping.id_for_label }}">
+                      Must pay shipping
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-1 d-flex align-items-end justify-content-end">
+                  <div class="delete-rate">
+                    {% if i_rate_formset.can_delete and form.instance.pk %}
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger delete-rate-btn" 
+                              data-rate-id="{{ form.instance.pk }}"
+                              data-bs-toggle="tooltip" 
+                              title="Delete this rate">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    {% elif i_rate_formset.can_delete %}
+                      <button type="button" 
+                              class="btn btn-sm btn-outline-danger remove-rate-btn" 
+                              data-bs-toggle="tooltip" 
+                              title="Remove this rate">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    {% endif %}
+                  </div>
+                  {{ form.id }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <button type="button" id="add-rate" class="btn btn-outline-primary">
+              <i class="fas fa-plus-circle me-1"></i> Add Another Rate
+            </button>
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="fas fa-save me-1"></i> Save All Rates
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <div class="col-lg-4">
+    <!-- Knowledge Base Card -->
+    <div class="card border-0 shadow-lg mb-4 hover-lift">
+      <div class="card-header border-0 bg-gradient-to-r from-indigo-50 to-violet-50">
+        <h5 class="card-title mb-0 d-flex align-items-center">
+          <div class="w-8 h-8 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full flex items-center justify-center me-3">
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <span>Knowledge Base</span>
+        </h5>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'vendor:variation_detail' variation.id %}" class="mb-0">
+          {% csrf_token %}
+          <input type="hidden" name="kb_submit" value="1">
+          
+          <div class="mb-3">
+            <label class="form-label small text-muted mb-2">Product Information</label>
+            {{ kb_form.content }}
+            <div class="form-text">
+              <small>Enter any product details, specifications, or notes. Use any format you prefer.</small>
+            </div>
+            {% if kb_form.content.errors %}
+              <div class="text-danger small mt-1">{{ kb_form.content.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary">
+              <svg class="w-4 h-4 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+              </svg>
+              Save Knowledge Base
+            </button>
+          </div>
+        </form>
+        
+        {% if kb_entry and kb_entry.content %}
+        <div class="mt-4 pt-3 border-top">
+          <h6 class="small text-uppercase text-muted mb-3">Saved Information</h6>
+          <div class="card">
+            <div class="card-body">
+              <div class="whitespace-pre-line">
+                {% with content=kb_entry.content|stringformat:"s"|cut:"{"|cut:"}"|cut:'"'|cut:"'"|linebreaksbr %}
+                  {{ content }}
+                {% endwith %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
     <!-- Quick Actions Card -->
     <div class="card border-0 shadow-lg hover-lift" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
       <div class="card-header border-0" style="background: transparent;">
@@ -486,6 +632,9 @@ document.addEventListener('DOMContentLoaded', function() {
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl);
   });
+  
+  // CSRF token setup for AJAX
+  const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
   // Delete confirmation modal setup
   const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
@@ -493,13 +642,46 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentDeleteButton = null;
 
   // Handle delete button clicks for price tiers
-  document.querySelectorAll('.delete-btn').forEach(button => {
-    button.addEventListener('click', function(e) {
+  document.addEventListener('click', function(e) {
+    // Handle delete tier button clicks
+    if (e.target.closest('.delete-tier-btn')) {
       e.preventDefault();
-      currentDeleteForm = this.closest('form');
-      currentDeleteButton = this;
-      deleteModal.show();
-    });
+      const button = e.target.closest('.delete-tier-btn');
+      const tierId = button.dataset.tierId;
+      const row = button.closest('.price-tier-row');
+      
+      if (confirm('Are you sure you want to delete this price tier?')) {
+        // Show loading state
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        
+        // Send DELETE request
+        fetch(`/vendor/price-tier/${tierId}/delete/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Remove the row from the UI
+            row.remove();
+            // Show success message
+            showAlert('Price tier deleted successfully!', 'success');
+          } else {
+            throw new Error(data.message || 'Failed to delete price tier');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showAlert('Error deleting price tier: ' + error.message, 'danger');
+          button.disabled = false;
+          button.innerHTML = '<i class="fas fa-trash"></i>';
+        });
+      }
+    }
   });
 
   // Handle remove button clicks for unsaved tiers
@@ -525,6 +707,49 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     deleteModal.hide();
   });
+
+  // Handle form submission
+  const priceTierForm = document.getElementById('price-tier-form');
+  if (priceTierForm) {
+    priceTierForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      // Get the submit button and show loading state
+      const submitButton = this.querySelector('button[type="submit"]');
+      const originalText = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+      
+      // Submit the form data
+      const formData = new FormData(this);
+      
+      fetch(this.action || window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showAlert('Price tiers saved successfully!', 'success');
+          // Optionally reload the page to reflect changes
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          throw new Error(data.message || 'Failed to save price tiers');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error saving price tiers: ' + error.message, 'danger');
+      })
+      .finally(() => {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+      });
+    });
+  }
 
   // Add tier form handling
   const addTierBtn = document.getElementById('add-tier');
@@ -588,30 +813,20 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="text" name="fee_${feeCount}_name" class="form-control" placeholder="e.g., Basic, Premium, Express">
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-bold">Buy-back fee</label>
+            <label class="form-label fw-bold">Min Percentage (%)</label>
             <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" name="fee_${feeCount}_buy_back_fee" class="form-control" step="0.01" min="0" placeholder="0.00" value="0">
+              <input type="number" name="fee_${feeCount}_min_percent" class="form-control" step="0.01" min="0" max="100" placeholder="0.00" value="0">
+              <span class="input-group-text">%</span>
             </div>
           </div>
           <div class="col-md-3">
-            <label class="form-label fw-bold">Percentage fee (%)</label>
+            <label class="form-label fw-bold">Max Percentage (%)</label>
             <div class="input-group">
-              <input type="number" name="fee_${feeCount}_percentage_fee" class="form-control" step="0.01" min="0" max="100" placeholder="0.00" value="0">
+              <input type="number" name="fee_${feeCount}_max_percent" class="form-control" step="0.01" min="0" max="100" placeholder="0.00" value="0">
               <span class="input-group-text">%</span>
             </div>
           </div>
           <div class="col-md-3 d-flex align-items-end">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" name="fee_${feeCount}_must_pay_shipping">
-              <label class="form-check-label ms-2 fw-bold">
-                Must pay shipping
-              </label>
-            </div>
-          </div>
-        </div>
-        <div class="row g-3 mt-2">
-          <div class="col-12 d-flex justify-content-end">
             <button type="button" class="btn btn-outline-danger btn-sm remove-promise-fee hover-lift">
               <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -641,6 +856,99 @@ document.addEventListener('DOMContentLoaded', function() {
         // For now, we'll just remove the row
         this.closest('.promise-fee-row').remove();
       }
+    });
+  });
+
+  // Handle IRate form submission
+  const iRateForm = document.getElementById('i-rate-form');
+  if (iRateForm) {
+    iRateForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const submitButton = this.querySelector('button[type="submit"]');
+      const originalText = submitButton.innerHTML;
+      submitButton.disabled = true;
+      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+      
+      const formData = new FormData(this);
+      
+      fetch(this.action || window.location.href, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showAlert('IRates saved successfully!', 'success');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          throw new Error(data.message || 'Failed to save IRates');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error saving IRates: ' + error.message, 'danger');
+      })
+      .finally(() => {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+      });
+    });
+  }
+
+  // Add IRate form handling
+  const addRateBtn = document.getElementById('add-rate');
+  if (addRateBtn) {
+    addRateBtn.addEventListener('click', function() {
+      const formCount = document.querySelectorAll('.i-rate-row').length;
+      const formsetContainer = document.getElementById('i-rates-container');
+      const emptyForm = formsetContainer.querySelector('.i-rate-row:last-child').cloneNode(true);
+      
+      // Update form field names and IDs
+      const formRegex = RegExp(`(irate-)(\\d+)(-)`, 'g');
+      const replacement = `irate-${formCount}-`;
+      
+      emptyForm.innerHTML = emptyForm.innerHTML.replace(formRegex, replacement);
+      
+      // Clear values
+      emptyForm.querySelectorAll('input:not([type=hidden])').forEach(input => {
+        input.value = '';
+      });
+      
+      // Update the TOTAL_FORMS count
+      const totalForms = document.getElementById('id_irate-TOTAL_FORMS');
+      totalForms.value = formCount + 1;
+      
+      // Add the new form to the container
+      formsetContainer.appendChild(emptyForm);
+      
+      // Reinitialize tooltips for the new elements
+      var newTooltipTriggerList = [].slice.call(emptyForm.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      newTooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+      
+      // Add event listener for the remove button
+      const removeBtn = emptyForm.querySelector('.remove-rate-btn');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+          emptyForm.remove();
+          totalForms.value = parseInt(totalForms.value) - 1;
+        });
+      }
+    });
+  }
+
+  // Handle remove button clicks for unsaved IRates
+  document.querySelectorAll('.remove-rate-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      this.closest('.i-rate-row').remove();
+      // Update the TOTAL_FORMS count
+      const totalForms = document.getElementById('id_irate-TOTAL_FORMS');
+      totalForms.value = parseInt(totalForms.value) - 1;
     });
   });
 
@@ -695,14 +1003,12 @@ document.addEventListener('DOMContentLoaded', function() {
         feeRows.forEach(row => {
           // Use more specific selectors to find the correct inputs
           const nameInput = row.querySelector('input[type="text"][name$="_name"]');
-          const buyBackInput = row.querySelector('input[name$="_buy_back_fee"]');
-          const percentageInput = row.querySelector('input[name$="_percentage_fee"]');
-          const shippingCheckbox = row.querySelector('input[type="checkbox"][name$="_must_pay_shipping"]');
+          const minPercentInput = row.querySelector('input[name$="_min_percent"]');
+          const maxPercentInput = row.querySelector('input[name$="_max_percent"]');
           
           const name = nameInput ? nameInput.value.trim() : '';
-          const buyBackFee = buyBackInput ? buyBackInput.value : '0';
-          const percentageFee = percentageInput ? percentageInput.value : '0';
-          const mustPayShipping = shippingCheckbox ? shippingCheckbox.checked : false;
+          const minPercent = minPercentInput ? minPercentInput.value : '0';
+          const maxPercent = maxPercentInput ? maxPercentInput.value : '0';
           
           // Only add fee if name is provided
           if (name.trim()) {
@@ -713,26 +1019,19 @@ document.addEventListener('DOMContentLoaded', function() {
             nameInput.value = name.trim();
             form.appendChild(nameInput);
             
-            // Add buy back fee
-            const buyBackInput = document.createElement('input');
-            buyBackInput.type = 'hidden';
-            buyBackInput.name = `fee_${feeIndex}_buy_back_fee`;
-            buyBackInput.value = parseFloat(buyBackFee) || 0;
-            form.appendChild(buyBackInput);
+            // Add min percent
+            const minPercentHidden = document.createElement('input');
+            minPercentHidden.type = 'hidden';
+            minPercentHidden.name = `fee_${feeIndex}_min_percent`;
+            minPercentHidden.value = minPercent;
+            form.appendChild(minPercentHidden);
             
-            // Add percentage fee
-            const percentageInput = document.createElement('input');
-            percentageInput.type = 'hidden';
-            percentageInput.name = `fee_${feeIndex}_percentage_fee`;
-            percentageInput.value = parseFloat(percentageFee) || 0;
-            form.appendChild(percentageInput);
-            
-            // Add must pay shipping
-            const shippingInput = document.createElement('input');
-            shippingInput.type = 'hidden';
-            shippingInput.name = `fee_${feeIndex}_must_pay_shipping`;
-            shippingInput.value = mustPayShipping ? 'true' : 'false';
-            form.appendChild(shippingInput);
+            // Add max percent
+            const maxPercentHidden = document.createElement('input');
+            maxPercentHidden.type = 'hidden';
+            maxPercentHidden.name = `fee_${feeIndex}_max_percent`;
+            maxPercentHidden.value = maxPercent;
+            form.appendChild(maxPercentHidden);
             
             feeIndex++;
           }
@@ -743,6 +1042,30 @@ document.addEventListener('DOMContentLoaded', function() {
       document.body.appendChild(form);
       form.submit();
     });
+  }
+  
+  // Helper function to show alerts
+  function showAlert(message, type = 'info') {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.role = 'alert';
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Add to the top of the page
+    const container = document.querySelector('.container');
+    if (container) {
+      container.insertBefore(alertDiv, container.firstChild);
+      
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => {
+        const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+        alert.close();
+      }, 5000);
+    }
   }
 });
 </script>
