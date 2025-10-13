@@ -27,6 +27,9 @@ urlpatterns = [
     
     # Orders
     path('orders/', views.orders, name='orders'),
+    path('order-requests/', views.order_requests, name='order_requests'),
+    path('order-requests/vendor/<int:pk>/', views.order_request_detail, name='vendor_order_request_detail'),
+    path('order-requests/<int:pk>/update-status/', views.order_request_update_status, name='order_request_update_status'),
     
     # AJAX endpoints
     path('ajax/categories/', views.get_categories, name='get_categories'),

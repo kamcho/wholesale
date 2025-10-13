@@ -151,6 +151,13 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'order_requests' %}active{% endif %}" 
+                               href="{% url 'vendor:order_requests' %}">
+                                <i class="fas fa-handshake me-2"></i> Order Requests
+                                <span class="badge bg-danger rounded-pill ms-2">New</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{% url 'vendor:add_product' %}">
                                 <i class="fas fa-plus me-2"></i> Add Product
                             </a>

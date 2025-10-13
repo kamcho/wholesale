@@ -1,0 +1,686 @@
+{% extends 'vendor/base.html' %}
+{% load humanize %}
+
+{% block title %}Order Request #{{ order_request.id }} - Vendor Panel{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Modern gradient backgrounds */
+    .gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .gradient-success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .gradient-warning {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .gradient-danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+    
+    .gradient-info {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    }
+    
+    /* Card styling */
+    .modern-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .modern-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        padding: 1.5rem;
+        color: white;
+    }
+    
+    .card-header-success {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .card-header-warning {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .card-header-danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+    }
+    
+    /* Status badges */
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .status-pending {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: #333;
+    }
+    
+    .status-accepted {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+    
+    .status-rejected {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        color: white;
+    }
+    
+    /* Action buttons */
+    .action-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: left 0.5s;
+    }
+    
+    .action-btn:hover::before {
+        left: 100%;
+    }
+    
+    .btn-accept {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+    
+    .btn-accept:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(79, 172, 254, 0.4);
+        color: white;
+    }
+    
+    .btn-reject {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        color: white;
+    }
+    
+    .btn-reject:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(255, 107, 107, 0.4);
+        color: white;
+    }
+    
+    .btn-back {
+        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        color: #333;
+    }
+    
+    .btn-back:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(168, 237, 234, 0.4);
+        color: #333;
+    }
+    
+    /* Product cards */
+    .product-card {
+        border: 1px solid #e9ecef;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .product-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .product-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 2px solid #f8f9fa;
+    }
+    
+    /* Summary cards */
+    .summary-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e9ecef;
+    }
+    
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .summary-item:last-child {
+        border-bottom: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #495057;
+    }
+    
+    /* Customer info */
+    .customer-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+    
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .fade-in-up {
+        animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .fade-in-up-delay-1 {
+        animation: fadeInUp 0.6s ease-out 0.1s both;
+    }
+    
+    .fade-in-up-delay-2 {
+        animation: fadeInUp 0.6s ease-out 0.2s both;
+    }
+    
+    .fade-in-up-delay-3 {
+        animation: fadeInUp 0.6s ease-out 0.3s both;
+    }
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .modern-card {
+            margin-bottom: 1rem;
+        }
+        
+        .action-btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .product-card {
+            padding: 1rem;
+        }
+        
+        .product-image {
+            width: 60px;
+            height: 60px;
+        }
+    }
+    
+    /* Loading states */
+    .loading {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center fade-in-up">
+                <div>
+                    <h1 class="h2 mb-2 text-dark">
+                        <i class="fas fa-handshake me-3 text-primary"></i>
+                        Order Request #{{ order_request.id|stringformat:"06d" }}
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb bg-transparent mb-0 p-0">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'vendor:order_requests' %}" class="text-decoration-none text-muted">
+                                    <i class="fas fa-arrow-left me-1"></i> Order Requests
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active text-primary" aria-current="page">
+                                #{{ order_request.id|stringformat:"06d" }}
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="d-flex gap-3">
+                    <a href="{% url 'vendor:order_requests' %}" class="action-btn btn-back">
+                        <i class="fas fa-arrow-left me-2"></i> Back to List
+                    </a>
+                    {% if order_request.status == 'pending' %}
+                    <button type="button" class="action-btn btn-accept" id="acceptRequest">
+                        <i class="fas fa-check me-2"></i> Accept Request
+                    </button>
+                    <button type="button" class="action-btn btn-reject" id="rejectRequest">
+                        <i class="fas fa-times me-2"></i> Reject Request
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Status Card -->
+            <div class="modern-card mb-4 fade-in-up-delay-1">
+                <div class="card-header-modern {% if order_request.status == 'accepted' %}card-header-success{% elif order_request.status == 'rejected' %}card-header-danger{% else %}card-header-warning{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-1">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Request Status
+                            </h5>
+                            <p class="mb-0 opacity-75">Current status of this order request</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="status-badge status-{{ order_request.status }}">
+                                <i class="fas {% if order_request.status == 'pending' %}fa-clock{% elif order_request.status == 'accepted' %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
+                                {{ order_request.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="p-3">
+                                <i class="fas fa-calendar-alt fa-2x text-primary mb-2"></i>
+                                <h6 class="text-muted mb-1">Requested On</h6>
+                                <p class="mb-0 fw-bold">{{ order_request.created_at|date:"M d, Y" }}</p>
+                                <small class="text-muted">{{ order_request.created_at|time:"g:i A" }}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3">
+                                <i class="fas fa-edit fa-2x text-info mb-2"></i>
+                                <h6 class="text-muted mb-1">Last Updated</h6>
+                                <p class="mb-0 fw-bold">{{ order_request.updated_at|date:"M d, Y" }}</p>
+                                <small class="text-muted">{{ order_request.updated_at|time:"g:i A" }}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="p-3">
+                                <i class="fas fa-boxes fa-2x text-success mb-2"></i>
+                                <h6 class="text-muted mb-1">Total Items</h6>
+                                <p class="mb-0 fw-bold">{{ items|length }}</p>
+                                <small class="text-muted">{{ total_quantity }} units</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="modern-card mb-4 fade-in-up-delay-2">
+                <div class="card-header-modern">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-ul me-2"></i>Requested Items
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    {% for item in items %}
+                    <div class="product-card">
+                        <div class="row align-items-center">
+                            <div class="col-md-2">
+                                {% if item.variation.images.first %}
+                                <img src="{{ item.variation.images.first.image.url }}" 
+                                     alt="{{ item.variation.product.name }}" 
+                                     class="product-image">
+                                {% else %}
+                                <div class="product-image bg-light d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-image text-muted"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="mb-1 fw-bold">{{ item.variation.product.name }}</h6>
+                                <p class="text-muted mb-1 small">
+                                    {% for attr in item.variation.attributes.all %}
+                                        <span class="badge bg-light text-dark me-1">
+                                            {{ attr.attribute.name }}: {{ attr.value.value }}
+                                        </span>
+                                    {% endfor %}
+                                </p>
+                                <small class="text-muted">
+                                    <i class="fas fa-tag me-1"></i>
+                                    Unit Price: KSh {{ item.unit_price|intcomma }}
+                                </small>
+                                {% if item.deposit_percentage > 0 %}
+                                <div class="mt-2">
+                                    <span class="badge bg-info text-white">
+                                        <i class="fas fa-percentage me-1"></i>
+                                        Deposit: {{ item.deposit_percentage|floatformat:0 }}%
+                                    </span>
+                                    <small class="text-muted ms-2">
+                                        (KSh {{ item.deposit_amount|intcomma }})
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <div class="p-2 bg-light rounded">
+                                    <i class="fas fa-shopping-cart text-primary mb-1"></i>
+                                    <div class="fw-bold">{{ item.quantity }}</div>
+                                    <small class="text-muted">Qty</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <div class="p-2 bg-primary text-white rounded">
+                                    <div class="fw-bold">KSh {{ item.subtotal|intcomma }}</div>
+                                    <small>Total</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Order Summary -->
+            <div class="modern-card mb-4 fade-in-up-delay-3">
+                <div class="card-header-modern card-header-success">
+                    <h5 class="mb-0">
+                        <i class="fas fa-receipt me-2"></i>Order Summary
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="summary-card">
+                        <div class="summary-item">
+                            <span class="text-muted">
+                                <i class="fas fa-boxes me-2"></i>Items
+                            </span>
+                            <span class="fw-bold">{{ items|length }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="text-muted">
+                                <i class="fas fa-shopping-cart me-2"></i>Total Quantity
+                            </span>
+                            <span class="fw-bold">{{ total_quantity }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="text-muted">
+                                <i class="fas fa-clock me-2"></i>Status
+                            </span>
+                            <span class="status-badge status-{{ order_request.status }}">
+                                {{ order_request.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="text-muted">
+                                <i class="fas fa-calendar me-2"></i>Request Date
+                            </span>
+                            <span class="fw-bold">{{ order_request.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        {% if total_deposit > 0 %}
+                        <div class="summary-item">
+                            <span class="text-muted">
+                                <i class="fas fa-percentage me-2"></i>Total Deposit
+                            </span>
+                            <span class="fw-bold text-info">KSh {{ total_deposit|intcomma }}</span>
+                        </div>
+                        {% endif %}
+                        <hr class="my-3">
+                        <div class="summary-item">
+                            <span class="h5 mb-0">
+                                <i class="fas fa-dollar-sign me-2"></i>Total Amount
+                            </span>
+                            <span class="h4 text-primary mb-0">KSh {{ total_amount|intcomma }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customer Information -->
+            <div class="modern-card mb-4 fade-in-up-delay-3">
+                <div class="card-header-modern gradient-info">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>Customer Information
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="customer-avatar me-3">
+                            {% if order_request.user %}
+                                {{ order_request.user.first_name|first|upper }}{{ order_request.user.last_name|first|upper }}
+                            {% else %}
+                                GU
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h6 class="mb-1 fw-bold">
+                                {% if order_request.user %}
+                                    {{ order_request.user.get_full_name|default:order_request.user.username }}
+                                {% else %}
+                                    Guest User
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">
+                                {% if order_request.user %}
+                                    {{ order_request.user.email }}
+                                {% else %}
+                                    Guest Order
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    {% if order_request.user %}
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded">
+                                <i class="fas fa-envelope text-primary mb-1"></i>
+                                <div class="small fw-bold">Email</div>
+                                <small class="text-muted">{{ order_request.user.email|truncatechars:15 }}</small>
+                            </div>
+                        </div>
+                        {% if order_request.user.phone_number %}
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded">
+                                <i class="fas fa-phone text-success mb-1"></i>
+                                <div class="small fw-bold">Phone</div>
+                                <small class="text-muted">{{ order_request.user.phone_number }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Customer Note -->
+            {% if order_request.note %}
+            <div class="modern-card fade-in-up-delay-3">
+                <div class="card-header-modern gradient-warning">
+                    <h5 class="mb-0">
+                        <i class="fas fa-sticky-note me-2"></i>Customer Note
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="p-3 bg-light rounded">
+                        <i class="fas fa-quote-left text-primary me-2"></i>
+                        <span class="fst-italic">{{ order_request.note }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Handle accept/reject buttons
+    $('#acceptRequest').on('click', function() {
+        if (confirm('Are you sure you want to accept this order request?')) {
+            updateRequestStatus('accepted', $(this));
+        }
+    });
+    
+    $('#rejectRequest').on('click', function() {
+        if (confirm('Are you sure you want to reject this order request?')) {
+            updateRequestStatus('rejected', $(this));
+        }
+    });
+    
+    function updateRequestStatus(status, $button) {
+        // Show loading state
+        const originalText = $button.html();
+        $button.addClass('loading').html('<span class="spinner me-2"></span>Processing...');
+        
+        // Send the request
+        $.ajax({
+            url: '{% url "vendor:order_request_update_status" order_request.id %}',
+            method: 'POST',
+            data: JSON.stringify({
+                status: status
+            }),
+            contentType: 'application/json',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Show success message with animation
+                    showSuccessMessage(response.message, status);
+                    
+                    // Update UI after delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showErrorMessage(response.error || 'Failed to update status');
+                    $button.removeClass('loading').html(originalText);
+                }
+            },
+            error: function(xhr, status, error) {
+                let errorMsg = 'An error occurred while updating the status.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                showErrorMessage(errorMsg);
+                $button.removeClass('loading').html(originalText);
+            }
+        });
+    }
+    
+    function showSuccessMessage(message, status) {
+        const icon = status === 'accepted' ? 'fa-check-circle' : 'fa-times-circle';
+        const color = status === 'accepted' ? 'success' : 'danger';
+        
+        const alertHtml = `
+            <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+                <div class="alert alert-${color} alert-dismissible fade show shadow-lg" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas ${icon} fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Success!</h6>
+                            <p class="mb-0">${message}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>`;
+        
+        $('body').append(alertHtml);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            $('.alert').fadeOut(300, function() { $(this).remove(); });
+        }, 5000);
+    }
+    
+    function showErrorMessage(message) {
+        const alertHtml = `
+            <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+                <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Error!</h6>
+                            <p class="mb-0">${message}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>`;
+        
+        $('body').append(alertHtml);
+        
+        // Auto remove after 7 seconds
+        setTimeout(() => {
+            $('.alert').fadeOut(300, function() { $(this).remove(); });
+        }, 7000);
+    }
+});
+</script>
+{% endblock %}

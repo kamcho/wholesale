@@ -15,13 +15,49 @@
                 <h1 class="text-2xl font-bold text-gray-900">
                     <a href="{% url 'home:home' %}">Wholesale Portal</a>
                 </h1>
-                <nav class="flex space-x-4">
+                <nav class="flex items-center space-x-6">
+                    <!-- Main Navigation -->
+                    <a href="{% url 'home:home' %}" class="text-gray-600 hover:text-gray-900">Home</a>
+                    <a href="{% url 'home:product_list' %}" class="text-gray-600 hover:text-gray-900">Products</a>
+                    <a href="{% url 'vendor:become_vendor' %}" class="text-gray-600 hover:text-gray-900">Become a Seller</a>
+                    <a href="{% url 'home:cart_detail' %}" class="text-gray-600 hover:text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        Cart
+                    </a>
+
+                    <!-- User-specific navigation -->
                     {% if user.is_authenticated %}
-                        <a href="{% url 'agents:agent_dashboard' %}" class="text-gray-600 hover:text-gray-900">Dashboard</a>
-                        <a href="{% url 'logout' %}" class="text-gray-600 hover:text-gray-900">Logout</a>
+                        <div class="hidden md:flex items-center space-x-6 border-l border-gray-200 pl-4 ml-4">
+                            <a href="{% url 'home:order_history' %}" class="text-gray-600 hover:text-gray-900 flex items-center">
+                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                Orders
+                            </a>
+                            <a href="#" class="text-gray-600 hover:text-gray-900 flex items-center">
+                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Order Requests
+                            </a>
+                            <a href="#" class="text-gray-600 hover:text-gray-900 flex items-center">
+                                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                Payments
+                            </a>
+                        </div>
+                        <div class="flex items-center space-x-4 border-l border-gray-200 pl-4">
+                            <a href="{% url 'agents:agent_dashboard' %}" class="text-gray-600 hover:text-gray-900">Dashboard</a>
+                            <a href="{% url 'logout' %}" class="text-gray-600 hover:text-gray-900">Logout</a>
+                        </div>
                     {% else %}
-                        <a href="{% url 'login' %}" class="text-gray-600 hover:text-gray-900">Login</a>
-                        <a href="{% url 'users:signup' %}" class="text-gray-600 hover:text-gray-900">Sign Up</a>
+                        <div class="flex items-center space-x-4 border-l border-gray-200 pl-4">
+                            <a href="{% url 'login' %}" class="text-gray-600 hover:text-gray-900">Login</a>
+                            <a href="{% url 'users:signup' %}" class="text-gray-600 hover:text-gray-900">Sign Up</a>
+                        </div>
                     {% endif %}
                 </nav>
             </div>

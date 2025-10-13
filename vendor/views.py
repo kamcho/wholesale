@@ -1,14 +1,24 @@
+import logging
 from django.shortcuts import render, get_object_or_404, redirect
+from django.http import Http404
+
+logger = logging.getLogger(__name__)
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count, Sum, F
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from decimal import Decimal, InvalidOperation
 
-from home.models import Product, ProductCategory, Business, ProductImage, BusinessCategory, ProductVariation, OrderItem, ProductAttributeAssignment, ProductAttribute, ProductAttributeValue, PriceTier, PromiseFee, IRate, ProductServicing, Agent
+from home.models import (
+    Product, ProductCategory, Business, ProductImage, 
+    BusinessCategory, ProductVariation, OrderItem, 
+    ProductAttributeAssignment, ProductAttribute, 
+    ProductAttributeValue, PriceTier, PromiseFee, 
+    IRate, ProductServicing, Agent, OrderRequest, OrderRequestItem, AdditionalFees
+)
 from .forms import (
     ProductForm,
     ProductImageForm,
@@ -183,6 +193,57 @@ def product_detail(request, pk):
     sourcing_agents = Agent.objects.filter(service_types__code='s-1').distinct()
     customs_agents = Agent.objects.filter(service_types__code='C-1').distinct()
     
+    # Handle Additional Fees
+    existing_fees = AdditionalFees.objects.filter(variation__in=variations).distinct()
+    
+    if request.method == 'POST' and 'add_fee' in request.POST:
+        # Add new fee
+        name = request.POST.get('fee_name', '').strip()
+        description = request.POST.get('fee_description', '').strip()
+        price_raw = request.POST.get('fee_price', '')
+        is_required = request.POST.get('fee_required') == 'on'
+        variation_ids = request.POST.getlist('fee_variations')
+        
+        try:
+            from decimal import Decimal, InvalidOperation
+            price = Decimal(str(price_raw)) if price_raw else Decimal('0')
+        except (InvalidOperation, ValueError, TypeError):
+            messages.error(request, 'Invalid price value.')
+            return redirect('vendor:product_detail', pk=product.id)
+        
+        if name and price > 0:
+            fee = AdditionalFees.objects.create(
+                name=name,
+                description=description,
+                is_required=is_required,
+                price=price
+            )
+            
+            # Set variations
+            try:
+                variation_ids = [int(v) for v in variation_ids if v]
+                v_qs = ProductVariation.objects.filter(id__in=variation_ids)
+                fee.variation.set(v_qs)
+            except Exception:
+                pass
+            
+            messages.success(request, 'Additional fee added successfully!')
+        else:
+            messages.error(request, 'Name and price are required.')
+        
+        return redirect('vendor:product_detail', pk=product.id)
+    
+    if request.method == 'POST' and 'delete_fee' in request.POST:
+        # Delete fee
+        fee_id = request.POST.get('fee_id')
+        try:
+            fee = AdditionalFees.objects.get(id=fee_id)
+            fee.delete()
+            messages.success(request, 'Additional fee deleted successfully!')
+        except AdditionalFees.DoesNotExist:
+            messages.error(request, 'Fee not found.')
+        return redirect('vendor:product_detail', pk=product.id)
+    
     context = {
         'product': product,
         'images': images,
@@ -191,6 +252,7 @@ def product_detail(request, pk):
         'shipping_agents': shipping_agents,
         'sourcing_agents': sourcing_agents,
         'customs_agents': customs_agents,
+        'existing_fees': existing_fees,
     }
     
     return render(request, 'vendor/product_detail.html', context)
@@ -228,17 +290,112 @@ def edit_product(request, pk):
 
 
 @login_required
+def order_request_update_status(request, pk):
+    """Update the status of an order request via AJAX"""
+    from django.http import JsonResponse
+    from django.views.decorators.csrf import csrf_exempt
+    import json
+    
+    if request.method != 'POST' or not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+    
+    try:
+        # Try to parse JSON data first
+        try:
+            data = json.loads(request.body) if request.body else {}
+        except json.JSONDecodeError:
+            # If not JSON, try form data
+            data = request.POST.dict()
+        
+        new_status = data.get('status')
+        
+        if not new_status:
+            return JsonResponse({'success': False, 'error': 'Status is required'}, status=400)
+        
+        # Validate status
+        valid_statuses = ['pending', 'accepted', 'rejected', 'processing', 'shipped', 'delivered', 'cancelled']
+        if new_status not in valid_statuses:
+            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+            
+        # Get the order request and verify ownership
+        order_request = get_object_or_404(
+            OrderRequest.objects.filter(
+                id=pk,
+                items__variation__product__user=request.user
+            ).distinct()
+        )
+        
+        # Update the status
+        order_request.status = new_status
+        order_request.save()
+        
+        # Log the status update
+        logger.info(f"Order request {order_request.id} status updated to {new_status} by user {request.user.id}")
+        
+        return JsonResponse({
+            'success': True,
+            'status': order_request.get_status_display(),
+            'status_class': 'success' if new_status == 'accepted' else 'danger' if new_status == 'rejected' else 'warning',
+            'message': f'Order request status updated to {order_request.get_status_display()}'
+        })
+        
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Error updating order request status: {error_msg}", exc_info=True)
+        return JsonResponse({
+            'success': False, 
+            'error': 'An error occurred while updating the order status',
+            'debug': error_msg if settings.DEBUG else None
+        }, status=500)
+
+
+@login_required
 def delete_product(request, pk):
     """Delete a product"""
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    from home.models import Product
+    
     product = get_object_or_404(Product, id=pk)
-    # Ensure the product belongs to a business owned by the current user OR was created by the current user
-    if product.business and product.business.owner == request.user:
-        pass  # Allowed via business ownership
-    elif product.user and product.user == request.user:
-        pass  # Allowed via direct user ownership
-    else:
+    
+    # Check if the user has permission to delete this product
+    has_permission = False
+    if hasattr(product, 'business') and product.business and product.business.owner == request.user:
+        has_permission = True
+    elif hasattr(product, 'user') and product.user == request.user:
+        has_permission = True
+    
+    if not has_permission:
         messages.error(request, 'You do not have permission to delete this product.')
         return redirect('vendor:product_list')
+    
+    # Delete the product
+    product_name = product.name
+    product.delete()
+    
+    messages.success(request, f'Product "{product_name}" has been deleted successfully.')
+    return redirect('vendor:product_list')
+
+
+@login_required
+def delete_promise_fee(request, pk):
+    """Delete a promise fee"""
+    from home.models import PromiseFee
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    
+    promise_fee = get_object_or_404(PromiseFee, pk=pk)
+    variation = promise_fee.variation
+    
+    # Check if the user has permission to delete this promise fee
+    if variation.product.user != request.user and (hasattr(variation.product, 'business') and variation.product.business.owner != request.user):
+        messages.error(request, 'You do not have permission to delete this promise fee.')
+        return redirect('vendor:variation_detail', pk=variation.id)
+    
+    # Delete the promise fee
+    promise_fee.delete()
+    messages.success(request, 'Promise fee has been deleted successfully.')
+    return redirect('vendor:variation_detail', pk=variation.id)
     
     if request.method == 'POST':
         product.delete()
@@ -1030,8 +1187,9 @@ def orders(request):
     """List order items for products that belong to the vendor's businesses."""
     user_businesses = Business.objects.filter(owner=request.user)
     order_items = OrderItem.objects.filter(
-        Q(product__business__in=user_businesses) | Q(product__user=request.user)
-    ).select_related('order', 'product').order_by('-order__created_at')
+        Q(variation__product__business__in=user_businesses) | 
+        Q(variation__product__user=request.user)
+    ).select_related('order', 'variation__product').order_by('-order__created_at')
     
     # Pagination
     paginator = Paginator(order_items, 10)  # Show 10 orders per page
@@ -1062,7 +1220,85 @@ def delete_price_tier(request, pk):
 
 
 @login_required
-@require_http_methods(["POST"])
+def order_requests(request):
+    """List order requests for the vendor's products"""
+    # Get order requests for the vendor's products
+    order_requests = OrderRequest.objects.filter(
+        items__variation__product__user=request.user
+    ).distinct().annotate(
+        item_count=Count('items'),
+        total_quantity=Sum('items__quantity'),
+        total_amount=Sum(F('items__unit_price') * F('items__quantity'))
+    ).order_by('-created_at')
+    
+    # Pagination
+    paginator = Paginator(order_requests, 10)  # Show 10 order requests per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get stats for the dashboard
+    stats = {
+        'total_requests': order_requests.count(),
+        'pending_requests': order_requests.filter(status='pending').count(),
+        'accepted_requests': order_requests.filter(status='accepted').count(),
+        'rejected_requests': order_requests.filter(status='rejected').count(),
+    }
+    
+    return render(request, 'vendor/order_requests.html', {
+        'page_obj': page_obj,
+        'stats': stats,
+    })
+
+
+@login_required
+def order_request_detail(request, pk):
+    """View details of a specific order request"""
+    try:
+        logger.info(f"Fetching order request {pk} for user {request.user.id}")
+        
+        # First check if any order request with this ID exists and user has access
+        order_request = OrderRequest.objects.filter(
+            id=pk,
+            items__variation__product__user=request.user
+        ).first()
+        
+        if not order_request:
+            logger.warning(f"Order request {pk} not found or user {request.user.id} doesn't have permission")
+            raise Http404("Order request not found or you don't have permission to view it.")
+            
+        logger.info(f"Found order request {pk}, now fetching related data")
+        
+        # Get all items in this request that belong to the current vendor
+        items = order_request.items.filter(
+            variation__product__user=request.user
+        ).select_related('variation', 'variation__product')
+        
+        if not items.exists():
+            logger.warning(f"No items found for order request {pk} that belong to user {request.user.id}")
+            raise Http404("No items found in this order request.")
+        
+        # Calculate totals
+        total_quantity = items.aggregate(Sum('quantity'))['quantity__sum'] or 0
+        total_amount = sum(item.unit_price * item.quantity for item in items)
+        
+        # Calculate total deposit amount
+        total_deposit = sum(item.deposit_amount for item in items)
+        
+        logger.info(f"Rendering order request {pk} with {items.count()} items")
+        
+        return render(request, 'vendor/order_request_detail.html', {
+            'order_request': order_request,
+            'items': items,
+            'total_quantity': total_quantity,
+            'total_amount': total_amount,
+            'total_deposit': total_deposit,
+        })
+        
+    except Http404:
+        raise  # Re-raise the Http404 exception
+    except Exception as e:
+        logger.error(f"Unexpected error in order_request_detail: {str(e)}", exc_info=True)
+        raise Http404("An error occurred while processing your request.")
 def delete_promise_fee(request, pk):
     """Delete a promise fee"""
     from home.models import PromiseFee  # Import here to avoid circular imports

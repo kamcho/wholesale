@@ -14,6 +14,8 @@ urlpatterns = [
     path('products/<int:pk>/order/', views.create_product_order, name='create_product_order'),
     path('products/<int:pk>/order/create/', views.product_order_create, name='product_order_create'),
     path('orders/<int:order_id>/confirm/', views.product_order_payment, name='product_order_payment'),
+    path('orders/<int:order_id>/', views.order_detail, name='order_detail'),
+    path('order-requests/<int:order_request_id>/', views.order_request_detail, name='order_request_detail'),
     path('category/<int:category_id>/', views.category_products, name='category_products'),
     path('cart/add/', views.add_to_cart, name='add_to_cart'),
     path('cart/remove/', views.remove_from_cart, name='remove_from_cart'),
@@ -26,6 +28,7 @@ urlpatterns = [
     path('quick-checkout/', views.quick_checkout, name='quick_checkout'),
     path('quick-checkout/page/', views.quick_checkout_page, name='quick_checkout_page'),
     path('api/create-order/', views.create_order, name='create_order'),
+    path('api/create-order-request/', views.create_order_request, name='create_order_request'),
     path('api/process-mpesa-payment/', views.process_mpesa_payment, name='process_mpesa_payment'),
     path('wishlist/', views.wishlist_list, name='wishlist'),
     path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
@@ -45,5 +48,8 @@ urlpatterns = [
     
     # Chat URLs
     path('chat/<int:product_id>/', chat_views.chat_room, name='chat_room'),
+    
+    # Payment Confirmation
+    path('confirm-payment/<int:order_id>/', views.confirm_payment, name='confirm_payment'),
     path('api/chat/<int:product_id>/messages/', chat_views.get_messages, name='get_chat_messages'),
 ]

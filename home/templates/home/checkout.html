@@ -12,93 +12,42 @@
             <svg class="h-5 w-5 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
-            <span class="text-blue-600 font-medium">Shipping & Payment</span>
+            <span class="text-blue-600 font-medium">Payment</span>
         </div>
     </div>
 
     <div class="grid lg:grid-cols-3 gap-8">
-        <!-- Left Column - Order Summary -->
+        <!-- Left Column - Payment Method -->
         <div class="lg:col-span-2 space-y-6">
-            <!-- Shipping Information -->
-            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Shipping Information</h2>
-                <form id="shippingForm" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                            <input type="text" id="first_name" name="first_name" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                            <input type="text" id="last_name" name="last_name" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" id="email" name="email" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    
-                    <div>
-                        <label for="address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                        <input type="text" id="address" name="address" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
-                            <input type="text" id="city" name="city" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State/Region</label>
-                            <input type="text" id="state" name="state" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label for="postal_code" class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-                            <input type="text" id="postal_code" name="postal_code" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label for="country" class="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                        <select id="country" name="country" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">Select a country</option>
-                            <option value="KE">Kenya</option>
-                            <option value="UG">Uganda</option>
-                            <option value="TZ">Tanzania</option>
-                            <option value="RW">Rwanda</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
             
             <!-- Payment Method -->
             <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Payment Method</h2>
                 <div class="space-y-4">
-                    <div class="flex items-center p-4 border border-gray-200 rounded-lg">
-                        <input id="mpesa" name="payment_method" type="radio" value="mpesa" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300" checked>
-                        <label for="mpesa" class="ml-3 block text-sm font-medium text-gray-700">
-                            <div class="flex items-center">
-                                <img src="{% static 'images/mpesa-logo.png' %}" alt="M-Pesa" class="h-6 ml-2">
-                                <span class="ml-2">M-Pesa</span>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center">
+                            <input id="mpesa" name="payment_method" type="radio" value="mpesa" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300" checked>
+                            <label for="mpesa" class="ml-3 block text-sm font-medium text-gray-700">
+                                <div class="flex items-center">
+                                    <img src="{% static 'images/mpesa-logo.png' %}" alt="M-Pesa" class="h-6 ml-2">
+                                    <span class="ml-2">M-Pesa</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">You'll receive an M-Pesa prompt on your phone to complete the payment.</p>
+                            </label>
+                        </div>
+                        <div id="mpesa-phone-container" class="mt-4 pl-7">
+                            <div class="space-y-2">
+                                <label for="phone_number" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                                <div class="mt-1">
+                                    <input type="tel" id="phone_number" name="phone_number" 
+                                           placeholder="e.g. 254712345678" 
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                           pattern="^254[0-9]{9}$"
+                                           title="Please enter a valid M-Pesa phone number starting with 254">
+                                </div>
+                                <p class="text-xs text-gray-500">Enter your M-Pesa registered phone number (format: 2547XXXXXXXX)</p>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1">Pay securely via M-Pesa. You will be redirected to complete your payment.</p>
-                        </label>
+                        </div>
                     </div>
                     
                     <div class="flex items-center p-4 border border-gray-200 rounded-lg">
@@ -158,16 +107,6 @@
                         <span class="text-sm font-medium text-gray-900">KSh {{ subtotal|floatformat:2 }}</span>
                     </div>
                     <div class="flex items-center justify-between">
-                        <span class="text-sm text-gray-600">Shipping</span>
-                        <span class="text-sm font-medium text-gray-900">
-                            {% if shipping_cost %}
-                                KSh {{ shipping_cost|floatformat:2 }}
-                            {% else %}
-                                Calculated at next step
-                            {% endif %}
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between">
                         <span class="text-sm text-gray-600">Tax</span>
                         <span class="text-sm font-medium text-gray-900">KSh {{ tax|floatformat:2 }}</span>
                     </div>
@@ -177,9 +116,13 @@
                     </div>
                 </div>
                 
-                <button type="submit" form="shippingForm" class="w-full mt-6 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Complete Order
-                </button>
+                <form id="paymentForm" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="payment_method" value="mpesa" id="payment_method_input">
+                    <button type="submit" id="submit-btn" class="w-full mt-6 bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Pay with M-Pesa
+                    </button>
+                </form>
                 
                 <div class="mt-4 text-center text-sm text-gray-500">
                     <p>By placing your order, you agree to our <a href="#" class="text-blue-600 hover:text-blue-800">Terms of Service</a> and <a href="#" class="text-blue-600 hover:text-blue-800">Privacy Policy</a>.</p>
@@ -209,36 +152,129 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('paymentForm');
+    const mpesaRadio = document.getElementById('mpesa');
+    const cardRadio = document.getElementById('card');
+    const mpesaPhoneContainer = document.getElementById('mpesa-phone-container');
+    const phoneNumberInput = document.getElementById('phone_number');
+    const submitBtn = document.getElementById('submit-btn');
+    const paymentMethodInput = document.getElementById('payment_method_input');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Toggle M-Pesa phone number field
+    function toggleMpesaFields() {
+        if (mpesaRadio.checked) {
+            mpesaPhoneContainer.classList.remove('hidden');
+            paymentMethodInput.value = 'mpesa';
+            submitBtn.textContent = 'Pay with M-Pesa';
+            submitBtn.disabled = !phoneNumberInput.value.match(/^254\d{9}$/);
+        } else {
+            mpesaPhoneContainer.classList.add('hidden');
+            paymentMethodInput.value = 'card';
+            submitBtn.textContent = 'Pay with Card';
+            submitBtn.disabled = false;
+        }
+    }
+
+    // Initialize
+    toggleMpesaFields();
+
+    // Event listeners
+    mpesaRadio.addEventListener('change', toggleMpesaFields);
+    cardRadio.addEventListener('change', toggleMpesaFields);
+
+    // Phone number validation
+    phoneNumberInput.addEventListener('input', function() {
+        // Format phone number to ensure it starts with 254
+        let value = this.value.trim();
+        if (value.startsWith('0')) {
+            value = '254' + value.substring(1);
+            this.value = value;
+        } else if (value.startsWith('+254')) {
+            value = value.substring(1);
+            this.value = value;
+        } else if (value.startsWith('7') && value.length === 9) {
+            value = '254' + value;
+            this.value = value;
+        }
+
+        // Enable/disable submit button based on phone number validity
+        if (mpesaRadio.checked) {
+            submitBtn.disabled = !value.match(/^254\d{9}$/);
+        }
+    });
+
     // Form submission
-    const form = document.getElementById('shippingForm');
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Get selected payment method
-            const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+            // Show loading state
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="animate-spin mr-2">⟳</span> Processing...';
             
-            if (paymentMethod === 'mpesa') {
-                // Show processing modal
-                const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50';
-                modal.innerHTML = `
-                    <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-                        <div class="text-center">
-                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                            <h3 class="text-lg font-medium text-gray-900 mb-2">Processing Payment</h3>
-                            <p class="text-sm text-gray-500">Please check your phone to complete the M-Pesa payment.</p>
-                        </div>
+            // Show processing modal
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">Processing Payment</h3>
+                        <p class="text-sm text-gray-500">Please check your phone to complete the M-Pesa payment.</p>
                     </div>
-                `;
-                document.body.appendChild(modal);
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            try {
+                // Get cart items data if needed
+                const cartItems = Array.from(document.querySelectorAll('tr[data-item-id]')).map(row => ({
+                    id: row.getAttribute('data-item-id'),
+                    quantity: parseInt(row.querySelector('.item-quantity')?.value || '1')
+                }));
                 
-                // Simulate payment processing (replace with actual API call)
-                // You can implement the actual payment processing here
-                console.log('Processing payment...');
-            } else {
-                // Handle card payment (would be implemented with a payment processor like Stripe)
-                alert('Card payment would be processed here with a payment processor like Stripe.');
+                // Prepare the request data
+                const requestData = {
+                    phone_number: phoneNumberInput.value,
+                    payment_plans: {} // Add payment plans if needed
+                };
+                
+                // Send the request
+                const response = await fetch("{% url 'home:process_mpesa_payment' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Payment request failed');
+                }
+                
+                // Redirect to confirmation page on success
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                } else if (data.order_id) {
+                    window.location.href = `/confirm-payment/${data.order_id}/`;
+                }
+                
+            } catch (error) {
+                console.error('Payment error:', error);
+                
+                // Show error message
+                const errorMessage = error.message || 'Failed to process payment. Please try again.';
+                alert(errorMessage);
+                
+                // Remove modal and reset button
+                modal.remove();
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
             }
         });
     }

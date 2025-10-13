@@ -471,10 +471,32 @@ class IRateForm(forms.ModelForm):
         model = IRate
         fields = ["lower_range", "upper_range", "must_pay_shipping", "rate"]
         widgets = {
-            "lower_range": forms.NumberInput(attrs={"class": "form-control", "min": "1", "placeholder": "Minimum quantity"}),
-            "upper_range": forms.NumberInput(attrs={"class": "form-control", "min": "1", "placeholder": "Maximum quantity (0 for no limit)"}),
+            "lower_range": forms.NumberInput(attrs={
+                "class": "form-control", 
+                "min": "1", 
+                "placeholder": "Lower range (e.g., 1)",
+                "required": True
+            }),
+            "upper_range": forms.NumberInput(attrs={
+                "class": "form-control", 
+                "min": "0", 
+                "placeholder": "Upper range (0 for no limit)",
+                "required": True
+            }),
             "must_pay_shipping": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "rate": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "Rate amount"}),
+            "rate": forms.NumberInput(attrs={
+                "class": "form-control", 
+                "step": "0.01", 
+                "min": "0", 
+                "placeholder": "Rate amount",
+                "required": True
+            }),
+        }
+        labels = {
+            "lower_range": "Minimum Quantity",
+            "upper_range": "Maximum Quantity (0 = no limit)",
+            "must_pay_shipping": "Customer Pays Shipping",
+            "rate": "Rate Amount"
         }
 
     def __init__(self, *args, **kwargs):

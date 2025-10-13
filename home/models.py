@@ -421,7 +421,14 @@ class ProductVariation(models.Model):
     
     def __str__(self):
         return f"{self.product.name} - {self.name}"
-
+class AdditionalFees(models.Model):
+    variation = models.ManyToManyField(ProductVariation, related_name='additional_fees')
+    name = models.CharField(max_length=100, default='Basic')
+    description = models.TextField(blank=True)
+    is_required = models.BooleanField(default=False)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 class ProductKB(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="kb", null=True, blank=True)
     variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name="kb", null=True, blank=True)
@@ -453,6 +460,9 @@ class IRate(models.Model):
     rate = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+ 
+
 
 class PriceTier(models.Model):
     """Quantity-based pricing for product variations"""
@@ -533,8 +543,9 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")
     variation = models.ForeignKey(
-        "ProductVariation", on_delete=models.RESTRICT
+        "ProductVariation", on_delete=models.RESTRICT, null=True, blank=True
     )
+    product = models.ForeignKey(Product, on_delete=models.RESTRICT, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
 
     def unit_price(self):
@@ -606,8 +617,47 @@ class OrderItem(models.Model):
         return self.price * Decimal(self.quantity)
 
     def __str__(self):
-        return f"{self.quantity} x {self.product}"
+        return f"{self.quantity} x {self.variation}"
 
+
+class OrderRequest(models.Model):
+    """A buyer's order request that a seller can accept/decline/counter."""
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("accepted", "Accepted"),
+        ("declined", "Declined"),
+        ("countered", "Countered"),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_requests')
+    session_id = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"OrderRequest #{self.id} ({self.status})"
+
+
+class OrderRequestItem(models.Model):
+    """Items in an OrderRequest, including proposed deposit percentage per variation."""
+    order_request = models.ForeignKey(OrderRequest, on_delete=models.CASCADE, related_name='items')
+    variation = models.ForeignKey(ProductVariation, on_delete=models.RESTRICT)
+    quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    # Proposed deposit percentage for this variation (0-100)
+    deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    def subtotal(self):
+        return self.unit_price * Decimal(self.quantity)
+    
+    @property
+    def deposit_amount(self):
+        """Calculate the deposit amount based on percentage"""
+        if self.deposit_percentage > 0:
+            return (self.subtotal() * self.deposit_percentage) / 100
+        return Decimal('0')
 
 # ==============================
 # WISHLIST

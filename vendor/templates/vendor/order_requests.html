@@ -1,0 +1,679 @@
+{% extends 'vendor/base.html' %}
+{% load humanize %}
+
+{% block extra_css %}
+<style>
+    /* Modern table styling */
+    .table {
+        --bs-table-bg: transparent;
+        --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+        --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+        margin-bottom: 0;
+    }
+    
+    .table > :not(caption) > * > * {
+        padding: 1rem 1.25rem;
+        background-color: transparent;
+        box-shadow: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .table > thead > tr > th {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+    }
+    
+    .table > tbody > tr {
+        transition: all 0.2s ease;
+    }
+    
+    .table > tbody > tr:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+    
+    /* Card styling */
+    .card {
+        border: none;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+        transition: all 0.2s ease;
+    }
+    
+    .card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header {
+        background-color: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 1.25rem 1.5rem;
+    }
+    
+    /* Status badges */
+    .badge {
+        font-weight: 500;
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+    
+    .badge.bg-warning {
+        background-color: rgba(234, 179, 8, 0.15) !important;
+        color: #eab308 !important;
+    }
+    
+    .badge.bg-success {
+        background-color: rgba(34, 197, 94, 0.15) !important;
+        color: #22c55e !important;
+    }
+    
+    .badge.bg-danger {
+        background-color: rgba(239, 68, 68, 0.15) !important;
+        color: #ef4444 !important;
+    }
+    
+    /* Buttons */
+    .btn-sm {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 6px;
+    }
+    
+    /* Page header */
+    .page-header {
+        padding: 1.5rem 0;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Stats cards */
+    .stat-card {
+        border-radius: 10px;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-card .card-body {
+        padding: 1.5rem;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0.5rem 0 0.25rem;
+    }
+    
+    .stat-card .stat-label {
+        font-size: 0.8125rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-card .stat-icon {
+        font-size: 1.75rem;
+        opacity: 0.2;
+        position: absolute;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0 px-lg-3">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-2">Order Requests</h1>
+                <p class="text-muted mb-0">Review and manage customer order requests</p>
+            </div>
+            <div class="d-flex gap-2">
+                <div class="input-group" style="max-width: 280px;">
+                    <span class="input-group-text bg-transparent border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control bg-transparent border-start-0" 
+                           placeholder="Search requests..." id="searchInput">
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                            id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-sliders-h me-1"></i> Filter
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" style="min-width: 12rem;">
+                        <li><h6 class="dropdown-header">Status</h6></li>
+                        <li><a class="dropdown-item" href="#" data-status="">All Requests</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" data-status="pending">Pending</a></li>
+                        <li><a class="dropdown-item" href="#" data-status="accepted">Accepted</a></li>
+                        <li><a class="dropdown-item" href="#" data-status="rejected">Rejected</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card bg-dark">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <div class="text-muted stat-label">Total Requests</div>
+                            <div class="stat-value">{{ stats.total_requests|default:0 }}</div>
+                        </div>
+                        <i class="fas fa-clipboard-list stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card bg-dark">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <div class="text-muted stat-label">Pending</div>
+                            <div class="stat-value text-warning">{{ stats.pending_requests|default:0 }}</div>
+                        </div>
+                        <i class="fas fa-clock stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card bg-dark">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <div class="text-muted stat-label">Accepted</div>
+                            <div class="stat-value text-success">{{ stats.accepted_requests|default:0 }}</div>
+                        </div>
+                        <i class="fas fa-check-circle stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card bg-dark">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <div class="text-muted stat-label">Rejected</div>
+                            <div class="stat-value text-danger">{{ stats.rejected_requests|default:0 }}</div>
+                        </div>
+                        <i class="fas fa-times-circle stat-icon"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Requests Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list-ul me-2"></i>Recent Order Requests
+            </h6>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-download me-1"></i> Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover table-borderless mb-0" id="orderRequestsTable">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">REQUEST</th>
+                            <th>CUSTOMER</th>
+                            <th>ITEMS</th>
+                            <th>TOTAL</th>
+                            <th>STATUS</th>
+                            <th>DATE</th>
+                            <th class="text-end pe-4">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order_request in page_obj %}
+                        <tr class="align-middle">
+                            <td class="ps-4">
+                                <div class="fw-medium">#{{ order_request.id|stringformat:"06d" }}</div>
+                                <small class="text-muted">{{ order_request.created_at|timesince }} ago</small>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle-sm bg-primary bg-opacity-10 text-primary me-2">
+                                        {% if order_request.user %}
+                                            {{ order_request.user.first_name|first|upper }}{{ order_request.user.last_name|first|upper }}
+                                        {% else %}
+                                            GU
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium">
+                                            {% if order_request.user %}
+                                                {% with name=order_request.user.get_full_name %}
+                                                    {{ name|default:order_request.user.email|truncatechars:20 }}
+                                                {% endwith %}
+                                            {% else %}
+                                                Guest User
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ order_request.item_count }} items</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ order_request.item_count }} items</td>
+                            <td class="fw-medium">KSh {{ order_request.total_amount|default:0|intcomma }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if order_request.status == 'pending' %}bg-warning
+                                    {% elif order_request.status == 'accepted' %}bg-success
+                                    {% else %}bg-danger{% endif %}">
+                                    {{ order_request.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-muted">{{ order_request.created_at|date:"M d, Y" }}</td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{% url 'vendor:vendor_order_request_detail' order_request.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye me-1"></i> View
+                                    </a>
+                                    {% if order_request.status == 'pending' %}
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-outline-success accept-request" 
+                                                data-request-id="{{ order_request.id }}" 
+                                                data-bs-toggle="tooltip" title="Accept">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger reject-request" 
+                                                data-request-id="{{ order_request.id }}"
+                                                data-bs-toggle="tooltip" title="Reject">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="border-top">
+                <nav class="px-4 py-3">
+                    <ul class="pagination justify-content-between align-items-center mb-0">
+                        <li class="page-item">
+                            <span class="text-muted small">
+                                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+                            </span>
+                        </li>
+                        <li class="page-item">
+                            <ul class="pagination justify-content-end mb-0">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1" aria-label="First">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-angle-double-left"></i></span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-angle-left"></i></span>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for i in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == i %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ i }}</span>
+                                        </li>
+                                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-angle-right"></i></span>
+                                    </li>
+                                    <li class="page-item disabled">
+                                        <span class="page-link"><i class="fas fa-angle-double-right"></i></span>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="fas fa-inbox fa-4x text-muted opacity-25"></i>
+                </div>
+                <h5 class="text-muted mb-2">No order requests yet</h5>
+                <p class="text-muted mb-0">When customers make order requests, they'll appear here.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Search functionality
+    $('#searchInput').on('keyup', function() {
+        const value = $(this).val().toLowerCase();
+        $('#orderRequestsTable tbody tr').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+    
+    // Status filter
+    $('[data-status]').on('click', function(e) {
+        e.preventDefault();
+        $('[data-status]').removeClass('active');
+        $(this).addClass('active');
+        
+        const status = $(this).data('status');
+        const url = new URL(window.location.href);
+        
+        if (status) {
+            url.searchParams.set('status', status);
+        } else {
+            url.searchParams.delete('status');
+        }
+        
+        window.location.href = url.toString();
+    });
+    
+    // Handle accept/reject buttons
+    $('.accept-request').on('click', function() {
+        const requestId = $(this).data('request-id');
+        updateRequestStatus(requestId, 'accepted');
+    });
+    
+    $('.reject-request').on('click', function() {
+        const requestId = $(this).data('request-id');
+        updateRequestStatus(requestId, 'rejected');
+    });
+    
+    function updateRequestStatus(requestId, status) {
+        const action = status === 'accepted' ? 'accept' : 'reject';
+        if (!confirm(`Are you sure you want to ${action} this order request?`)) {
+            return;
+        }
+        
+        const $btn = $(`[data-request-id="${requestId}"]`);
+        const $row = $btn.closest('tr');
+        
+        // Show loading state
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+        
+        $.ajax({
+            url: `/api/order-requests/${requestId}/update-status/`,
+            method: 'POST',
+            data: {
+                status: status,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Update UI without reload
+                    const statusBadge = $row.find('.badge');
+                    statusBadge.removeClass('bg-warning bg-success bg-danger');
+                    
+                    if (status === 'accepted') {
+                        statusBadge.addClass('bg-success').text('Accepted');
+                        $row.find('.btn-group').remove();
+                    } else {
+                        statusBadge.addClass('bg-danger').text('Rejected');
+                        $row.find('.btn-group').remove();
+                    }
+                    
+                    // Show success message
+                    const toast = `
+                        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                            <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                                <div class="toast-header">
+                                    <strong class="me-auto">Success</strong>
+                                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                                </div>
+                                <div class="toast-body">
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                    Order request has been ${status} successfully.
+                                </div>
+                            </div>
+                        </div>`;
+                    $('body').append(toast);
+                    
+                    // Remove toast after 3 seconds
+                    setTimeout(() => {
+                        $('.toast').fadeOut(300, function() { $(this).remove(); });
+                    }, 3000);
+                    
+                } else {
+                    showError(response.error || 'Failed to update status');
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON?.error || 'An error occurred while updating the status.';
+                showError(error);
+            },
+            complete: function() {
+                $btn.prop('disabled', false).html('<i class="fas ' + 
+                    (status === 'accepted' ? 'fa-check' : 'fa-times') + '"></i>');
+            }
+        });
+    }
+    
+    function showError(message) {
+        const errorAlert = `
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header bg-danger text-white">
+                        <strong class="me-auto">Error</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        ${message}
+                    </div>
+                </div>
+            </div>`;
+        $('body').append(errorAlert);
+        
+        // Remove error after 5 seconds
+        setTimeout(() => {
+            $('.toast').fadeOut(300, function() { $(this).remove(); });
+        }, 5000);
+    }
+    
+    // Set active status filter from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get('status');
+    if (statusParam) {
+        $(`[data-status="${statusParam}"]`).addClass('active');
+    } else {
+        $('[data-status=""]').addClass('active');
+    }
+});
+</script>
+
+<style>
+/* Avatar circle for customer initials */
+.avatar-circle-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Hover effects */
+.table > tbody > tr {
+    transition: all 0.2s ease;
+}
+
+.table > tbody > tr:hover {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* Custom checkbox */
+.form-check-input:checked {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+/* Custom dropdown */
+.dropdown-menu {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+}
+
+.dropdown-item:hover, .dropdown-item:focus {
+    background-color: rgba(79, 70, 229, 0.1);
+}
+
+/* Custom pagination */
+.page-link {
+    padding: 0.5rem 0.75rem;
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 0 2px;
+    border-radius: 6px !important;
+}
+
+.page-item.active .page-link {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+}
+
+.page-link:hover {
+    color: #4f46e5;
+    background-color: rgba(79, 70, 229, 0.1);
+    border-color: rgba(79, 70, 229, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 991.98px) {
+    .table-responsive {
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 0.5rem;
+    }
+    
+    .table > thead {
+        display: none;
+    }
+    
+    .table > tbody > tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 0.5rem;
+    }
+    
+    .table > tbody > tr > td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    
+    .table > tbody > tr > td:before {
+        content: attr(data-label);
+        font-weight: 500;
+        color: #94a3b8;
+        margin-right: 1rem;
+        flex: 0 0 120px;
+    }
+    
+    .table > tbody > tr > td:last-child {
+        border-bottom: none;
+    }
+    
+    .table > tbody > tr > td.actions {
+        justify-content: flex-end;
+    }
+}
+</style>
+{% endblock %}

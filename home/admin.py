@@ -13,12 +13,15 @@ from .models import (
     ProductOrder,
     ProductAttribute,
     ProductAttributeValue,
-    ProductAttributeAssignment,PromiseFee,ProductKB, ServiceCategory,Agent, AgentImage, AgentReview, AgentAIKnowledgeBase, ExchangeRate)
-
+    ProductAttributeAssignment,PromiseFee,ProductKB, ServiceCategory,Agent, AgentImage, AgentReview, AgentAIKnowledgeBase, ExchangeRate, Order, OrderRequest,OrderRequestItem,AdditionalFees)
+admin.site.register(Order)
+admin.site.register(OrderRequest)
+admin.site.register(OrderRequestItem)   
 admin.site.register(PromiseFee)
 admin.site.register(ServiceCategory)
 admin.site.register(Agent)
 admin.site.register(ExchangeRate)
+admin.site.register(AdditionalFees)
 class ProductVariationInline(admin.TabularInline):
     model = ProductVariation
     extra = 1

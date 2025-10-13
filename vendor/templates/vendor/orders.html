@@ -1,73 +1,224 @@
 {% extends 'vendor/base.html' %}
+{% load humanize %}
 
 {% block title %}Orders - Vendor Panel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h3 m-0"><i class="fas fa-receipt me-2"></i>Orders</h1>
-    <div>
-        <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-box me-1"></i> Products
-        </a>
-    </div>
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center py-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-100">
+                <i class="fas fa-shopping-bag me-2"></i>Orders
+            </h1>
+            <p class="text-muted mb-0">Manage and track your product orders</p>
+        </div>
+        <div class="d-flex gap-2
+        ">
+            <div class="input-group" style="max-width: 300px;">
+                <span class="input-group-text bg-gray-700 border-gray-600">
+                    <i class="fas fa-search text-gray-400"></i>
+                </span>
+                <input type="text" class="form-control bg-gray-700 border-gray-600 text-white" 
+                       placeholder="Search orders..." id="orderSearch">
+            </div>
+            <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Products
+            </a>
+        </div>
     </div>
 
-<div class="bg-[#0f172a] text-gray-200 rounded-2xl shadow-md overflow-hidden">
-    <div class="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
-        <h5 class="m-0 font-semibold"><i class="fas fa-list me-2"></i>Recent Order Items</h5>
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2 bg-gray-800 border-0">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1 text-primary">
+                                Total Orders</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-100">{{ order_count|default:0 }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Add more stat cards here if needed -->
     </div>
-    {% if page_obj %}
-    <div class="overflow-x-auto">
-        <table class="min-w-full align-middle">
-            <thead class="bg-[#0b1220] text-gray-400 text-xs uppercase">
-                <tr>
-                    <th class="px-4 py-3 text-left">Order #</th>
-                    <th class="px-4 py-3 text-left">Product</th>
-                    <th class="px-4 py-3 text-left">Variation</th>
-                    <th class="px-4 py-3 text-left">Qty</th>
-                    <th class="px-4 py-3 text-left">Price</th>
-                    <th class="px-4 py-3 text-left">Subtotal</th>
-                    <th class="px-4 py-3 text-left">Date</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-800">
-                {% for item in page_obj %}
-                <tr class="hover:bg-[#0b1220] transition-colors">
-                    <td class="px-4 py-3">{{ item.order.id }}</td>
-                    <td class="px-4 py-3">{{ item.product.name }}</td>
-                    <td class="px-4 py-3">{{ item.variation.name|default:'—' }}</td>
-                    <td class="px-4 py-3">{{ item.quantity }}</td>
-                    <td class="px-4 py-3">${{ item.price }}</td>
-                    <td class="px-4 py-3">${{ item.subtotal }}</td>
-                    <td class="px-4 py-3">{{ item.order.created_at|date:"M d, Y H:i" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+    <!-- Orders Table -->
+    <div class="card shadow mb-4 border-0 bg-gray-800">
+        <div class="card-header d-flex justify-content-between align-items-center bg-gray-800 border-0 py-3">
+            <h6 class="m-0 font-weight-bold text-gray-100">
+                <i class="fas fa-table me-2"></i>Recent Orders
+            </h6>
+            <div class="d-flex gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                            id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end bg-gray-800 border-gray-700" aria-labelledby="filterDropdown">
+                        <li><a class="dropdown-item text-white" href="#">Today</a></li>
+                        <li><a class="dropdown-item text-white" href="#">This Week</a></li>
+                        <li><a class="dropdown-item text-white" href="#">This Month</a></li>
+                        <li><hr class="dropdown-divider bg-gray-700"></li>
+                        <li><a class="dropdown-item text-white" href="#">All Time</a></li>
+                    </ul>
+                </div>
+                <button class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-download me-1"></i> Export
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="ordersTable">
+                    <thead class="text-uppercase text-xs text-gray-400">
+                        <tr>
+                            <th class="ps-4">Order #</th>
+                            <th>Product</th>
+                            <th>Variation</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Price</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-end pe-4">Date</th>
+                            <th class="text-end pe-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-300">
+                        {% for item in page_obj %}
+                        <tr class="align-middle border-top border-gray-700 hover-bg-gray-700 transition-colors">
+                            <td class="ps-4">
+                                <a href="#" class="text-primary text-decoration-none fw-bold">#{{ item.order.id }}</a>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if item.variation.images.first %}
+                                    <img src="{{ item.variation.images.first.image.url }}" 
+                                         class="rounded me-2" width="40" height="40" 
+                                         alt="{{ item.variation.product.name }}">
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-medium">{{ item.variation.product.name|truncatechars:30 }}</div>
+                                        <small class="text-muted">SKU: {{ item.variation.sku|default:"N/A" }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary bg-opacity-10 text-primary">
+                                    {{ item.variation.name|default:"Standard" }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-dark text-white">{{ item.quantity }}</span>
+                            </td>
+                            <td class="text-end">${{ item.price|floatformat:2|intcomma }}</td>
+                            <td class="text-end fw-bold">${{ item.subtotal|floatformat:2|intcomma }}</td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex flex-column">
+                                    <span>{{ item.order.created_at|date:"M d, Y" }}</span>
+                                    <small class="text-muted">{{ item.order.created_at|date:"H:i" }}</small>
+                                </div>
+                            </td>
+                            <td class="text-end pe-4">
+                                <span class="badge bg-success bg-opacity-10 text-success">
+                                    {{ item.order.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted small">
+                    Showing <span class="fw-semibold">{{ page_obj.start_index }}</span> to 
+                    <span class="fw-semibold">{{ page_obj.end_index }}</span> of 
+                    <span class="fw-semibold">{{ page_obj.paginator.count }}</span> orders
+                </div>
+                <nav aria-label="Orders pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link bg-gray-800 border-gray-700 text-white" href="?page=1">
+                                <i class="fas fa-angle-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link bg-gray-800 border-gray-700 text-white" 
+                               href="?page={{ page_obj.previous_page_number }}">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link bg-primary border-primary">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link bg-gray-800 border-gray-700 text-white" 
+                                       href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link bg-gray-800 border-gray-700 text-white" 
+                               href="?page={{ page_obj.next_page_number }}">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link bg-gray-800 border-gray-700 text-white" 
+                               href="?page={{ page_obj.paginator.num_pages }}">
+                                <i class="fas fa-angle-double-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-inbox fa-4x text-gray-500"></i>
+                    </div>
+                    <h4 class="text-gray-300 mb-2">No Orders Yet</h4>
+                    <p class="text-muted mb-4">Your products haven't received any orders yet.</p>
+                    <a href="{% url 'vendor:product_list' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Add Products
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
-    <div class="p-3 border-t border-gray-800">
-        <nav aria-label="Orders pagination">
-            <ul class="pagination justify-content-center m-0">
-                {% if page_obj.has_previous %}
-                <li class="page-item"><a class="page-link" href="?page=1">First</a></li>
-                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
-                {% endif %}
-                <li class="page-item active"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
-                {% if page_obj.has_next %}
-                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
-                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </div>
-    {% else %}
-    <div class="text-center py-10">
-        <i class="fas fa-receipt fa-3x text-gray-600 mb-3"></i>
-        <h5 class="text-gray-300">No Orders Yet</h5>
-        <p class="text-gray-500">You'll see order items here once customers place orders.</p>
-    </div>
-    {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple search functionality
+$(document).ready(function() {
+    $("#orderSearch").on("keyup", function() {
+        var value = $(this).val().toLowerCase();
+        $("#ordersTable tbody tr").filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+        });
+    });
+});
+</script>
 {% endblock %}
 
 

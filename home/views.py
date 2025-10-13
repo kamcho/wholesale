@@ -29,7 +29,7 @@ from django_countries import countries
 from .models import (
     Order, OrderItem, Product, ProductCategory, Business, ProductImage, 
     ProductCategoryFilter, Cart, CartItem, ProductVariation, Wishlist, 
-    WishlistItem, ProductOrder, Payment
+    WishlistItem, ProductOrder, Payment, OrderRequest, OrderRequestItem, AdditionalFees
 )
 class SignUpView(CreateView):
     form_class = UserRegistrationForm
@@ -189,11 +189,7 @@ def product_detail(request, pk):
                 product__in=product.variations.all()
             ))
             
-        # Fetch user's ProductOrder objects for this product's variations
-        my_orders = ProductOrder.objects.filter(
-            user=request.user, 
-            product__in=product.variations.all()
-        ).order_by('-created_at')
+
         
         # Fetch user's Payments tied to orders of this product's variations
         my_payments = Payment.objects.filter(
@@ -235,13 +231,47 @@ def product_detail(request, pk):
     except ProductServicing.DoesNotExist:
         pass
 
+    # Get additional fees for this product's variations
+    additional_fees = AdditionalFees.objects.filter(variation__product=product).distinct()
+    
+    # Get related orders for this product and its variations
+    related_orders = OrderItem.objects.filter(
+        variation__product=product
+    ).select_related('order', 'variation').order_by('-order__created_at')
+    
+    # Get unique order requests with their items for this product
+    from django.db.models import Prefetch
+    from django.db.models.functions import Coalesce
+    
+    # First, get the order requests that have items for this product
+    order_requests = OrderRequest.objects.filter(
+        items__variation__product=product
+    ).distinct().prefetch_related(
+        Prefetch(
+            'items',
+            queryset=OrderRequestItem.objects.filter(
+                variation__product=product
+            ).select_related('variation'),
+            to_attr='filtered_items'
+        )
+    ).order_by('-created_at')
+    
+    # Group order requests by their ID
+    related_order_requests = {}
+    for order_request in order_requests:
+        related_order_requests[order_request.id] = {
+            'order_request': order_request,
+            'items': order_request.filtered_items,
+            'total': sum(item.subtotal() for item in order_request.filtered_items),
+            'deposit_total': sum(item.deposit_amount for item in order_request.filtered_items)
+        }
+    
     context = {
         'product': product,
         'images': images,
         'related_products': related_products,
         'wishlist_items': wishlist_items,
         'default_variation': default_variation,
-        'my_orders': my_orders,
         'my_payments': my_payments,
         'variation_min_price': variation_price_range.get('min_price'),
         'variation_max_price': variation_price_range.get('max_price'),
@@ -249,6 +279,9 @@ def product_detail(request, pk):
         'cart_variation_ids': cart_variation_ids,
         'has_promise_fee': has_promise_fee,
         'product_servicing': product_servicing,
+        'additional_fees': additional_fees,
+        'related_orders': related_orders,
+        'related_order_requests': related_order_requests,
     }
     
     return render(request, 'home/product_detail.html', context)
@@ -296,6 +329,9 @@ def variation_detail(request, pk):
     variations = product.variations.all().select_related('product').prefetch_related('images')
     variations_count = variations.count()
     
+    # Get additional fees for this specific variation
+    additional_fees = AdditionalFees.objects.filter(variation=variation).distinct()
+    
     context = {
         'product': product,
         'variation': variation,
@@ -308,6 +344,7 @@ def variation_detail(request, pk):
         'has_promise_fee': has_promise_fee,
         'in_cart': in_cart,
         'variations_count': variations_count,
+        'additional_fees': additional_fees,
     }
     return render(request, 'home/variation_detail.html', context)
 
@@ -525,22 +562,29 @@ def cart_detail(request):
 def update_cart_item(request, item_id):
     """Update quantity of a cart item (enforce MOQ)."""
     cart = _get_or_create_cart(request)
-    item = get_object_or_404(CartItem, pk=item_id, cart=cart)
-    quantity_raw = request.POST.get('quantity')
+    item = get_object_or_404(CartItem.objects.select_related('variation__product'), pk=item_id, cart=cart)
+    
+    # Get the quantity from the form, defaulting to the current quantity
+    quantity_raw = request.POST.get('quantity', str(item.quantity))
+    
     try:
-        quantity = int(quantity_raw)
+        quantity = max(1, int(quantity_raw))  # Ensure at least 1
     except (TypeError, ValueError):
-        quantity = item.product.moq
-
-    # Enforce MOQ from the variation
-    if item.variation and hasattr(item.variation, 'moq') and item.variation.moq:
-        if quantity < item.variation.moq:
-            quantity = item.variation.moq
-    # Fallback to product MOQ if variation MOQ is not set
-    elif hasattr(item.variation, 'product') and hasattr(item.variation.product, 'moq'):
-        if quantity < item.variation.product.moq:
-            quantity = item.variation.product.moq
-
+        quantity = 1
+    
+    # Get the minimum order quantity (MOQ) from the variation or product
+    moq = 1  # Default MOQ
+    if hasattr(item, 'variation') and item.variation:
+        if hasattr(item.variation, 'moq') and item.variation.moq is not None:
+            moq = item.variation.moq
+        elif hasattr(item.variation, 'product') and hasattr(item.variation.product, 'moq') and item.variation.product.moq is not None:
+            moq = item.variation.product.moq
+    
+    # Ensure quantity meets or exceeds MOQ
+    if quantity < moq:
+        quantity = moq
+        messages.warning(request, f"Minimum order quantity for this item is {moq}.")
+    
     if quantity <= 0:
         item.delete()
         messages.success(request, _("Item removed from cart."))
@@ -548,6 +592,7 @@ def update_cart_item(request, item_id):
         item.quantity = quantity
         item.save()
         messages.success(request, _("Cart updated."))
+    
     return redirect('home:cart_detail')
 
 
@@ -692,8 +737,7 @@ def create_order(request):
                 order=order,
                 variation=item.variation,
                 quantity=item.quantity,
-                price=item.variation.price,
-                total=item_total
+                price=item.variation.price
             )
         
         # Update order total
@@ -720,6 +764,69 @@ def create_order(request):
         return JsonResponse({'error': 'An error occurred while creating your order'}, status=500)
 
 
+@require_http_methods(["POST"])
+def create_order_request(request):
+    """Create an OrderRequest with items and optional per-item deposit percentages."""
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    # Deposit map: { cart_item_id: { enabled: bool, percentage: number } }
+    deposit_map = payload.get('payment_plans', {}) or {}
+
+    # Get cart
+    cart_id = request.session.get('quick_checkout_cart_id')
+    if not cart_id:
+        return JsonResponse({'error': 'Your session has expired. Please add items again.'}, status=400)
+
+    try:
+        cart = Cart.objects.get(id=cart_id)
+    except Cart.DoesNotExist:
+        return JsonResponse({'error': 'Cart not found'}, status=404)
+
+    cart_items = cart.items.select_related('variation__product').all()
+    if not cart_items:
+        return JsonResponse({'error': 'Your cart is empty'}, status=400)
+
+    # Create OrderRequest
+    if request.user.is_authenticated:
+        order_request = OrderRequest.objects.create(user=request.user)
+    else:
+        if not request.session.session_key:
+            request.session.create()
+        order_request = OrderRequest.objects.create(session_id=request.session.session_key)
+
+    # Copy items and store deposit percentages
+    for item in cart_items:
+        deposit_info = deposit_map.get(str(item.id)) or {}
+        enabled = bool(deposit_info.get('enabled'))
+        percentage = deposit_info.get('percentage')
+
+        try:
+            percentage_value = Decimal(str(percentage)) if (enabled and percentage is not None) else Decimal('0')
+        except Exception:
+            percentage_value = Decimal('0')
+
+        OrderRequestItem.objects.create(
+            order_request=order_request,
+            variation=item.variation,
+            quantity=item.quantity,
+            unit_price=item.variation.price,
+            deposit_percentage=percentage_value
+        )
+
+    # Optionally clear cart
+    cart.items.all().delete()
+    request.session.pop('quick_checkout_cart_id', None)
+
+    return JsonResponse({
+        'success': True,
+        'order_request_id': order_request.id,
+        'redirect_url': f"/order-requests/{order_request.id}/"
+    })
+
+
 def process_mpesa_payment(request):
     """Process M-Pesa payment via STK push."""
     logger = logging.getLogger(__name__)
@@ -742,19 +849,19 @@ def process_mpesa_payment(request):
             logger.error("No phone number provided")
             return JsonResponse({'error': 'Phone number is required'}, status=400)
             
-        # Get cart from session
-        cart_id = request.session.get('quick_checkout_cart_id')
-        if not cart_id:
-            logger.error("No cart ID in session")
-            return JsonResponse({'error': 'Your session has expired. Please add items to your cart again.'}, status=400)
-        
+        # Get cart for the current user/session
         try:
-            cart = Cart.objects.get(id=cart_id)
+            cart = _get_or_create_cart(request)
             cart_items = cart.items.select_related('variation__product').all()
             logger.info(f"Found cart with {cart_items.count()} items")
-        except Cart.DoesNotExist:
-            logger.error(f"Cart not found: {cart_id}")
-            return JsonResponse({'error': 'Your cart could not be found. Please try again.'}, status=400)
+            
+            if not cart_items.exists():
+                logger.error("Cart is empty")
+                return JsonResponse({'error': 'Your cart is empty. Please add items before checking out.'}, status=400)
+                
+        except Exception as e:
+            logger.error(f"Error retrieving cart: {str(e)}")
+            return JsonResponse({'error': 'Unable to retrieve your cart. Please try again.'}, status=400)
         
         if not cart_items:
             logger.error("Cart is empty")
@@ -817,7 +924,7 @@ def process_mpesa_payment(request):
         
         # Generate a unique order reference
         timestamp = int(timezone.now().timestamp())
-        order_ref = f"ORD-{cart_id}-{timestamp}"
+        order_ref = f"ORD-{cart.id}-{timestamp}"
         logger.info(f"Generated order reference: {order_ref}")
         
         # Initialize M-Pesa service
@@ -872,7 +979,7 @@ def process_mpesa_payment(request):
         # Store order data in session for confirmation page
         order_id = int(time.time())  # Generate unique order ID
         request.session[f'pending_order_{order_id}'] = {
-            'cart_id': cart_id,
+            'cart_id': cart.id,
             'total_amount': float(total_amount),
             'phone': phone,
             'transaction_id': response.get('CheckoutRequestID', ''),
@@ -1074,6 +1181,30 @@ def order_history(request):
     }
     return render(request, 'home/order_history.html', context)
 
+
+# ==============================
+# Order Detail
+# ==============================
+
+def order_detail(request, order_id):
+    """Display a single Order and its items."""
+    order = get_object_or_404(Order.objects.prefetch_related('items__variation__product'), id=order_id)
+    return render(request, 'home/order_detail.html', {
+        'order': order,
+        'items': order.items.all(),
+    })
+
+
+def order_request_detail(request, order_request_id):
+    """Display an OrderRequest and its items including proposed deposit percentages."""
+    order_request = get_object_or_404(
+        OrderRequest.objects.select_related('user').prefetch_related('items__variation__product'),
+        id=order_request_id
+    )
+    return render(request, 'home/order_request_detail.html', {
+        'order_request': order_request,
+        'items': order_request.items.all(),
+    })
 
 # ==============================
 # Wishlist
