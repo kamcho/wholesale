@@ -1,6 +1,6 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from . import views, admin_views, chat_views
+from . import views, admin_views, chat_views, buyer_seller_chat_views
 from .views import AgentListView
 
 app_name = 'home'
@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/create-order/', views.create_order, name='create_order'),
     path('api/create-order-request/', views.create_order_request, name='create_order_request'),
     path('api/process-mpesa-payment/', views.process_mpesa_payment, name='process_mpesa_payment'),
+    path('api/order-requests/<int:order_request_id>/process-mpesa-payment/', views.process_mpesa_payment_for_order_request, name='process_mpesa_payment_for_order_request'),
     path('wishlist/', views.wishlist_list, name='wishlist'),
     path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
     path('wishlist/item/<int:item_id>/remove/', views.remove_from_wishlist, name='remove_from_wishlist'),
@@ -46,8 +47,20 @@ urlpatterns = [
     path('manage/categories/filter/<int:filter_id>/delete/', admin_views.delete_category_filter, name='delete_category_filter'),
     path('manage/categories/category/<int:category_id>/delete/', admin_views.delete_product_category, name='delete_product_category'),
     
-    # Chat URLs
-    path('chat/<int:product_id>/', chat_views.chat_room, name='chat_room'),
+    # Buyer-Seller Chat URLs (moved before the old chat URLs to avoid conflicts)
+    path('start-chat/<int:seller_id>/', buyer_seller_chat_views.start_chat, name='start_chat'),
+    path('start-chat/<int:seller_id>/product/<int:product_id>/', buyer_seller_chat_views.start_chat, name='start_chat_with_product'),
+    path('private-chat/<int:chat_id>/', buyer_seller_chat_views.buyer_seller_chat, name='buyer_seller_chat'),
+    path('chats/', buyer_seller_chat_views.chat_list, name='chat_list'),
+    path('private-chat/<int:chat_id>/delete/', buyer_seller_chat_views.delete_chat, name='delete_chat'),
+    
+    # Old Group Chat URLs (kept for backward compatibility)
+    path('group-chat/<int:product_id>/', chat_views.chat_room, name='chat_room'),
+    
+    # Buyer-Seller Chat API URLs
+    path('api/chat/<int:chat_id>/send/', buyer_seller_chat_views.send_message, name='send_message'),
+    path('api/chat/<int:chat_id>/messages/', buyer_seller_chat_views.get_messages, name='get_buyer_seller_messages'),
+    path('api/chat/<int:chat_id>/mark-read/', buyer_seller_chat_views.mark_messages_read, name='mark_messages_read'),
     
     # Payment Confirmation
     path('confirm-payment/<int:order_id>/', views.confirm_payment, name='confirm_payment'),

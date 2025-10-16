@@ -1,0 +1,292 @@
+{% extends 'users/base.html' %}
+{% load static %}
+
+{% block title %}Chat with {{ other_user.get_full_name|default:other_user.username }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100">
+    <div class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Chat Header -->
+        <div class="bg-white rounded-lg shadow-sm mb-6 overflow-hidden">
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <a href="{% url 'home:chat_list' %}" class="mr-4 text-blue-100 hover:text-white">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                        </a>
+                        <div class="flex-1">
+                            <h1 class="text-xl font-semibold truncate">
+                                Chat with {% if other_user %}
+                                    {% if other_user.get_full_name %}
+                                        {{ other_user.get_full_name }}
+                                    {% elif other_user.email %}
+                                        {{ other_user.email }}
+                                    {% else %}
+                                        Unknown User
+                                    {% endif %}
+                                {% else %}
+                                    Unknown User
+                                {% endif %}
+                            </h1>
+                            <p class="text-sm text-blue-100">
+                                {% if chat.product %}
+                                    About: {{ chat.product.name }}
+                                {% else %}
+                                    General conversation
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        {% if chat.product %}
+                        <a href="{% url 'home:product_detail' chat.product.id %}" 
+                           class="text-blue-100 hover:text-white p-2 rounded-lg hover:bg-blue-800 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </a>
+                        {% endif %}
+                        <a href="{% url 'home:delete_chat' chat.id %}" 
+                           class="text-red-200 hover:text-red-100 p-2 rounded-lg hover:bg-red-800 transition-colors"
+                           onclick="return confirm('Are you sure you want to delete this chat?')">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Container -->
+            <div class="h-[calc(100vh-280px)] bg-gray-50 p-4 overflow-y-auto" id="messages">
+                {% for message in messages %}
+                {% if message.sender %}
+                <div class="mb-4 {% if message.sender == request.user %}flex justify-end{% else %}flex{% endif %}" data-message-id="{{ message.id }}">
+                    <div class="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
+                        <div class="flex {% if message.sender == request.user %}flex-row-reverse{% endif %} items-start">
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full {% if message.sender == request.user %}bg-blue-600{% else %}bg-gray-600{% endif %} text-white flex items-center justify-center font-semibold text-sm">
+                                {% if message.sender.email %}
+                                    {{ message.sender.email|first|upper }}
+                                {% else %}
+                                    ?
+                                {% endif %}
+                            </div>
+                            <div class="mx-3">
+                                <div class="{% if message.sender == request.user %}bg-blue-600 text-white rounded-l-xl rounded-br-xl{% else %}bg-white text-gray-800 rounded-r-xl rounded-bl-xl border border-gray-200{% endif %} px-4 py-2 shadow-sm">
+                                    <div class="text-sm">{{ message.message|linebreaksbr }}</div>
+                                    <div class="text-xs mt-1 {% if message.sender == request.user %}text-blue-100{% else %}text-gray-500{% endif %}">
+                                        {{ message.created_at|date:"g:i A" }}
+                                        {% if message.sender.email %}
+                                            <span class="ml-2">@{{ message.sender.email }}</span>
+                                        {% else %}
+                                            <span class="ml-2">@Unknown</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% empty %}
+                <div id="empty-state" class="h-full flex flex-col items-center justify-center text-gray-400">
+                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <p class="text-lg font-medium">No messages yet</p>
+                    <p class="text-sm">Start the conversation!</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Message Input -->
+            <div class="bg-white border-t border-gray-200 p-4">
+                <form id="chat-form" method="post" class="flex items-end space-x-2">
+                    {% csrf_token %}
+                    <div class="flex-1 bg-gray-50 rounded-lg border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all duration-200">
+                        <textarea name="message" rows="1" class="w-full border-0 bg-transparent focus:ring-0 resize-none py-3 px-4" placeholder="Type your message..." required></textarea>
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center h-12 w-12 rounded-full bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                        <svg class="w-5 h-5 transform rotate-90" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    const messagesContainer = $('#messages');
+    const messageForm = $('#chat-form');
+    const chatId = {{ chat.id }};
+    let lastMessageId = {{ messages.last.id|default:0 }};
+    let isInitialLoad = true;
+    
+    // Auto-scroll to bottom of messages
+    function scrollToBottom() {
+        messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+    }
+    
+    // Hide empty state helper
+    function hideEmptyState() {
+        const empty = document.getElementById('empty-state');
+        if (empty) empty.style.display = 'none';
+    }
+    
+
+    // Load new messages
+    function loadNewMessages() {
+        // Skip loading if this is the initial load (messages are already rendered by Django)
+        if (isInitialLoad) {
+            isInitialLoad = false;
+            return;
+        }
+        
+        const url = `{% url 'home:get_buyer_seller_messages' chat.id %}?last_message_id=${lastMessageId}`;
+        $.get(url, function(data) {
+            if (data.messages.length > 0) {
+                data.messages.forEach(function(msg) {
+                    // Skip if message is invalid or already exists
+                    if (!msg.id || !msg.text) return;
+                    
+                    const isOwn = msg.is_own;
+                    const userInitial = msg.sender ? msg.sender.charAt(0).toUpperCase() : 'U';
+                    const senderDisplay = msg.sender || 'Unknown';
+                    
+                    const messageHtml = `
+                        <div class="mb-4 ${isOwn ? 'flex justify-end' : 'flex'}" data-message-id="${msg.id}">
+                            <div class="max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl">
+                                <div class="flex ${isOwn ? 'flex-row-reverse' : ''} items-start">
+                                    <div class="flex-shrink-0 h-8 w-8 rounded-full ${isOwn ? 'bg-blue-600' : 'bg-gray-600'} text-white flex items-center justify-center font-semibold text-sm">
+                                        ${userInitial}
+                                    </div>
+                                    <div class="mx-3">
+                                        <div class="${isOwn ? 'bg-blue-600 text-white rounded-l-xl rounded-br-xl' : 'bg-white text-gray-800 rounded-r-xl rounded-bl-xl border border-gray-200'} px-4 py-2 shadow-sm">
+                                            <div class="text-sm">${msg.text}</div>
+                                            <div class="text-xs mt-1 ${isOwn ? 'text-blue-100' : 'text-gray-500'}">
+                                                ${msg.created_at || ''}
+                                                <span class="ml-2">@${senderDisplay}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Check if message already exists to prevent duplicates
+                    if (!$(`[data-message-id="${msg.id}"]`).length) {
+                        messagesContainer.append(messageHtml);
+                    }
+                    lastMessageId = msg.id;
+                });
+                hideEmptyState();
+                scrollToBottom();
+            }
+        });
+    }
+    
+    // Handle form submission
+    messageForm.on('submit', function(e) {
+        e.preventDefault();
+        const messageInput = $(this).find('textarea[name="message"]');
+        const message = messageInput.val().trim();
+        
+        if (message) {
+            // Send message via AJAX
+            $.ajax({
+                url: `{% url 'home:send_message' chat.id %}`,
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+                    'Content-Type': 'application/json',
+                },
+                data: JSON.stringify({
+                    message: message
+                }),
+                success: function(data) {
+                    if (data.success) {
+                        messageInput.val('').trigger('input');
+                        
+                        // Update lastMessageId to the new message
+                        if (data.message && data.message.id) {
+                            lastMessageId = data.message.id;
+                        }
+                        
+                        // Don't call loadNewMessages() here to avoid duplicates
+                        // The polling will pick up the new message
+                    } else {
+                        console.error('Failed to send message:', data.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to send message:', error);
+                }
+            });
+        }
+    });
+
+    // Auto-resize textarea
+    $('textarea').on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Initial fetch immediately, then poll every 5 seconds
+    loadNewMessages();
+    // Poll for new messages every 5 seconds
+    setInterval(loadNewMessages, 5000);
+    
+    // Initial scroll to bottom
+    scrollToBottom();
+    
+    // Focus the message input on load
+    $('textarea[name="message"]').focus();
+});
+</script>
+
+<style>
+/* Custom scrollbar */
+#messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#messages::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 3px;
+}
+
+#messages::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+/* Smooth scrolling */
+#messages {
+    scroll-behavior: smooth;
+}
+
+/* Message animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#messages > div {
+    animation: fadeIn 0.2s ease-out;
+}
+</style>
+{% endblock %}

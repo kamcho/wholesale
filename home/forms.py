@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-from .models import ProductCategoryFilter, ProductCategory
+from .models import ProductCategoryFilter, ProductCategory, BuyerSellerMessage
 
 User = get_user_model()
 
@@ -85,3 +85,34 @@ class ProductCategoryForm(forms.ModelForm):
                 'placeholder': 'Optional description for this category'
             }),
         }
+
+
+# ==============================
+# BUYER-SELLER CHAT FORMS
+# ==============================
+
+class BuyerSellerMessageForm(forms.ModelForm):
+    """Form for sending messages in buyer-seller chats"""
+    
+    class Meta:
+        model = BuyerSellerMessage
+        fields = ['message']
+        widgets = {
+            'message': forms.Textarea(attrs={
+                'class': 'form-textarea block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 resize-none',
+                'rows': 3,
+                'placeholder': 'Type your message here...',
+                'maxlength': 1000,
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['message'].required = True
+        self.fields['message'].max_length = 1000
+    
+    def clean_message(self):
+        message = self.cleaned_data.get('message')
+        if message and len(message.strip()) == 0:
+            raise forms.ValidationError("Message cannot be empty.")
+        return message.strip()

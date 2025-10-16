@@ -1,63 +1,178 @@
 {% extends 'users/base.html' %}
-{% load static %}
+{% load static humanize %}
 
 {% block title %}Order #{{ order.id }} - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-            <h2 class="text-2xl font-bold text-gray-900">Order #{{ order.id }}</h2>
-            <p class="mt-1 text-sm text-gray-500">Status: <span class="font-medium">{{ order.status|title }}</span></p>
-            <p class="mt-1 text-sm text-gray-500">Placed on {{ order.created_at|date:'M d, Y H:i' }}</p>
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Order Header -->
+        <div class="bg-white shadow overflow-hidden sm:rounded-lg mb-8">
+            <div class="px-4 py-5 sm:px-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Order #{{ order.id }}</h1>
+                    <div class="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
+                        <div class="mt-2 flex items-center text-sm text-gray-500">
+                            <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                            </svg>
+                            {{ order.created_at|date:"F j, Y" }}
+                        </div>
+                        <div class="mt-2 flex items-center text-sm text-gray-500">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                {% if order.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
+                                {% elif order.status == 'processing' %}bg-blue-100 text-blue-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    <a href="{% url 'home:order_history' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        Back to Orders
+                    </a>
+                </div>
+            </div>
         </div>
 
-        <div class="border-t border-gray-200">
-            <div class="divide-y divide-gray-200">
-                {% for item in items %}
-                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 px-4 py-4 sm:px-6">
-                    <div class="col-span-7 flex items-start">
-                        <div class="flex-shrink-0 h-20 w-20 rounded-md overflow-hidden border border-gray-200">
-                            {% with item.variation.images.all|first as image %}
-                            <img src="{% if image %}{{ image.image.url }}{% else %}{% static 'images/placeholder-product.png' %}{% endif %}" 
-                                 alt="{{ item.variation.name }}" 
-                                 class="h-full w-full object-cover object-center">
-                            {% endwith %}
-                        </div>
-                        <div class="ml-4 flex-1">
-                            <h3 class="text-sm font-medium text-gray-900 line-clamp-2">{{ item.variation.product.name }}</h3>
-                            <p class="mt-1 text-sm text-gray-500">{{ item.variation.name }}</p>
-                        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Order Items -->
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Order Items</h3>
                     </div>
-                    <div class="col-span-2 flex items-center justify-center">
-                        <span class="text-sm text-gray-900">{{ item.quantity }}</span>
-                    </div>
-                    <div class="col-span-3 flex items-center justify-end">
-                        <div class="text-right">
-                            <p class="text-sm text-gray-900">${{ item.price|floatformat:2 }} × {{ item.quantity }}</p>
-                            <p class="text-sm font-medium text-gray-900">${{ item.subtotal|floatformat:2 }}</p>
+                    <div class="divide-y divide-gray-200">
+                        {% for item in items %}
+                        <div class="p-4 sm:px-6 hover:bg-gray-50 transition-colors duration-150">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border border-gray-200">
+                                    {% with item.variation.images.all|first as image %}
+                                    <img src="{% if image %}{{ image.image.url }}{% else %}{% static 'images/placeholder-product.png' %}{% endif %}" 
+                                         alt="{{ item.variation.name }}" 
+                                         class="w-full h-full object-cover object-center">
+                                    {% endwith %}
+                                </div>
+                                <div class="ml-4 flex-1">
+                                    <div class="flex justify-between">
+                                        <div>
+                                            <h4 class="text-sm font-medium text-gray-900">{{ item.variation.product.name }}</h4>
+                                            <p class="mt-1 text-sm text-gray-500">{{ item.variation.name }}</p>
+                                            <p class="mt-1 text-sm text-gray-500">Qty: {{ item.quantity }}</p>
+                                        </div>
+                                        <p class="text-sm font-medium text-gray-900">KSh {{ item.price|intcomma }}</p>
+                                    </div>
+                                    <div class="mt-2 flex justify-between items-center">
+                                        <p class="text-sm text-gray-500">Subtotal</p>
+                                        <p class="text-sm font-medium text-gray-900">KSh {{ item.subtotal|intcomma }}</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% endfor %}
+
+                <!-- Order Summary -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Order Summary</h3>
+                    </div>
+                    <div class="px-4 py-5 sm:p-6">
+                        <dl class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <dt class="text-sm text-gray-600">Subtotal</dt>
+                                <dd class="text-sm font-medium text-gray-900">KSh {{ order.subtotal|default:order.total|intcomma }}</dd>
+                            </div>
+                            {% if order.shipping_cost %}
+                            <div class="flex items-center justify-between">
+                                <dt class="text-sm text-gray-600">Shipping</dt>
+                                <dd class="text-sm font-medium text-gray-900">KSh {{ order.shipping_cost|intcomma }}</dd>
+                            </div>
+                            {% endif %}
+                            {% if order.discount_amount %}
+                            <div class="flex items-center justify-between">
+                                <dt class="text-sm text-gray-600">Discount</dt>
+                                <dd class="text-sm font-medium text-green-600">-KSh {{ order.discount_amount|intcomma }}</dd>
+                            </div>
+                            {% endif %}
+                            <div class="border-t border-gray-200 pt-4 flex items-center justify-between">
+                                <dt class="text-base font-medium text-gray-900">Total</dt>
+                                <dd class="text-base font-bold text-gray-900">KSh {{ order.total|intcomma }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
             </div>
 
-            <div class="border-t border-gray-200 bg-gray-50 px-4 py-5 sm:px-6">
-                <div class="flex justify-between text-base font-medium text-gray-900">
-                    <p>Total</p>
-                    <p>${{ order.total|floatformat:2 }}</p>
+            <!-- Order Details -->
+            <div class="space-y-6">
+                <!-- Shipping Address -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Shipping Address</h3>
+                    </div>
+                    <div class="px-4 py-5 sm:p-6">
+                        <address class="not-italic">
+                            <div class="text-sm text-gray-700">
+                                <p class="font-medium">{{ order.shipping_name|default:order.user.get_full_name }}</p>
+                                <p>{{ order.shipping_address_line1 }}</p>
+                                {% if order.shipping_address_line2 %}
+                                <p>{{ order.shipping_address_line2 }}</p>
+                                {% endif %}
+                                <p>{{ order.shipping_city }}, {{ order.shipping_state }}</p>
+                                <p>{{ order.shipping_country.name }} {{ order.shipping_postal_code }}</p>
+                                <p class="mt-2">Phone: {{ order.shipping_phone|default:order.user.phone_number|default:"Not provided" }}</p>
+                                <p>Email: {{ order.user.email }}</p>
+                            </div>
+                        </address>
+                    </div>
                 </div>
-                <div class="mt-6 flex justify-center text-sm text-center text-gray-500">
-                    <p>
-                        <a href="{% url 'home:product_list' %}" class="text-blue-600 font-medium hover:text-blue-500">
-                            Continue Shopping<span aria-hidden="true"> &rarr;</span>
+
+                <!-- Payment Information -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Payment Information</h3>
+                    </div>
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="text-sm text-gray-700">
+                            <p class="font-medium">Payment Method</p>
+                            <p class="mt-1">{{ order.get_payment_method_display|default:"Not specified" }}</p>
+                            <p class="mt-2 font-medium">Payment Status</p>
+                            <p class="mt-1">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if order.payment_status == 'paid' %}bg-green-100 text-green-800
+                                    {% elif order.payment_status == 'failed' %}bg-red-100 text-red-800
+                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ order.get_payment_status_display|default:"Pending" }}
+                                </span>
+                            </p>
+                            {% if order.paid_at %}
+                            <p class="mt-2 text-sm text-gray-500">Paid on {{ order.paid_at|date:"F j, Y" }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Actions -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Need Help?</h3>
+                    </div>
+                    <div class="px-4 py-5 sm:p-6">
+                        <p class="text-sm text-gray-500 mb-4">If you have any questions about your order, please contact our customer service.</p>
+                        <a href="{% url 'home:contact' %}" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Contact Support
                         </a>
-                    </p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
-

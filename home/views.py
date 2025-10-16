@@ -1167,17 +1167,21 @@ class AgentListView(ListView):
 
 
 def order_history(request):
-    """Display a user's order history"""
+    """Display a user's order history and order requests"""
     if not request.user.is_authenticated:
         messages.warning(request, 'Please log in to view your order history.')
         return redirect('account_login')
     
-    # Get user's orders, ordered by most recent first
+    # Get user's orders and order requests, ordered by most recent first
     orders = Order.objects.filter(user=request.user).order_by('-created_at')
+    order_requests = OrderRequest.objects.filter(
+        user=request.user
+    ).order_by('-created_at')
     
     context = {
         'orders': orders,
-        'title': 'My Orders'
+        'order_requests': order_requests,
+        'title': 'My Orders & Requests'
     }
     return render(request, 'home/order_history.html', context)
 
@@ -1198,13 +1202,87 @@ def order_detail(request, order_id):
 def order_request_detail(request, order_request_id):
     """Display an OrderRequest and its items including proposed deposit percentages."""
     order_request = get_object_or_404(
-        OrderRequest.objects.select_related('user').prefetch_related('items__variation__product'),
+        OrderRequest.objects.select_related('user').prefetch_related(
+            'items__variation__product',
+            'items__variation__images',
+            'items__variation__i_rates',
+        ),
         id=order_request_id
     )
-    return render(request, 'home/order_request_detail.html', {
+
+    items = list(order_request.items.all())
+
+    from decimal import Decimal, ROUND_HALF_UP
+
+    def to_decimal(value):
+        try:
+            if callable(value):
+                value = value()
+            if value is None:
+                return Decimal('0')
+            return Decimal(str(value))
+        except Exception:
+            return Decimal('0')
+
+    total_quantity = 0
+    total_amount = Decimal('0')
+    total_proposed_deposit = Decimal('0')
+    amount_payable_now = Decimal('0')
+    amount_payable_later = Decimal('0')
+
+    for item in items:
+        qty_raw = getattr(item, 'quantity', 0)
+        qty = int(qty_raw or 0)
+
+        subtotal_raw = getattr(item, 'subtotal', 0)
+        subtotal = to_decimal(subtotal_raw)
+
+        deposit_pct_raw = getattr(item, 'deposit_percentage', 0)
+        percentage = to_decimal(deposit_pct_raw)
+
+        total_quantity += qty
+        total_amount += subtotal
+
+        # Proposed deposit total (for display)
+        proposed_deposit_amount = (subtotal * percentage / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        total_proposed_deposit += proposed_deposit_amount
+
+        if percentage > 0:
+            # Find interest rate from IRate table for this percentage
+            interest_rate = Decimal('0')
+            try:
+                i_rates = item.variation.i_rates.all().order_by('lower_range')
+                for i_rate in i_rates:
+                    lower = to_decimal(i_rate.lower_range)
+                    upper = to_decimal(i_rate.upper_range)
+                    if lower <= percentage <= upper:
+                        interest_rate = to_decimal(i_rate.rate)
+                        break
+            except Exception:
+                interest_rate = Decimal('0')
+
+            pay_now_item = proposed_deposit_amount
+            remaining_amount = subtotal - pay_now_item
+            interest_amount = (remaining_amount * interest_rate / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            pay_later_item = remaining_amount + interest_amount
+
+            amount_payable_now += pay_now_item
+            amount_payable_later += pay_later_item
+        else:
+            # No deposit plan: full amount payable now
+            amount_payable_now += subtotal
+            # Later remains zero for this line
+
+    context = {
         'order_request': order_request,
-        'items': order_request.items.all(),
-    })
+        'items': items,
+        'total_quantity': total_quantity,
+        'total_amount': total_amount,
+        'total_proposed_deposit': total_proposed_deposit,
+        'amount_payable_now': amount_payable_now,
+        'amount_payable_later': amount_payable_later,
+    }
+    return render(request, 'home/order_request_detail.html', context)
 
 # ==============================
 # Wishlist
@@ -1255,3 +1333,108 @@ def remove_from_wishlist(request, item_id):
     if 'HTTP_REFERER' in request.META and 'product' in request.META.get('HTTP_REFERER', '') and product_id:
         return redirect('home:product_detail', pk=product_id)
     return redirect('home:wishlist')
+
+@require_http_methods(["POST"])
+def process_mpesa_payment_for_order_request(request, order_request_id):
+    """Initiate M-Pesa STK push for an accepted OrderRequest using payable-now amount (includes deposits + full non-deposit items), with IRate interest applied to pay-later only."""
+    logger = logging.getLogger(__name__)
+    try:
+        body = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid request data'}, status=400)
+
+    phone_number = (body.get('phone_number') or '').strip()
+    if not phone_number:
+        return JsonResponse({'error': 'Phone number is required'}, status=400)
+
+    # Normalize phone
+    phone = str(phone_number)
+    if phone.startswith('0'):
+        phone = f'254{phone[1:]}'
+    elif not phone.startswith('254'):
+        phone = f'254{phone}'
+
+    try:
+        order_request = get_object_or_404(
+            OrderRequest.objects.select_related('user').prefetch_related(
+                'items__variation__product',
+                'items__variation__i_rates',
+            ),
+            id=order_request_id
+        )
+        if getattr(order_request, 'status', '') != 'accepted':
+            return JsonResponse({'error': 'This order request is not accepted yet.'}, status=400)
+
+        from decimal import Decimal, ROUND_HALF_UP
+
+        def to_decimal(value):
+            try:
+                if callable(value):
+                    value = value()
+                if value is None:
+                    return Decimal('0')
+                return Decimal(str(value))
+            except Exception:
+                return Decimal('0')
+
+        amount_payable_now = Decimal('0')
+
+        for item in order_request.items.all():
+            subtotal = to_decimal(getattr(item, 'subtotal', 0))
+            percentage = to_decimal(getattr(item, 'deposit_percentage', 0))
+
+            if percentage > 0:
+                pay_now_item = (subtotal * percentage / Decimal('100')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                amount_payable_now += pay_now_item
+            else:
+                amount_payable_now += subtotal
+
+        if amount_payable_now <= 0:
+            return JsonResponse({'error': 'Nothing to pay right now.'}, status=400)
+
+        # Initiate STK push via MPesaService
+        try:
+            from core.mpesa_service import MPesaService
+            mpesa = MPesaService()
+        except Exception as e:
+            logger.error(f'Failed to init MPesaService: {e}')
+            return JsonResponse({'error': 'Payment service unavailable. Try again later.'}, status=503)
+
+        try:
+            response = mpesa.initiate_stk_push(
+                phone_number=phone,
+                amount=amount_payable_now,
+                account_reference=f'OR-{order_request_id}',
+                description=f'OrderRequest {order_request_id} payment'
+            )
+            # Normalize response to dict-like
+            resp_dict = {}
+            if isinstance(response, dict):
+                resp_dict = response
+            else:
+                # Try to map common attributes
+                for attr in ('error', 'error_code', 'MerchantRequestID', 'CheckoutRequestID', 'ResponseCode', 'ResponseDescription'):
+                    if hasattr(response, attr):
+                        resp_dict[attr] = getattr(response, attr)
+                # Fallback: mark success if not explicitly error
+                if not resp_dict:
+                    resp_dict = {'raw': str(response)}
+
+            # If explicit error key -> fail
+            if 'error' in resp_dict and resp_dict.get('error'):
+                err_msg = resp_dict.get('error') or 'Payment initiation failed'
+                err_code = resp_dict.get('error_code') or resp_dict.get('ResponseCode') or 'UNKNOWN'
+                return JsonResponse({'error': f'{err_msg}', 'error_code': err_code}, status=400)
+
+            # Otherwise treat as success (STK prompt delivered)
+            return JsonResponse({
+                'success': True,
+                'message': 'STK push sent. Check your phone.',
+                'checkout_request_id': resp_dict.get('CheckoutRequestID'),
+                'merchant_request_id': resp_dict.get('MerchantRequestID'),
+            })
+        except Exception as e:
+            logger.error(f'STK push failed: {e}', exc_info=True)
+            return JsonResponse({'error': 'Failed to initiate payment. Please try again.'}, status=500)
+    except:
+        pass

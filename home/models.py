@@ -820,3 +820,118 @@ class ChatMessage(models.Model):
 
     def __str__(self):
         return f"{self.id}"
+
+
+# ==============================
+# BUYER-SELLER CHAT MODELS
+# ==============================
+
+class BuyerSellerChat(models.Model):
+    """Model for private conversations between buyers and sellers"""
+    buyer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='buyer_chats'
+    )
+    seller = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='seller_chats'
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='buyer_seller_chats',
+        null=True,
+        blank=True,
+        help_text="Optional: Link to a specific product being discussed"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('buyer', 'seller', 'product')
+        ordering = ['-updated_at']
+        indexes = [
+            models.Index(fields=['buyer', 'is_active']),
+            models.Index(fields=['seller', 'is_active']),
+            models.Index(fields=['product', 'is_active']),
+        ]
+
+    def __str__(self):
+        product_name = f" - {self.product.name}" if self.product else ""
+        
+        # Get buyer name
+        if self.buyer and hasattr(self.buyer, 'get_full_name') and self.buyer.get_full_name():
+            buyer_name = self.buyer.get_full_name()
+        elif self.buyer and self.buyer.email:
+            buyer_name = self.buyer.email
+        else:
+            buyer_name = "Unknown Buyer"
+            
+        # Get seller name
+        if self.seller and hasattr(self.seller, 'get_full_name') and self.seller.get_full_name():
+            seller_name = self.seller.get_full_name()
+        elif self.seller and self.seller.email:
+            seller_name = self.seller.email
+        else:
+            seller_name = "Unknown Seller"
+            
+        return f"Chat: {buyer_name} ↔ {seller_name}{product_name}"
+
+    @property
+    def last_message(self):
+        """Get the last message in this chat"""
+        return self.messages.last()
+
+    @property
+    def unread_count_for_user(self, user):
+        """Get unread message count for a specific user"""
+        return self.messages.filter(
+            sender=user,
+            is_read=False
+        ).count()
+
+
+class BuyerSellerMessage(models.Model):
+    """Model for individual messages in buyer-seller chats"""
+    chat = models.ForeignKey(
+        BuyerSellerChat,
+        on_delete=models.CASCADE,
+        related_name='messages'
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='buyer_seller_messages'
+    )
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['chat', 'created_at']),
+            models.Index(fields=['sender']),
+            models.Index(fields=['is_read']),
+        ]
+
+    def __str__(self):
+        if self.sender:
+            if hasattr(self.sender, 'get_full_name') and self.sender.get_full_name():
+                sender_name = self.sender.get_full_name()
+            elif self.sender.email:
+                sender_name = self.sender.email
+            else:
+                sender_name = "Unknown User"
+        else:
+            sender_name = "Unknown User"
+            
+        return f"Message from {sender_name} in chat {self.chat.id}"
+
+    def mark_as_read(self):
+        """Mark this message as read"""
+        self.is_read = True
+        self.save(update_fields=['is_read'])

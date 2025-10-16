@@ -35,8 +35,22 @@
                 <div class="hidden lg:flex items-center space-x-6">
                     <a href="{% url 'home:home' %}" class="text-gray-300 hover:text-teal-400 font-medium transition duration-300">Home</a>
                     <a href="{% url 'home:product_list' %}" class="text-gray-300 hover:text-teal-400 font-medium transition duration-300">Products</a>
+                    {% if not user.role == 'Manager' %}
+                 
                     <a href="{% url 'home:signup' %}?role=seller" class="text-gray-300 hover:text-teal-400 font-medium transition duration-300">Become a Seller</a>
+                    {% endif %}
+                     {% if not user.role == 'Manager' %}
+                    <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" 
+                               href="{% url 'vendor:dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                    {% endif %}
                     {% if user.is_authenticated %}
+                        <a href="{% url 'home:chat_list' %}" class="text-gray-300 hover:text-teal-400 font-medium transition duration-300">
+                            <i class="fas fa-comments mr-1"></i>Messages
+                        </a>
                         <a href="{% url 'home:cart_detail' %}" class="relative inline-flex items-center text-gray-300 hover:text-teal-400 transition duration-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/>
@@ -92,6 +106,12 @@
                                 <a href="{% url 'password_change' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                                     <i class="fas fa-key mr-2 text-gray-500"></i> Change Password
                                 </a>
+                                <a href="{% url 'home:order_history' %}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-shopping-bag mr-2 text-gray-500"></i> My Orders
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                    <i class="fas fa-credit-card mr-2 text-gray-500"></i> Payments (Coming Soon)
+                                </a>
                                 <div class="border-t border-gray-100 my-1"></div>
                                 <form method="post" action="{% url 'logout' %}" class="w-full">
                                     {% csrf_token %}
@@ -132,6 +152,9 @@
                     <a href="{% url 'home:signup' %}?role=seller" class="block px-3 py-2 text-teal-400 hover:text-teal-300 hover:bg-gray-700 rounded-md font-medium transition duration-300">Become a Seller</a>
                     
                     {% if user.is_authenticated %}
+                        <a href="{% url 'home:chat_list' %}" class="block px-3 py-2 text-gray-300 hover:text-teal-400 hover:bg-gray-700 rounded-md font-medium transition duration-300">
+                            <i class="fas fa-comments mr-2"></i>Messages
+                        </a>
                         <a href="{% url 'profile' %}" class="block px-3 py-2 text-gray-300 hover:text-teal-400 hover:bg-gray-700 rounded-md font-medium transition duration-300">
                             My Profile
                         </a>
@@ -170,6 +193,9 @@
                         </div>
                     </div>
                     <div class="space-y-1 px-3 pb-4">
+                        <a href="{% url 'home:chat_list' %}" class="block px-3 py-2 text-gray-300 hover:text-teal-400 hover:bg-gray-700 rounded-md font-medium transition duration-300">
+                            <i class="fas fa-comments mr-2"></i>Messages
+                        </a>
                         <a href="{% url 'profile' %}" class="block px-3 py-2 text-gray-300 hover:text-teal-400 hover:bg-gray-700 rounded-md font-medium transition duration-300">Profile</a>
                         <a href="{% url 'profile_edit' %}" class="block px-3 py-2 text-gray-300 hover:text-teal-400 hover:bg-gray-700 rounded-md font-medium transition duration-300">Settings</a>
                         <form method="post" action="{% url 'logout' %}" class="w-full">
@@ -188,27 +214,6 @@
 
     <!-- Main Content -->
     <main class="min-h-screen pt-16">
-        <!-- Messages Display -->
-        {% if messages %}
-        <div class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
-            {% for message in messages %}
-            <div class="mb-4 p-4 rounded-lg shadow-lg {% if message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% else %}bg-green-100 border border-green-400 text-green-700{% endif %}">
-                <div class="flex items-center">
-                    {% if message.tags == 'error' %}
-                    <svg class="w-5 h-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                    </svg>
-                    {% else %}
-                    <svg class="w-5 h-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    {% endif %}
-                    <span class="font-medium">{{ message }}</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
         
         {% block content %}
         {% endblock %}

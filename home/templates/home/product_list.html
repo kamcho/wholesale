@@ -178,7 +178,7 @@
                     {% endif %}
                     {% if min_price %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        Min: ${{ min_price }}
+                        Min: Ksh{{ min_price }}
                         <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}{% if max_price %}max_price={{ max_price }}&{% endif %}{% if selected_country %}country={{ selected_country }}{% endif %}" class="ml-1.5 inline-flex text-purple-400 hover:text-purple-600">
                             <span class="sr-only">Remove filter</span>
                             <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -189,7 +189,7 @@
                     {% endif %}
                     {% if max_price %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Max: ${{ max_price }}
+                        Max: Ksh{{ max_price }}
                         <a href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if selected_category %}category={{ selected_category }}&{% endif %}{% if min_price %}min_price={{ min_price }}&{% endif %}{% if selected_country %}country={{ selected_country }}{% endif %}" class="ml-1.5 inline-flex text-yellow-400 hover:text-yellow-600">
                             <span class="sr-only">Remove filter</span>
                             <svg class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -263,14 +263,16 @@
                         <div class="mt-2 pt-3 border-t border-gray-100">
                             <div class="flex items-center justify-between mb-2">
                                 <div>
-                                    {% if product.min_variation_price == product.max_variation_price or not product.max_variation_price %}
-                                        <span class="text-sm text-gray-500">Price</span>
-                                        <div class="font-bold text-gray-900">${{ product.min_variation_price|floatformat:2 }}</div>
-                                    {% else %}
-                                        <span class="text-sm text-gray-500">Price Range</span>
-                                        <div class="font-bold text-gray-900">
-                                            ${{ product.min_variation_price|floatformat:2 }} - ${{ product.max_variation_price|floatformat:2 }}
-                                        </div>
+                                    {% if product.min_variation_price %}
+                                        {% if product.min_variation_price == product.max_variation_price or not product.max_variation_price %}
+                                            <span class="text-sm text-gray-500">Price</span>
+                                            <div class="font-bold text-gray-900">Ksh{{ product.min_variation_price|floatformat:2 }}</div>
+                                        {% else %}
+                                            <span class="text-sm text-gray-500">Price Range</span>
+                                            <div class="font-bold text-gray-900">
+                                                Ksh{{ product.min_variation_price|floatformat:2 }} - Ksh{{ product.max_variation_price|floatformat:2 }}
+                                            </div>
+                                        {% endif %}
                                     {% endif %}
                                 </div>
                                 <div class="text-xs text-gray-500">

@@ -4,59 +4,227 @@
 {% block title %}Order Request #{{ order_request.id }} - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-            <h2 class="text-2xl font-bold text-gray-900">Order Request #{{ order_request.id }}</h2>
-            <p class="mt-1 text-sm text-gray-500">Status: <span class="font-medium">{{ order_request.status|title }}</span></p>
-            <p class="mt-1 text-sm text-gray-500">Submitted on {{ order_request.created_at|date:'M d, Y H:i' }}</p>
-            {% if order_request.note %}
-            <p class="mt-2 text-sm text-gray-700">{{ order_request.note|linebreaksbr }}</p>
-            {% endif %}
+<div class="max-w-5xl mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
+        <div class="px-6 py-5 flex items-start justify-between">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">Order Request #{{ order_request.id }}</h2>
+                <div class="mt-2 text-sm text-gray-500 flex items-center space-x-3">
+                    <span>Submitted on {{ order_request.created_at|date:'M d, Y H:i' }}</span>
+                    <span>•</span>
+                    <span>By {{ order_request.user.email }}</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="px-3 py-1 text-sm font-medium rounded-full
+                    {% if order_request.status == 'pending' %} bg-yellow-100 text-yellow-800
+                    {% elif order_request.status == 'accepted' %} bg-green-100 text-green-800
+                    {% elif order_request.status == 'rejected' %} bg-red-100 text-red-800
+                    {% else %} bg-gray-100 text-gray-800 {% endif %}">
+                    {{ order_request.status|title }}
+                </span>
+            </div>
+        </div>
+        {% if order_request.note %}
+        <div class="px-6 pb-4 -mt-2">
+            <div class="bg-blue-50 border border-blue-100 text-blue-800 text-sm rounded-lg p-3">
+                <span class="font-medium">Buyer note:</span>
+                <span class="ml-1">{{ order_request.note|linebreaksbr }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Summary -->
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div class="bg-white rounded-lg border border-gray-100 p-4">
+                <div class="text-xs uppercase tracking-wide text-gray-500">Total Quantity</div>
+                <div class="mt-1 text-xl font-semibold text-gray-900">{{ total_quantity }}</div>
+            </div>
+            <div class="bg-white rounded-lg border border-gray-100 p-4">
+                <div class="text-xs uppercase tracking-wide text-gray-500">Total Amount</div>
+                <div class="mt-1 text-xl font-semibold text-gray-900">Ksh {{ total_amount|floatformat:2 }}</div>
+            </div>
+            <div class="bg-white rounded-lg border border-gray-100 p-4">
+                <div class="text-xs uppercase tracking-wide text-gray-500">Proposed Deposit</div>
+                <div class="mt-1 text-xl font-semibold text-blue-700">Ksh {{ total_proposed_deposit|floatformat:2 }}</div>
+            </div>
+            <div class="bg-white rounded-lg border border-gray-100 p-4">
+                <div class="text-xs uppercase tracking-wide text-gray-500">Payable Now / On Pickup</div>
+                <div class="mt-1 text-xl font-semibold text-gray-900">Ksh {{ amount_payable_now|floatformat:2 }}</div>
+                <div class="text-xs text-gray-500">On Pickup: Ksh {{ amount_payable_later|floatformat:2 }}</div>
+            </div>
         </div>
 
-        <div class="border-t border-gray-200">
-            <div class="divide-y divide-gray-200">
+        <!-- Items -->
+        <div class="border-t border-gray-100">
+            <div class="divide-y divide-gray-100">
                 {% for item in items %}
-                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 px-4 py-4 sm:px-6">
-                    <div class="col-span-7 flex items-start">
-                        <div class="flex-shrink-0 h-20 w-20 rounded-md overflow-hidden border border-gray-200">
+                <div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-12 gap-4">
+                    <div class="sm:col-span-7 flex items-start">
+                        <div class="flex-shrink-0 h-20 w-20 rounded-lg overflow-hidden border border-gray-200 bg-white">
                             {% with item.variation.images.all|first as image %}
                             <img src="{% if image %}{{ image.image.url }}{% else %}{% static 'images/placeholder-product.png' %}{% endif %}" 
                                  alt="{{ item.variation.name }}" 
                                  class="h-full w-full object-cover object-center">
                             {% endwith %}
                         </div>
-                        <div class="ml-4 flex-1">
+                        <div class="ml-4 flex-1 min-w-0">
                             <h3 class="text-sm font-medium text-gray-900 line-clamp-2">{{ item.variation.product.name }}</h3>
                             <p class="mt-1 text-sm text-gray-500">{{ item.variation.name }}</p>
                         </div>
                     </div>
-                    <div class="col-span-2 flex items-center justify-center">
-                        <span class="text-sm text-gray-900">{{ item.quantity }}</span>
+                    <div class="sm:col-span-2 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-xs text-gray-500">Qty</div>
+                            <div class="text-sm font-medium text-gray-900">{{ item.quantity }}</div>
+                        </div>
                     </div>
-                    <div class="col-span-3 flex items-center justify-end">
+                    <div class="sm:col-span-3 flex items-center justify-end">
                         <div class="text-right">
-                            <p class="text-sm text-gray-900">${{ item.unit_price|floatformat:2 }} × {{ item.quantity }}</p>
-                            <p class="text-sm font-medium text-gray-900">${{ item.subtotal|floatformat:2 }}</p>
-                            <p class="text-xs text-blue-600 mt-1">Proposed Deposit: {{ item.deposit_percentage|floatformat:0 }}%</p>
+                            <div class="text-sm text-gray-900">Ksh {{ item.unit_price|floatformat:2 }} × {{ item.quantity }}</div>
+                            <div class="text-sm font-semibold text-gray-900">Ksh {{ item.subtotal|floatformat:2 }}</div>
+                            <div class="text-xs text-blue-600 mt-1">Proposed Deposit: {{ item.deposit_percentage|floatformat:0 }}%</div>
                         </div>
                     </div>
                 </div>
+                {% empty %}
+                <div class="px-6 py-10 text-center text-gray-500">No items found for this request.</div>
                 {% endfor %}
             </div>
+        </div>
 
-            <div class="border-t border-gray-200 bg-gray-50 px-4 py-5 sm:px-6">
-                <div class="mt-6 flex justify-center text-sm text-center text-gray-500">
-                    <p>
-                        <a href="{% url 'home:product_list' %}" class="text-blue-600 font-medium hover:text-blue-500">
-                            Continue Shopping<span aria-hidden="true"> &rarr;</span>
-                        </a>
-                    </p>
-                </div>
-            </div>
+        <!-- Footer actions -->
+        <div class="px-6 py-5 bg-white border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <a href="{% url 'home:product_list' %}" class="text-blue-600 font-medium hover:text-blue-700">Continue Shopping →</a>
+            <div class="text-sm text-gray-500">Request ID: {{ order_request.id }}</div>
         </div>
     </div>
+
+    {% if order_request.status == 'accepted' %}
+    <!-- Payment Section -->
+    <div class="mt-6 bg-white shadow-sm rounded-xl border border-gray-100">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Complete Payment</h3>
+            <div class="text-sm text-gray-500">Payable Now: <span class="font-semibold text-gray-900">Ksh {{ amount_payable_now|floatformat:2 }}</span></div>
+        </div>
+        <div class="px-6 py-4">
+            <div class="flex space-x-4 mb-4" role="tablist">
+                <button type="button" class="px-3 py-1.5 text-sm rounded-md bg-gray-900 text-white" id="tab-mpesa">M-Pesa</button>
+                <button type="button" class="px-3 py-1.5 text-sm rounded-md bg-gray-100 text-gray-700" id="tab-card">Card</button>
+            </div>
+
+            <!-- M-Pesa Form -->
+            <form id="mpesa-form" class="space-y-3" autocomplete="off" data-endpoint="{% url 'home:process_mpesa_payment_for_order_request' order_request.id %}">
+                <label class="block text-sm text-gray-700">Phone Number (2547XXXXXXXX)</label>
+                <input type="tel" name="phone_number" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="2547XXXXXXXX" required>
+                <div class="text-xs text-gray-500">You will be charged: <span class="font-medium text-gray-900">Ksh {{ amount_payable_now|floatformat:2 }}</span></div>
+                <button type="submit" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Pay with M-Pesa</button>
+                <p id="mpesa-result" class="text-sm mt-2 text-gray-600"></p>
+            </form>
+
+            <!-- Card Form -->
+            <form id="card-form" class="space-y-3 hidden" autocomplete="off">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm text-gray-700">Card Number</label>
+                        <input type="text" inputmode="numeric" maxlength="19" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="1234 5678 9012 3456" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700">Name on Card</label>
+                        <input type="text" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Full Name" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700">Expiry</label>
+                        <input type="text" inputmode="numeric" maxlength="5" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="MM/YY" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-700">CVC</label>
+                        <input type="text" inputmode="numeric" maxlength="4" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="CVC" required>
+                    </div>
+                </div>
+                <button type="button" id="card-pay-btn" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Pay with Card</button>
+                <p id="card-result" class="text-sm mt-2 text-gray-600"></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    (function(){
+        const tabMpesa = document.getElementById('tab-mpesa');
+        const tabCard = document.getElementById('tab-card');
+        const formMpesa = document.getElementById('mpesa-form');
+        const formCard = document.getElementById('card-form');
+
+        tabMpesa.addEventListener('click', function(){
+            tabMpesa.classList.replace('bg-gray-100','bg-gray-900');
+            tabMpesa.classList.replace('text-gray-700','text-white');
+            tabCard.classList.replace('bg-gray-900','bg-gray-100');
+            tabCard.classList.replace('text-white','text-gray-700');
+            formMpesa.classList.remove('hidden');
+            formCard.classList.add('hidden');
+        });
+        tabCard.addEventListener('click', function(){
+            tabCard.classList.replace('bg-gray-100','bg-gray-900');
+            tabCard.classList.replace('text-gray-700','text-white');
+            tabMpesa.classList.replace('bg-gray-900','bg-gray-100');
+            tabMpesa.classList.replace('text-white','text-gray-700');
+            formCard.classList.remove('hidden');
+            formMpesa.classList.add('hidden');
+        });
+
+        // M-Pesa submit -> reuse existing endpoint
+        formMpesa.addEventListener('submit', async function(e){
+            e.preventDefault();
+            const phone = this.phone_number.value.trim();
+            const btn = this.querySelector('button[type="submit"]');
+            const result = document.getElementById('mpesa-result');
+            btn.disabled = true; result.textContent = 'Initiating STK push...';
+            
+            // Get CSRF token from cookie
+            function getCookie(name){
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2) return parts.pop().split(';').shift();
+                return null;
+            }
+            const csrfToken = getCookie('csrftoken');
+            
+            try {
+                const endpoint = formMpesa.getAttribute('data-endpoint');
+                const resp = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken || ''
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ phone_number: phone, payment_plans: {} })
+                });
+                let data;
+                const text = await resp.text();
+                try { data = JSON.parse(text); } catch { data = { error: text || 'Unexpected response' }; }
+                if (resp.ok && (data.success || data.redirect_url)) {
+                    result.textContent = 'Check your phone to complete payment.';
+                } else {
+                    result.textContent = (data && data.error) ? data.error : 'Payment failed. Please try again.';
+                }
+            } catch(err){
+                result.textContent = 'Network error. Please try again.';
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Card button (placeholder)
+        document.getElementById('card-pay-btn').addEventListener('click', function(){
+            const result = document.getElementById('card-result');
+            result.textContent = 'Card processing is not yet integrated.';
+        });
+    })();
+    </script>
+    {% endif %}
 </div>
 {% endblock %}
 
