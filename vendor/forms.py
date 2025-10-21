@@ -1,6 +1,8 @@
+import json
 from django import forms
 from django.contrib.auth import get_user_model
-from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue, PriceTier, PromiseFee, ProductKB, IRate
+from django.forms import inlineformset_factory, formset_factory, BaseFormSet
+from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue, PriceTier, PromiseFee, ProductKB, IRate, Order, OrderItem, BuyerSellerChat
 
 User = get_user_model()
 
@@ -469,55 +471,359 @@ class IRateForm(forms.ModelForm):
     """Form to add/edit IRate for a variation."""
     class Meta:
         model = IRate
-        fields = ["lower_range", "upper_range", "must_pay_shipping", "rate"]
+        fields = ['lower_range', 'upper_range', 'must_pay_shipping', 'rate']
         widgets = {
-            "lower_range": forms.NumberInput(attrs={
-                "class": "form-control", 
-                "min": "1", 
-                "placeholder": "Lower range (e.g., 1)",
-                "required": True
+            'lower_range': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+                'step': '1',
+                'placeholder': 'Min quantity'
             }),
-            "upper_range": forms.NumberInput(attrs={
-                "class": "form-control", 
-                "min": "0", 
-                "placeholder": "Upper range (0 for no limit)",
-                "required": True
+            'upper_range': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+                'step': '1',
+                'placeholder': 'Max quantity (leave blank for no limit)'
             }),
-            "must_pay_shipping": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "rate": forms.NumberInput(attrs={
-                "class": "form-control", 
-                "step": "0.01", 
-                "min": "0", 
-                "placeholder": "Rate amount",
-                "required": True
+            'rate': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': 'e.g. 5.00 for $5.00 per unit'
+            }),
+            'must_pay_shipping': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
             }),
         }
-        labels = {
-            "lower_range": "Minimum Quantity",
-            "upper_range": "Maximum Quantity (0 = no limit)",
-            "must_pay_shipping": "Customer Pays Shipping",
-            "rate": "Rate Amount"
-        }
-
+    
     def __init__(self, *args, **kwargs):
         self.variation = kwargs.pop("variation", None)
         super().__init__(*args, **kwargs)
-
+        
+        # Set initial variation if provided
+        if self.variation:
+            self.instance.variation = self.variation
+    
     def clean(self):
         cleaned_data = super().clean()
-        lower_range = cleaned_data.get('lower_range')
-        upper_range = cleaned_data.get('upper_range')
+        lower = cleaned_data.get('lower_range')
+        upper = cleaned_data.get('upper_range')
         
-        if lower_range and upper_range and upper_range > 0:
-            if lower_range >= upper_range:
-                raise forms.ValidationError("Lower range must be less than upper range.")
+        if lower and upper and lower > upper:
+            raise forms.ValidationError("Lower range cannot be greater than upper range.")
+            
+        # Check for overlapping ranges
+        if self.variation:
+            existing_ranges = self.variation.irate_set.exclude(pk=self.instance.pk if self.instance else None)
+            for existing in existing_ranges:
+                if (lower <= existing.upper_range if existing.upper_range else float('inf')) and \
+                   (not existing.upper_range or upper >= existing.lower_range):
+                    raise forms.ValidationError(
+                        f"This range overlaps with an existing range ({existing.lower_range} - {existing.upper_range or '∞'})."
+                    )
         
         return cleaned_data
-
+    
     def save(self, commit=True):
         instance = super().save(commit=False)
-        if self.variation is not None:
+        if self.variation:
             instance.variation = self.variation
         if commit:
             instance.save()
         return instance
+
+
+class OrderItemForm(forms.Form):
+    """Form for a single order item"""
+    variation = forms.ModelChoiceField(
+        queryset=ProductVariation.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-select variation-select'})
+    )
+    quantity = forms.IntegerField(
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(attrs={'class': 'form-control quantity-input'})
+    )
+    price = forms.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control price-input', 'readonly': 'readonly'})
+    )
+
+
+class VendorOrderForm(forms.Form):
+    """Form for vendors to create orders for customers"""
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user')
+        super().__init__(*args, **kwargs)
+        
+        # Filter customers who have purchased from this vendor before
+        self.fields['customer'] = forms.ModelChoiceField(
+            queryset=User.objects.filter(
+                order_items__variation__product__business__owner=self.user
+            ).distinct().order_by('first_name', 'last_name', 'email'),
+            widget=forms.Select(attrs={'class': 'form-select'}),
+            label="Customer"
+        )
+        
+        # Filter products that belong to the vendor's businesses
+        self.fields['products'] = forms.ModelMultipleChoiceField(
+            queryset=Product.objects.filter(
+                business__owner=self.user
+            ).select_related('business').order_by('name'),
+            widget=forms.SelectMultiple(attrs={'class': 'form-select'}),
+            label="Products"
+        )
+    
+    def save(self):
+        """Create the order and order items"""
+        customer = self.cleaned_data['customer']
+        products = self.cleaned_data['products']
+        
+        # Create the order
+        order = Order.objects.create(
+            user=customer,
+            status='pending',
+            payment_method='cash_on_delivery',
+            shipping_address=customer.shipping_addresses.filter(is_default=True).first()
+        )
+        
+        # Create order items
+        order_items = []
+        for product in products:
+            variation = product.variations.first()  # Get the first variation
+            if variation:
+                order_items.append(
+                    OrderItem(
+                        order=order,
+                        product=product,
+                        variation=variation,
+                        quantity=1,  # Default quantity
+                        price=variation.price
+                    )
+                )
+        
+        if order_items:
+            OrderItem.objects.bulk_create(order_items)
+        
+        return order
+
+
+class ChatOrderForm(forms.Form):
+    """Form for creating an order from a chat conversation"""
+    
+    def __init__(self, *args, **kwargs):
+        self.chat = kwargs.pop('chat', None)
+        self._current_user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.chat:
+            # Set the user (buyer) field initial value and make it required
+            self.fields['user'].initial = self.chat.buyer.id
+            self.fields['user'].required = True
+            
+            # Add fields for each variation
+            self.variations = self.chat.product.variations.all()
+            
+            # Add a field for each variation
+            for i, variation in enumerate(self.variations):
+                self.fields[f'variation_{variation.id}'] = forms.BooleanField(
+                    required=False,
+                    label=f"Add to order",
+                    widget=forms.CheckboxInput(attrs={
+                        'class': 'variation-checkbox',
+                        'data-variation-id': variation.id
+                    })
+                )
+                
+                self.fields[f'quantity_{variation.id}'] = forms.IntegerField(
+                    min_value=1,
+                    initial=1,
+                    required=False,
+                    widget=forms.NumberInput(attrs={
+                        'class': 'form-control variation-quantity',
+                        'min': '1',
+                        'data-variation-id': variation.id,
+                        'style': 'width: 80px;',
+                        'disabled': True
+                    })
+                )
+                
+                self.fields[f'use_custom_price_{variation.id}'] = forms.BooleanField(
+                    required=False,
+                    label="Custom price",
+                    widget=forms.CheckboxInput(attrs={
+                        'class': 'custom-price-toggle',
+                        'data-variation-id': variation.id
+                    })
+                )
+                
+                self.fields[f'custom_price_{variation.id}'] = forms.DecimalField(
+                    required=False,
+                    min_value=0.01,
+                    widget=forms.NumberInput(attrs={
+                        'class': 'form-control custom-price',
+                        'step': '0.01',
+                        'data-variation-id': variation.id,
+                        'style': 'width: 120px; display: none;',
+                        'placeholder': '0.00'
+                    })
+                )    
+            
+            # Set the user (buyer) field queryset to only include the chat's buyer
+            self.fields['user'].queryset = User.objects.filter(pk=self.chat.buyer.pk)
+            
+            # Set the product queryset to only include products from the vendor's businesses
+            self.fields['product'].queryset = Product.objects.filter(
+                business__owner=self._current_user
+            ).select_related('business').order_by('name')
+    
+    user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        widget=forms.HiddenInput(),
+        label=""
+    )
+    
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.none(),
+        widget=forms.HiddenInput(),
+        label="",
+        required=False
+    )
+    
+    note = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Add any special instructions or notes about this order...'
+        })
+    )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Make sure user is set
+        if 'user' not in cleaned_data and hasattr(self, 'chat'):
+            cleaned_data['user'] = self.chat.buyer
+            
+        # Check if at least one variation is selected
+        selected_variations = False
+        for field_name, value in cleaned_data.items():
+            if field_name.startswith('variation_') and value:
+                variation_id = field_name.replace('variation_', '')
+                quantity = cleaned_data.get(f'quantity_{variation_id}')
+                if quantity and quantity > 0:
+                    selected_variations = True
+                    break
+        
+        if not selected_variations:
+            raise forms.ValidationError("Please select at least one variation to order.")
+            
+        return cleaned_data
+    
+    def save(self):
+        """Create the order from the form data"""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Get form data
+            user = self.cleaned_data.get('user')
+            if not user:
+                raise ValueError("No user specified in the form data")
+                
+            note = self.cleaned_data.get('note', '')
+            
+            logger.info(f"Creating order for user: {user.id} with note: {note}")
+            
+            # Create the order first
+            order = Order(
+                user=user,  # The buyer from the chat
+                status='pending',
+                total=0,  # Will be calculated based on items
+                payment_method='cash_on_delivery',
+                note=note,
+                shipping_address=user.email,  # Using email as a fallback
+            )
+            
+            # Set the current user as the creator
+            if hasattr(self, '_current_user'):
+                order._current_user = self._current_user
+            
+            # Save the order first to get an ID
+            order.save()
+            logger.info(f"Created order with ID: {order.id}")
+            
+            total_amount = 0
+            selected_items = 0
+            
+            # Add order items for each selected variation
+            for field_name, is_selected in self.cleaned_data.items():
+                if field_name.startswith('variation_') and is_selected:
+                    variation_id = field_name.replace('variation_', '')
+                    quantity = self.cleaned_data.get(f'quantity_{variation_id}')
+                    use_custom_price = self.cleaned_data.get(f'use_custom_price_{variation_id}', False)
+                    custom_price = self.cleaned_data.get(f'custom_price_{variation_id}')
+                    
+                    if not quantity or quantity <= 0:
+                        logger.warning(f"Skipping variation {variation_id} - invalid quantity: {quantity}")
+                        continue
+                        
+                    try:
+                        # Get the variation
+                        variation = ProductVariation.objects.get(id=variation_id)
+                        logger.info(f"Processing variation: {variation.id} - {variation.name}")
+                        
+                        # Determine the price to use
+                        if use_custom_price and custom_price is not None:
+                            unit_price = custom_price
+                            logger.debug(f"Using custom price: {unit_price}")
+                        else:
+                            unit_price = variation.price
+                            logger.debug(f"Using variation price: {unit_price}")
+                        
+                        # Create order item
+                        order_item = OrderItem(
+                            order=order,
+                            variation=variation,
+                            quantity=quantity,
+                            price=unit_price
+                        )
+                        order_item.save()
+                        logger.info(f"Created order item: {order_item.id}")
+                        
+                        # Add to total
+                        item_total = unit_price * quantity
+                        total_amount += item_total
+                        selected_items += 1
+                        
+                        logger.debug(f"Added item total: {item_total}, running total: {total_amount}")
+                        
+                    except ProductVariation.DoesNotExist:
+                        logger.error(f"Variation with ID {variation_id} does not exist")
+                        continue
+                    except Exception as e:
+                        logger.error(f"Error creating order item: {str(e)}")
+                        raise
+            
+            if selected_items == 0:
+                logger.error("No valid items were added to the order")
+                order.delete()  # Clean up empty order
+                raise ValueError("No valid items were added to the order")
+            
+            # Update order total
+            order.total = total_amount
+            order.save()
+            logger.info(f"Order {order.id} completed with total: {total_amount}")
+            
+            return order
+            
+        except Exception as e:
+            logger.error(f"Error in ChatOrderForm.save(): {str(e)}", exc_info=True)
+            # If the order was created but there was an error with items,
+            # we might want to delete it to avoid orphaned orders
+            if 'order' in locals() and order.pk:
+                logger.warning(f"Deleting order {order.id} due to error")
+                order.delete()
+            raise

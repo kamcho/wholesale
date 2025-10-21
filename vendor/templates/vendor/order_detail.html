@@ -1,0 +1,512 @@
+{% extends 'vendor/base.html' %}
+{% load humanize %}
+{% load order_filters %}
+
+{% block extra_css %}
+<style>
+    .order-timeline {
+        position: relative;
+        padding-left: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .order-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0.5rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .timeline-step {
+        position: relative;
+        padding-bottom: 2rem;
+    }
+    
+    .timeline-step::before {
+        content: '';
+        position: absolute;
+        left: -2rem;
+        top: 0.25rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: #6c757d;
+        z-index: 1;
+    }
+    
+    .timeline-step.completed::before {
+        background: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3);
+    }
+    
+    .timeline-step.active::before {
+        background: #0d6efd;
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5);
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+    }
+    
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        background: #1e1e2d;
+        color: #b5b5c3;
+    }
+    
+    .card-header {
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .table {
+        color: #b5b5c3;
+        margin-bottom: 0;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        color: #8a8aa0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .table td {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        vertical-align: middle;
+        padding: 1.25rem 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Order #{{ order.id }} - Vendor Panel{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'vendor:dashboard' %}" class="text-decoration-none">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'vendor:orders' %}" class="text-decoration-none">Orders</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Order #{{ order.id }}</li>
+                </ol>
+            </nav>
+            <div class="d-flex align-items-center">
+                <h1 class="h3 mb-0 me-3 text-white">
+                    <i class="fas fa-shopping-bag me-2"></i>Order #{{ order.id }}
+                </h1>
+                <span class="status-badge bg-soft-{% if order.status == 'completed' %}success{% elif order.status == 'cancelled' %}danger{% elif order.status == 'processing' %}info{% else %}warning{% endif %} text-{% if order.status == 'completed' %}success{% elif order.status == 'cancelled' %}danger{% elif order.status == 'processing' %}info{% else %}warning{% endif %}">
+                    {{ order.get_status_display }}
+                </span>
+            </div>
+            <p class="text-muted mb-0 mt-2">
+                <i class="far fa-calendar-alt me-1"></i> {{ order.created_at|date:"F j, Y g:i A" }}
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'vendor:orders' %}" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-1"></i> Back to Orders
+            </a>
+            {% if order.status == 'pending' %}
+            <button class="btn btn-primary" onclick="updateOrderStatus('processing')">
+                <i class="fas fa-tasks me-1"></i> Process Order
+            </button>
+            {% elif order.status == 'processing' %}
+            <button class="btn btn-success" onclick="updateOrderStatus('completed')">
+                <i class="fas fa-check-circle me-1"></i> Mark as Completed
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Order Status Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-gray-800 shadow">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <i class="fas fa-calendar-alt fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1 text-gray-100">Order Information</h5>
+                                    <p class="text-muted mb-0">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ order.created_at|date:"F j, Y g:i A" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <span class="badge fs-6 px-3 py-2
+                                {% if order.status == 'completed' %}bg-success bg-opacity-10 text-success
+                                {% elif order.status == 'cancelled' %}bg-danger bg-opacity-10 text-danger
+                                {% elif order.status == 'processing' %}bg-info bg-opacity-10 text-info
+                                {% else %}bg-warning bg-opacity-10 text-warning{% endif %}">
+                                <i class="fas fa-circle me-1"></i>
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Timeline -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-stream me-2"></i>Order Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="order-timeline">
+                        <div class="timeline-step {% if order.status != 'pending' %}completed{% else %}active{% endif %}">
+                            <h6 class="text-white mb-1">Order Placed</h6>
+                            <p class="text-muted small mb-0">Your order has been received</p>
+                            <small class="text-muted">{{ order.created_at|timesince }} ago</small>
+                        </div>
+                        
+                        <div class="timeline-step {% if order.status == 'processing' or order.status == 'completed' or order.status == 'shipped' or order.status == 'delivered' %}completed{% elif order.status == 'processing' %}active{% endif %}">
+                            <h6 class="text-white mb-1">Processing</h6>
+                            <p class="text-muted small mb-0">We're preparing your order</p>
+                            {% if order.status != 'pending' %}
+                            <small class="text-muted">{{ order.updated_at|timesince }} ago</small>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="timeline-step {% if order.status == 'shipped' or order.status == 'delivered' or order.status == 'completed' %}completed{% elif order.status == 'shipped' %}active{% endif %}">
+                            <h6 class="text-white mb-1">Shipped</h6>
+                            <p class="text-muted small mb-0">Your order is on the way</p>
+                        </div>
+                        
+                        <div class="timeline-step {% if order.status == 'delivered' or order.status == 'completed' %}completed{% elif order.status == 'delivered' %}active{% endif %}">
+                            <h6 class="text-white mb-1">Delivered</h6>
+                            <p class="text-muted small mb-0">Your order has been delivered</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Items & Summary -->
+    <div class="row">
+        <!-- Order Items -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Order Items ({{ order.items.count }})</h5>
+                        <span class="badge bg-soft-primary">Order #{{ order.id }}</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="ps-4">Product</th>
+                                    <th class="text-end pe-4">Price</th>
+                                    <th class="text-center">Qty</th>
+                                    <th class="text-end pe-4">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items.all %}
+                                <tr class="hover-bg-gray-700">
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            {% if item.variation and item.variation.images.first %}
+                                            <img src="{{ item.variation.images.first.image.url }}" 
+                                                 alt="{{ item.variation.name }}" 
+                                                 class="rounded me-3" 
+                                                 style="width: 60px; height: 60px; object-fit: cover;">
+                                            {% else %}
+                                            <div class="bg-light rounded d-flex align-items-center justify-content-center me-3" 
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="fas fa-box text-muted"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <h6 class="mb-1 text-white">
+                                                    {{ item.variation.product.name }}
+                                                    {% if item.variation %}
+                                                    <small class="d-block text-muted">{{ item.variation.name }}</small>
+                                                    {% endif %}
+                                                </h6>
+                                                <small class="text-muted">SKU: {{ item.variation.sku|default:'N/A' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end pe-4">KSh {{ item.price|intcomma }}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-soft-dark text-dark">{{ item.quantity }}</span>
+                                    </td>
+                                    <td class="text-end pe-4 fw-bold">KSh {{ item.subtotal|intcomma }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Additional Fees Section -->
+                {% if additional_fees %}
+                <div class="card-header bg-gray-800 border-0 py-3">
+                    <h5 class="mb-0 text-gray-100">
+                        <i class="fas fa-plus-circle me-2"></i>Additional Fees
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% for fee in additional_fees %}
+                    <div class="border-bottom border-gray-700 p-4 hover-bg-gray-700 transition-colors">
+                        <div class="row align-items-center">
+                            <div class="col-md-4">
+                                <h6 class="mb-1 text-white">{{ fee.fee_type }}</h6>
+                                {% if fee.description %}
+                                <p class="text-muted small mb-0">{{ fee.description }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <span class="badge {% if fee.pay_now %}bg-success bg-opacity-10 text-success{% else %}bg-warning bg-opacity-10 text-warning{% endif %}">
+                                    {% if fee.pay_now %}Pay Now{% else %}Pay Later{% endif %}
+                                </span>
+                            </div>
+                            <div class="col-md-3">
+                                <span class="text-white fw-bold">KSh {{ fee.amount|intcomma }}</span>
+                            </div>
+                            <div class="col-md-2 text-md-end">
+                                <small class="text-muted">{{ fee.created_at|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Order Summary & Details -->
+        <div class="col-lg-4">
+            <!-- Order Summary -->
+            <div class="card border-0 bg-gray-800 shadow mb-4">
+                <div class="card-header bg-gray-800 border-0 py-3">
+                    <h5 class="mb-0 text-gray-100">
+                        <i class="fas fa-calculator me-2"></i>Order Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Subtotal from order items -->
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal ({{ order.items.count }} items)</span>
+                        <span class="text-gray-100">KSh {{ order.items.all|calculate_subtotal|floatformat:2|intcomma }}</span>
+                    </div>
+                    
+                    <!-- Additional Fees -->
+                    {% if additional_fees %}
+                        {% for fee in additional_fees %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <div>
+                                <span class="text-muted">{{ fee.fee_type }}</span>
+                                {% if fee.description %}
+                                <small class="d-block text-muted">{{ fee.description }}</small>
+                                {% endif %}
+                                <span class="badge bg-soft-{% if fee.pay_now %}success{% else %}warning{% endif %} text-{% if fee.pay_now %}success{% else %}warning{% endif %} small">
+                                    {% if fee.pay_now %}Paid Now{% else %}Pay Later{% endif %}
+                                </span>
+                            </div>
+                            <span class="text-gray-100">KSh {{ fee.amount|floatformat:2|intcomma }}</span>
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- Total Additional Fees -->
+                        <div class="d-flex justify-content-between mb-2 border-top border-gray-700 pt-2">
+                            <span class="fw-medium text-gray-100">Total Additional Fees</span>
+                            <span class="fw-medium text-gray-100">KSh {{ additional_fees|sum_fees|floatformat:2|intcomma }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if order.shipping_cost %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Shipping</span>
+                        <span class="text-gray-100">KSh {{ order.shipping_cost|floatformat:2|intcomma }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if order.discount_amount %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Discount</span>
+                        <span class="text-success">-KSh {{ order.discount_amount|floatformat:2|intcomma }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <hr class="border-gray-700">
+                    
+                    <!-- Calculate and display the total -->
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-bold text-gray-100">Total</span>
+                        <span class="fw-bold text-primary fs-5">KSh {{ order|calculate_order_total:additional_fees|floatformat:2|intcomma }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="card border-0 bg-gray-800 shadow mb-4">
+                <div class="card-header bg-gray-800 border-0 py-3">
+                    <h5 class="mb-0 text-gray-100">
+                        <i class="fas fa-user me-2"></i>Customer Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Customer Name</label>
+                        <p class="text-gray-100 mb-0">
+                            {% if order.user %}
+                                {{ order.user.get_full_name|default:order.user.username }}
+                            {% else %}
+                                Guest Customer
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if order.user and order.user.email %}
+                    <div class="mb-3">
+                        <label class="text-muted small">Email</label>
+                        <p class="text-gray-100 mb-0">{{ order.user.email }}</p>
+                    </div>
+                    {% endif %}
+                    {% if order.shipping_address %}
+                    <div class="mb-3">
+                        <label class="text-muted small">Shipping Address</label>
+                        <p class="text-gray-100 mb-0">{{ order.shipping_address }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="card border-0 bg-gray-800 shadow mb-4">
+                <div class="card-header bg-gray-800 border-0 py-3">
+                    <h5 class="mb-0 text-gray-100">
+                        <i class="fas fa-credit-card me-2"></i>Payment Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Payment Method</label>
+                        <p class="text-gray-100 mb-0">
+                            {% if order.payment_method == 'mpesa' %}
+                                <i class="fas fa-mobile-alt text-success me-1"></i>M-Pesa
+                            {% elif order.payment_method == 'card' %}
+                                <i class="fas fa-credit-card text-primary me-1"></i>Card Payment
+                            {% else %}
+                                <i class="fas fa-money-bill text-warning me-1"></i>{{ order.get_payment_method_display|default:"Not specified" }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted small">Payment Status</label>
+                        <p class="mb-0">
+                            <span class="badge 
+                                {% if order.status == 'paid' %}bg-success bg-opacity-10 text-success
+                                {% elif order.status == 'cancelled' %}bg-danger bg-opacity-10 text-danger
+                                {% else %}bg-warning bg-opacity-10 text-warning{% endif %}">
+                                {{ order.get_status_display|default:"Pending" }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Actions -->
+            <div class="card border-0 bg-gray-800 shadow">
+                <div class="card-header bg-gray-800 border-0 py-3">
+                    <h5 class="mb-0 text-gray-100">
+                        <i class="fas fa-cogs me-2"></i>Order Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if order.status == 'pending' %}
+                        <button class="btn btn-success" onclick="updateOrderStatus('processing')">
+                            <i class="fas fa-play me-1"></i> Mark as Processing
+                        </button>
+                        {% elif order.status == 'processing' %}
+                        <button class="btn btn-primary" onclick="updateOrderStatus('completed')">
+                            <i class="fas fa-check me-1"></i> Mark as Completed
+                        </button>
+                        {% endif %}
+                        
+                        {% if order.status != 'cancelled' %}
+                        <button class="btn btn-outline-danger" onclick="updateOrderStatus('cancelled')">
+                            <i class="fas fa-times me-1"></i> Cancel Order
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'home:chat_list' %}" class="btn btn-outline-info">
+                            <i class="fas fa-comments me-1"></i> Contact Customer
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateOrderStatus(status) {
+    if (confirm(`Are you sure you want to mark this order as ${status}?`)) {
+        // You can implement AJAX call here to update order status
+        // For now, we'll just show an alert
+        alert(`Order status will be updated to ${status}. This feature needs to be implemented.`);
+    }
+}
+
+// Add hover effects for better UX
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects to order items
+    const orderItems = document.querySelectorAll('.hover-bg-gray-700');
+    orderItems.forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(55, 65, 81, 0.5)';
+        });
+        item.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+});
+</script>
+{% endblock %}
+

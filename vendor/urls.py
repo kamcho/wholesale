@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .order_views import order_detail
 
 app_name = 'vendor'
 
@@ -27,6 +28,8 @@ urlpatterns = [
     
     # Orders
     path('orders/', views.orders, name='orders'),
+    path('orders/<int:order_id>/', order_detail, name='order_detail'),
+    path('orders/chat/<int:chat_id>/create/', views.create_order_from_chat, name='create_order_from_chat'),
     path('order-requests/', views.order_requests, name='order_requests'),
     path('order-requests/vendor/<int:pk>/', views.order_request_detail, name='vendor_order_request_detail'),
     path('order-requests/<int:pk>/update-status/', views.order_request_update_status, name='order_request_update_status'),

@@ -1,16 +1,17 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.utils import timezone
 from django.db.models import Q, Max
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
+from django.urls import reverse
 import json
 
 from django.contrib.auth import get_user_model
-from .models import Product, BuyerSellerChat, BuyerSellerMessage
+from .models import Product, BuyerSellerChat, BuyerSellerMessage, Order, OrderItem, ProductVariation
 from .forms import BuyerSellerMessageForm
 
 User = get_user_model()
@@ -98,15 +99,65 @@ def buyer_seller_chat(request, chat_id):
     # Determine the other participant
     other_user = chat.seller if request.user == chat.buyer else chat.buyer
     
+    # Check if current user is the product creator and a manager
+    is_manager = request.user.role == 'Manager'
+    is_product_creator = chat.product and chat.product.business and chat.product.business.owner == request.user
+    
     context = {
         'chat': chat,
         'other_user': other_user,
         'messages': page_obj,
         'form': form,
         'is_buyer': request.user == chat.buyer,
+        'is_manager': is_manager,
+        'is_product_creator': is_product_creator,
     }
     
     return render(request, 'home/buyer_seller_chat.html', context)
+
+
+@login_required
+def create_order_from_chat(request, chat_id):
+    """Create an order from a chat conversation"""
+    chat = get_object_or_404(BuyerSellerChat, id=chat_id)
+    
+    # Check if user is the product creator and a manager
+    is_manager = request.user.role == 'Manager'
+    is_product_creator = chat.product and chat.product.business and chat.product.business.owner == request.user
+    
+    if not (is_manager and is_product_creator and request.user == chat.seller):
+        return HttpResponseForbidden("You don't have permission to create an order from this chat.")
+    
+    # Get the first variation of the product (you might want to modify this logic)
+    variation = chat.product.variations.first()
+    if not variation:
+        messages.error(request, "This product has no variations available for ordering.")
+        return redirect('home:buyer_seller_chat', chat_id=chat.id)
+    
+    try:
+        # Create the order
+        order = Order.objects.create(
+            user=chat.buyer,
+            status='pending',
+            total=variation.price,  # You might want to calculate this based on quantity
+            payment_method='cash_on_delivery',  # Default payment method
+        )
+        
+        # Add order item
+        OrderItem.objects.create(
+            order=order,
+            product=chat.product,
+            variation=variation,
+            quantity=1,  # Default quantity, you might want to make this configurable
+            price=variation.price,
+        )
+        
+        messages.success(request, f"Order #{order.id} has been created successfully!")
+        return redirect('home:order_detail', order_id=order.id)
+        
+    except Exception as e:
+        messages.error(request, f"Error creating order: {str(e)}")
+        return redirect('home:buyer_seller_chat', chat_id=chat.id)
 
 
 @login_required

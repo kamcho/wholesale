@@ -150,12 +150,13 @@
     
     /* Product cards */
     .product-card {
-        border: 1px solid #e9ecef;
+        border: 1px solid var(--bs-border-color, #e9ecef);
         border-radius: 15px;
         padding: 1.5rem;
         margin-bottom: 1rem;
         transition: all 0.3s ease;
-        background: white;
+        background: var(--bs-body-bg, white);
+        color: var(--bs-body-color, #000);
     }
     
     .product-card:hover {
@@ -174,11 +175,12 @@
     
     /* Summary cards */
     .summary-card {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: var(--bs-body-bg, linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%));
         border-radius: 15px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
-        border: 1px solid #e9ecef;
+        border: 1px solid var(--bs-border-color, #e9ecef);
+        color: var(--bs-body-color, #000);
     }
     
     .summary-item {
@@ -186,14 +188,14 @@
         justify-content: space-between;
         align-items: center;
         padding: 0.75rem 0;
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid var(--bs-border-color, #e9ecef);
     }
     
     .summary-item:last-child {
         border-bottom: none;
         font-weight: 600;
         font-size: 1.1rem;
-        color: #495057;
+        color: var(--bs-body-color, #495057);
     }
     
     /* Customer info */
@@ -282,20 +284,20 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid px-4 py-4" style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000);">
     <!-- Header Section -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center fade-in-up">
                 <div>
-                    <h1 class="h2 mb-2 text-dark">
+                    <h1 class="h2 mb-2" style="color: var(--bs-body-color, #000);">
                         <i class="fas fa-handshake me-3 text-primary"></i>
                         Order Request #{{ order_request.id|stringformat:"06d" }}
                     </h1>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb bg-transparent mb-0 p-0">
                             <li class="breadcrumb-item">
-                                <a href="{% url 'vendor:order_requests' %}" class="text-decoration-none text-muted">
+                                <a href="{% url 'vendor:order_requests' %}" class="text-decoration-none" style="color: var(--bs-secondary-color, #6c757d);">
                                     <i class="fas fa-arrow-left me-1"></i> Order Requests
                                 </a>
                             </li>
@@ -310,7 +312,7 @@
                         <i class="fas fa-arrow-left me-2"></i> Back to List
                     </a>
                     {% if order_request.status == 'pending' %}
-                    <button type="button" class="action-btn btn-accept" id="acceptRequest">
+                    <button type="button" class="action-btn btn-accept" id="acceptRequest" data-bs-toggle="modal" data-bs-target="#acceptRequestModal">
                         <i class="fas fa-check me-2"></i> Accept Request
                     </button>
                     <button type="button" class="action-btn btn-reject" id="rejectRequest">
@@ -391,21 +393,21 @@
                                      alt="{{ item.variation.product.name }}" 
                                      class="product-image">
                                 {% else %}
-                                <div class="product-image bg-light d-flex align-items-center justify-content-center">
-                                    <i class="fas fa-image text-muted"></i>
+                                <div class="product-image d-flex align-items-center justify-content-center" style="background-color: var(--bs-light, #f8f9fa);">
+                                    <i class="fas fa-image" style="color: var(--bs-secondary-color, #6c757d);"></i>
                                 </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <h6 class="mb-1 fw-bold">{{ item.variation.product.name }}</h6>
-                                <p class="text-muted mb-1 small">
+                                <p class="mb-1 small" style="color: var(--bs-secondary-color, #6c757d);">
                                     {% for attr in item.variation.attributes.all %}
-                                        <span class="badge bg-light text-dark me-1">
+                                        <span class="badge me-1" style="background-color: var(--bs-light, #f8f9fa); color: var(--bs-dark, #000);">
                                             {{ attr.attribute.name }}: {{ attr.value.value }}
                                         </span>
                                     {% endfor %}
                                 </p>
-                                <small class="text-muted">
+                                <small style="color: var(--bs-secondary-color, #6c757d);">
                                     <i class="fas fa-tag me-1"></i>
                                     Unit Price: KSh {{ item.unit_price|intcomma }}
                                 </small>
@@ -415,17 +417,17 @@
                                         <i class="fas fa-percentage me-1"></i>
                                         Deposit: {{ item.deposit_percentage|floatformat:0 }}%
                                     </span>
-                                    <small class="text-muted ms-2">
+                                    <small class="ms-2" style="color: var(--bs-secondary-color, #6c757d);">
                                         (KSh {{ item.deposit_amount|intcomma }})
                                     </small>
                                 </div>
                                 {% endif %}
                             </div>
                             <div class="col-md-2 text-center">
-                                <div class="p-2 bg-light rounded">
+                                <div class="p-2 rounded" style="background-color: var(--bs-light, #f8f9fa);">
                                     <i class="fas fa-shopping-cart text-primary mb-1"></i>
-                                    <div class="fw-bold">{{ item.quantity }}</div>
-                                    <small class="text-muted">Qty</small>
+                                    <div class="fw-bold" style="color: var(--bs-body-color, #000);">{{ item.quantity }}</div>
+                                    <small style="color: var(--bs-secondary-color, #6c757d);">Qty</small>
                                 </div>
                             </div>
                             <div class="col-md-2 text-end">
@@ -578,13 +580,7 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Handle accept/reject buttons
-    $('#acceptRequest').on('click', function() {
-        if (confirm('Are you sure you want to accept this order request?')) {
-            updateRequestStatus('accepted', $(this));
-        }
-    });
-    
+    // Handle reject button
     $('#rejectRequest').on('click', function() {
         if (confirm('Are you sure you want to reject this order request?')) {
             updateRequestStatus('rejected', $(this));
@@ -681,6 +677,292 @@ $(document).ready(function() {
             $('.alert').fadeOut(300, function() { $(this).remove(); });
         }, 7000);
     }
+});
+</script>
+
+<!-- Accept Request Modal -->
+<div class="modal fade" id="acceptRequestModal" tabindex="-1" aria-labelledby="acceptRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000);">
+            <div class="modal-header" style="border-bottom: 1px solid var(--bs-border-color, #dee2e6);">
+                <h5 class="modal-title" id="acceptRequestModalLabel" style="color: var(--bs-body-color, #000);">
+                    <i class="fas fa-check-circle me-2 text-success"></i>
+                    Accept Order Request
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="acceptRequestForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="addAdditionalFees" name="add_additional_fees">
+                            <label class="form-check-label" for="addAdditionalFees" style="color: var(--bs-body-color, #000);">
+                                Add additional fees (Customs, Shipping, Handling, etc.)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="additionalFeesSection" style="display: none;">
+                        <h6 class="mb-3" style="color: var(--bs-body-color, #000);">Additional Fees</h6>
+                        <div id="additionalFeesContainer">
+                            <div class="additional-fee-item mb-3 p-3 border rounded" style="border-color: var(--bs-border-color, #dee2e6); background-color: var(--bs-body-bg, #fff);">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Fee Type</label>
+                                        <select class="form-select" name="fee_types[]" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
+                                            <option value="">Select fee type</option>
+                                            <option value="Customs">Customs</option>
+                                            <option value="Shipping">Shipping</option>
+                                            <option value="Handling">Handling</option>
+                                            <option value="Insurance">Insurance</option>
+                                            <option value="Documentation">Documentation</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Amount (KSh)</label>
+                                        <input type="number" class="form-control" name="fee_amounts[]" step="0.01" min="0" placeholder="0.00" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Pay Now</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="fee_pay_now[]" value="true" checked>
+                                            <label class="form-check-label" style="color: var(--bs-body-color, #000);">
+                                                Pay immediately
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end">
+                                        <button type="button" class="btn btn-outline-danger btn-sm remove-fee" style="display: none;">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Description (Optional)</label>
+                                        <textarea class="form-control" name="fee_descriptions[]" rows="2" placeholder="Describe this additional fee..." style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="addFeeBtn">
+                            <i class="fas fa-plus me-1"></i> Add Another Fee
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6 style="color: var(--bs-body-color, #000);">Order Summary</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1" style="color: var(--bs-secondary-color, #6c757d);">Original Amount:</p>
+                                <p class="fw-bold" style="color: var(--bs-body-color, #000);">KSh <span id="originalAmount">{{ total_amount|intcomma }}</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1" style="color: var(--bs-secondary-color, #6c757d);">Additional Fees:</p>
+                                <p class="fw-bold" style="color: var(--bs-body-color, #000);">KSh <span id="additionalFeesTotal">0.00</span></p>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-12">
+                                <p class="mb-1" style="color: var(--bs-secondary-color, #6c757d);">Total Amount:</p>
+                                <h5 class="text-primary" style="color: var(--bs-primary, #0d6efd);">KSh <span id="totalAmount">{{ total_amount|intcomma }}</span></h5>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="border-top: 1px solid var(--bs-border-color, #dee2e6);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmAcceptRequest">
+                    <i class="fas fa-check me-2"></i>Accept Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Additional fees functionality
+$(document).ready(function() {
+    // Define showAlert function if not already defined
+    if (typeof showAlert === 'undefined') {
+        window.showAlert = function(type, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' : 
+                              type === 'danger' ? 'alert-danger' : 'alert-info';
+            
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Insert alert at the top of the page
+            $('.container-fluid').prepend(alertHtml);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                $('.alert').fadeOut(300, function() { $(this).remove(); });
+            }, 5000);
+        };
+    }
+    // Toggle additional fees section
+    $('#addAdditionalFees').change(function() {
+        if ($(this).is(':checked')) {
+            $('#additionalFeesSection').show();
+        } else {
+            $('#additionalFeesSection').hide();
+        }
+    });
+    
+    // Add new fee row
+    $('#addFeeBtn').click(function() {
+        const feeHtml = `
+            <div class="additional-fee-item mb-3 p-3 border rounded" style="border-color: var(--bs-border-color, #dee2e6); background-color: var(--bs-body-bg, #fff);">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label" style="color: var(--bs-body-color, #000);">Fee Type</label>
+                        <select class="form-select" name="fee_types[]" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
+                            <option value="">Select fee type</option>
+                            <option value="Customs">Customs</option>
+                            <option value="Shipping">Shipping</option>
+                            <option value="Handling">Handling</option>
+                            <option value="Insurance">Insurance</option>
+                            <option value="Documentation">Documentation</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" style="color: var(--bs-body-color, #000);">Amount (KSh)</label>
+                        <input type="number" class="form-control" name="fee_amounts[]" step="0.01" min="0" placeholder="0.00" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" style="color: var(--bs-body-color, #000);">Pay Now</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="fee_pay_now[]" value="true" checked>
+                            <label class="form-check-label" style="color: var(--bs-body-color, #000);">
+                                Pay immediately
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-fee">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <label class="form-label" style="color: var(--bs-body-color, #000);">Description (Optional)</label>
+                        <textarea class="form-control" name="fee_descriptions[]" rows="2" placeholder="Describe this additional fee..." style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);"></textarea>
+                    </div>
+                </div>
+            </div>
+        `;
+        $('#additionalFeesContainer').append(feeHtml);
+        updateRemoveButtons();
+    });
+    
+    // Remove fee row
+    $(document).on('click', '.remove-fee', function() {
+        $(this).closest('.additional-fee-item').remove();
+        updateRemoveButtons();
+        calculateTotal();
+    });
+    
+    // Update remove buttons visibility
+    function updateRemoveButtons() {
+        const feeItems = $('.additional-fee-item');
+        feeItems.find('.remove-fee').show();
+        if (feeItems.length === 1) {
+            feeItems.first().find('.remove-fee').hide();
+        }
+    }
+    
+    // Calculate total when amounts change
+    $(document).on('input', 'input[name="fee_amounts[]"]', function() {
+        calculateTotal();
+    });
+    
+    function calculateTotal() {
+        let additionalTotal = 0;
+        $('input[name="fee_amounts[]"]').each(function() {
+            const amount = parseFloat($(this).val()) || 0;
+            additionalTotal += amount;
+        });
+        
+        const originalAmount = parseFloat('{{ total_amount }}') || 0;
+        const totalAmount = originalAmount + additionalTotal;
+        
+        $('#additionalFeesTotal').text(additionalTotal.toLocaleString());
+        $('#totalAmount').text(totalAmount.toLocaleString());
+    }
+    
+    // Handle accept request
+    $('#confirmAcceptRequest').click(function() {
+        // Ensure all checkboxes are included in the form data, even if unchecked
+        $('input[type="checkbox"][name^="fee_pay_now"]').each(function() {
+            // Add a hidden input with the same name and value 'false' before each checkbox
+            if (!$(this).is(':checked')) {
+                $(this).before('<input type="hidden" name="' + $(this).attr('name') + '" value="false">');
+            }
+        });
+
+        // Validate form
+        if ($('#addAdditionalFees').is(':checked')) {
+            let hasValidFee = false;
+            $('.additional-fee-item').each(function() {
+                const feeType = $(this).find('select[name="fee_types[]"]').val();
+                const feeAmount = $(this).find('input[name="fee_amounts[]"]').val();
+                if (feeType && feeAmount && parseFloat(feeAmount) > 0) {
+                    hasValidFee = true;
+                }
+            });
+            
+            if (!hasValidFee) {
+                showAlert('warning', 'Please add at least one valid additional fee or uncheck the additional fees option.');
+                return;
+            }
+        }
+        
+        const formData = new FormData($('#acceptRequestForm')[0]);
+        formData.append('status', 'accepted');
+        
+        $.ajax({
+            url: '{% url "vendor:order_request_update_status" order_request.id %}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#acceptRequestModal').modal('hide');
+                    showAlert('success', 'Order request accepted successfully!');
+                    setTimeout(() => {
+                        if (response.order_id) {
+                            // Redirect to the created order
+                            window.location.href = `{% url 'vendor:order_detail' 0 %}`.replace('0', response.order_id);
+                        } else {
+                            location.reload();
+                        }
+                    }, 1500);
+                } else {
+                    showAlert('danger', response.message || 'Failed to accept order request.');
+                }
+            },
+            error: function() {
+                showAlert('danger', 'An error occurred while accepting the order request.');
+            }
+        });
+    });
 });
 </script>
 {% endblock %}

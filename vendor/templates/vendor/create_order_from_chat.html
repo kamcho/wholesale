@@ -1,0 +1,331 @@
+{% extends 'vendor/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} | Vendor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> {{ title }}</h4>
+                        <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="btn btn-sm btn-light">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Chat
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Order Context -->
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle me-2 fs-4"></i>
+                            <div>
+                                <h5 class="alert-heading mb-1">Order Context</h5>
+                                <p class="mb-0">
+                                    This order is being created from a conversation about: 
+                                    <strong>{{ chat.product.name|default:"General Inquiry" }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Information -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Customer Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Name</label>
+                                    <p class="mb-0 fw-semibold">{{ chat.buyer.get_full_name|default:chat.buyer.email }}</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Email</label>
+                                    <p class="mb-0">{{ chat.buyer.email }}</p>
+                                </div>
+                            </div>
+                            {% if chat.buyer.phone_number %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">Phone</label>
+                                    <p class="mb-0">{{ chat.buyer.phone_number|default:"Not provided" }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Order Form -->
+                    <form method="post" id="orderForm" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Hidden fields -->
+                        {{ form.customer }}
+                        {{ form.product }}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Product & Variation -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-box me-2"></i>Order Details</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if chat.product %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Product</label>
+                                    <p class="mb-0">{{ chat.product.name }}</p>
+                                    <small class="text-muted">Product from your inventory</small>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.variation.id_for_label }}" class="form-label fw-semibold">
+                                                Variation <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.variation }}
+                                            {% if form.variation.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.variation.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group mb-3">
+                                            <label for="{{ form.quantity.id_for_label }}" class="form-label fw-semibold">
+                                                Quantity <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="input-group">
+                                                <button type="button" class="btn btn-outline-secondary" id="decreaseQty" style="width: 40px;">
+                                                    <i class="fas fa-minus"></i>
+                                                </button>
+                                                {{ form.quantity }}
+                                                <button type="button" class="btn btn-outline-secondary" id="increaseQty" style="width: 40px;">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            {% if form.quantity.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    <i class="fas fa-exclamation-circle me-1"></i>{{ form.quantity.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Custom Price Toggle -->
+                                <div class="row mb-3">
+                                    <div class="col-12">
+                                        <div class="form-check form-switch mb-3">
+                                            {{ form.use_custom_price }}
+                                            <label class="form-check-label" for="{{ form.use_custom_price.id_for_label }}">
+                                                {{ form.use_custom_price.label }}
+                                            </label>
+                                        </div>
+                                        
+                                        <div id="customPriceContainer" class="mb-3" style="display: none;">
+                                            <div class="form-group">
+                                                <label for="{{ form.custom_price.id_for_label }}" class="form-label fw-semibold">
+                                                    {{ form.custom_price.label }}
+                                                </label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text">KSh</span>
+                                                    {{ form.custom_price }}
+                                                </div>
+                                                {% if form.custom_price.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        <i class="fas fa-exclamation-circle me-1"></i>{{ form.custom_price.errors.0 }}
+                                                    </div>
+                                                {% endif %}
+                                                <small class="form-text text-muted">
+                                                    Default price: <span id="defaultPrice">0.00</span> KSh
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                                
+                                <div class="form-group mb-0">
+                                    <label for="{{ form.note.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-sticky-note me-1"></i> Order Notes (Optional)
+                                    </label>
+                                    {{ form.note }}
+                                    <div class="form-text">Add any special instructions or notes about this order.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Order Summary -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Subtotal</span>
+                                    <span id="subtotal">KSh 0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Tax</span>
+                                    <span>KSh 0.00</span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between fw-bold fs-5">
+                                    <span>Total</span>
+                                    <span id="total">KSh 0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle me-2"></i> Create Order
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize form validation
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+
+    // Quantity controls
+    $('#increaseQty').on('click', function() {
+        var quantityInput = $('#{{ form.quantity.id_for_label }}');
+        var currentVal = parseInt(quantityInput.val()) || 0;
+        quantityInput.val(currentVal + 1).trigger('change');
+    });
+
+    $('#decreaseQty').on('click', function() {
+        var quantityInput = $('#{{ form.quantity.id_for_label }}');
+        var currentVal = parseInt(quantityInput.val()) || 1;
+        if (currentVal > 1) {
+            quantityInput.val(currentVal - 1).trigger('change');
+        }
+    });
+
+    // Format number with commas
+    function formatNumber(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // Calculate and update order total
+    function updateOrderTotal() {
+        var variationSelect = $('.variation-select');
+        var quantityInput = $('#{{ form.quantity.id_for_label }}');
+        var selectedVariationId = variationSelect.val();
+        
+        if (selectedVariationId && quantityInput.val()) {
+            // Get the variations data from the select element
+            var variationsData = JSON.parse(variationSelect.attr('data-variations') || '{}');
+            var variation = variationsData[selectedVariationId];
+            
+            if (variation) {
+                var price = parseFloat(variation.price) || 0;
+                var quantity = parseInt(quantityInput.val()) || 1;
+                
+                // Check if custom price is being used
+                var useCustomPrice = $('#{{ form.use_custom_price.id_for_label }}').is(':checked');
+                if (useCustomPrice) {
+                    var customPrice = parseFloat($('#{{ form.custom_price.id_for_label }}').val());
+                    if (!isNaN(customPrice) && customPrice > 0) {
+                        price = customPrice;
+                    }
+                }
+                
+                var subtotal = price * quantity;
+                
+                // Update the display with formatted numbers
+                $('#subtotal').text('KSh ' + formatNumber(subtotal.toFixed(2)));
+                $('#total').text('KSh ' + formatNumber(subtotal.toFixed(2)));
+                return;
+            }
+        }
+        
+        // Default case if no variation is selected or no quantity
+        $('#subtotal, #total').text('KSh 0.00');
+    }
+
+    // Toggle custom price field
+    $('#{{ form.use_custom_price.id_for_label }}').on('change', function() {
+        const isChecked = $(this).is(':checked');
+        $('#customPriceContainer').toggle(isChecked);
+        if (isChecked) {
+            $('#{{ form.custom_price.id_for_label }}').focus();
+        }
+        updateOrderTotal();
+    });
+    
+    // Initialize custom price field visibility
+    if ($('#{{ form.use_custom_price.id_for_label }}').is(':checked')) {
+        $('#customPriceContainer').show();
+    }
+    
+    // Update default price display when variation changes
+    $('select#{{ form.variation.id_for_label }}').on('change', function() {
+        const selectedOption = $(this).find('option:selected');
+        if (selectedOption.length) {
+            const variationsData = $(this).data('variations');
+            const variationId = selectedOption.val();
+            if (variationsData && variationsData[variationId]) {
+                const price = parseFloat(variationsData[variationId].price).toFixed(2);
+                $('#defaultPrice').text(price);
+            }
+        }
+        updateOrderTotal();
+    });
+    
+    // Update total when variation, quantity, or custom price changes
+    $('#{{ form.variation.id_for_label }}, #{{ form.quantity.id_for_label }}, #{{ form.custom_price.id_for_label }}').on('change keyup', updateOrderTotal);
+    
+    // Initial calculation and setup
+    updateOrderTotal();
+    
+    // Set initial default price
+    const initialVariation = $('select#{{ form.variation.id_for_label }}').find('option:selected');
+    if (initialVariation.length) {
+        const variationsData = $('select#{{ form.variation.id_for_label }}').data('variations');
+        const variationId = initialVariation.val();
+        if (variationsData && variationsData[variationId]) {
+            const price = parseFloat(variationsData[variationId].price).toFixed(2);
+            $('#defaultPrice').text(price);
+        }
+    }
+});
+</script>
+{% endblock %}

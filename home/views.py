@@ -1,7 +1,9 @@
 import json
 import logging
+import re
 import time
 from decimal import Decimal, ROUND_HALF_UP
+from django.conf import settings
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,7 +12,7 @@ from django.db.models import Q, Min, Max, Count, Avg
 from django.views.generic import ListView
 from django.core.paginator import Paginator
 
-from .models import Agent, ServiceCategory, ProductServicing
+from .models import Agent, ServiceCategory, ProductServicing,OrderAdditionalFees
 from .forms import UserRegistrationForm
 from django.contrib import messages
 from django.contrib.auth import login
@@ -29,7 +31,8 @@ from django_countries import countries
 from .models import (
     Order, OrderItem, Product, ProductCategory, Business, ProductImage, 
     ProductCategoryFilter, Cart, CartItem, ProductVariation, Wishlist, 
-    WishlistItem, ProductOrder, Payment, OrderRequest, OrderRequestItem, AdditionalFees
+    WishlistItem, ProductOrder, Payment, OrderRequest, OrderRequestItem, AdditionalFees,
+    RawPayment
 )
 class SignUpView(CreateView):
     form_class = UserRegistrationForm
@@ -194,7 +197,7 @@ def product_detail(request, pk):
         # Fetch user's Payments tied to orders of this product's variations
         my_payments = Payment.objects.filter(
             user=request.user, 
-            order_id__product__in=product.variations.all()
+            order_id__items__variation__in=product.variations.all()
         ).select_related('raw_payment').order_by('-created_at')
     
     # Get related products sharing at least one category
@@ -235,17 +238,35 @@ def product_detail(request, pk):
     additional_fees = AdditionalFees.objects.filter(variation__product=product).distinct()
     
     # Get related orders for this product and its variations
-    related_orders = OrderItem.objects.filter(
+    # First get unique orders that have items for this product
+    related_order_ids = OrderItem.objects.filter(
         variation__product=product
-    ).select_related('order', 'variation').order_by('-order__created_at')
+    ).values_list('order_id', flat=True).distinct()
+    
+    # Then get the orders with their items for this product (excluding cancelled orders)
+    from django.db.models import Prefetch
+    related_orders = Order.objects.filter(
+        id__in=related_order_ids
+    ).exclude(
+        status='cancelled'
+    ).prefetch_related(
+        Prefetch(
+            'items',
+            queryset=OrderItem.objects.filter(
+                variation__product=product
+            ).select_related('variation'),
+            to_attr='product_items'
+        )
+    ).order_by('-created_at')
     
     # Get unique order requests with their items for this product
     from django.db.models import Prefetch
     from django.db.models.functions import Coalesce
     
-    # First, get the order requests that have items for this product
+    # First, get the order requests that have items for this product and are pending
     order_requests = OrderRequest.objects.filter(
-        items__variation__product=product
+        items__variation__product=product,
+        status='pending'
     ).distinct().prefetch_related(
         Prefetch(
             'items',
@@ -704,6 +725,7 @@ def quick_checkout_page(request):
 @require_http_methods(["POST"])
 def create_order(request):
     """Create an order and redirect to order detail page."""
+    logger = logging.getLogger(__name__)
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=405)
     
@@ -759,7 +781,6 @@ def create_order(request):
     except Cart.DoesNotExist:
         return JsonResponse({'error': 'Cart not found'}, status=404)
     except Exception as e:
-        logger = logging.getLogger(__name__)
         logger.error(f'Error creating order: {str(e)}')
         return JsonResponse({'error': 'An error occurred while creating your order'}, status=500)
 
@@ -838,8 +859,10 @@ def process_mpesa_payment(request):
             data = json.loads(request.body)
             phone_number = data.get('phone_number')
             payment_plans = data.get('payment_plans', {})
+            order_id = data.get('order_id')
             logger.info(f"Payment request for phone: {phone_number}")
             logger.info(f"Payment plans: {payment_plans}")
+            logger.info(f"Order ID: {order_id}")
         except json.JSONDecodeError:
             logger.error("Invalid JSON data received")
             return JsonResponse({'error': 'Invalid request data. Please try again.'}, status=400)
@@ -848,70 +871,89 @@ def process_mpesa_payment(request):
         if not phone_number or not str(phone_number).strip():
             logger.error("No phone number provided")
             return JsonResponse({'error': 'Phone number is required'}, status=400)
+        
+        # Check if this is an order payment or cart payment
+        if order_id:
+            # Order-based payment
+            try:
+                order = get_object_or_404(Order, id=order_id)
+                logger.info(f"Processing M-Pesa payment for existing order: {order_id}")
+                
+                # Calculate total amount from order items
+                total_amount = order.total
+                order_ref = f"ORD-{order_id}"
+                
+            except Order.DoesNotExist:
+                logger.error(f"Order {order_id} not found")
+                return JsonResponse({'error': 'Order not found'}, status=404)
+        else:
+            # Cart-based payment (original functionality)
+            try:
+                cart = _get_or_create_cart(request)
+                cart_items = cart.items.select_related('variation__product').all()
+                logger.info(f"Found cart with {cart_items.count()} items")
+                
+                if not cart_items.exists():
+                    logger.error("Cart is empty")
+                    return JsonResponse({'error': 'Your cart is empty. Please add items before checking out.'}, status=400)
+                    
+            except Exception as e:
+                logger.error(f"Error retrieving cart: {str(e)}")
+                return JsonResponse({'error': 'Unable to retrieve your cart. Please try again.'}, status=400)
             
-        # Get cart for the current user/session
-        try:
-            cart = _get_or_create_cart(request)
-            cart_items = cart.items.select_related('variation__product').all()
-            logger.info(f"Found cart with {cart_items.count()} items")
-            
-            if not cart_items.exists():
+            if not cart_items:
                 logger.error("Cart is empty")
                 return JsonResponse({'error': 'Your cart is empty. Please add items before checking out.'}, status=400)
-                
-        except Exception as e:
-            logger.error(f"Error retrieving cart: {str(e)}")
-            return JsonResponse({'error': 'Unable to retrieve your cart. Please try again.'}, status=400)
         
-        if not cart_items:
-            logger.error("Cart is empty")
-            return JsonResponse({'error': 'Your cart is empty. Please add items before checking out.'}, status=400)
-        
-        # Calculate total amount based on payment plans with interest rates
-        total_amount = Decimal('0')
-        pay_now_amount = Decimal('0')
-        pay_later_amount = Decimal('0')
-        total_interest = Decimal('0')
-        
-        for item in cart_items:
-            item_total = item.variation.price * item.quantity
+        # Calculate total amount based on payment type
+        if order_id:
+            # For order payments, use the order total directly
+            logger.info(f"Using order total: ${total_amount}")
+        else:
+            # For cart payments, calculate based on payment plans with interest rates
+            pay_now_amount = Decimal('0')
+            pay_later_amount = Decimal('0')
+            total_interest = Decimal('0')
             
-            # Check if this item has a payment plan
-            item_id = str(item.id)
-            if item_id in payment_plans and payment_plans[item_id].get('enabled', False):
-                # Calculate payment plan amounts
-                percentage = Decimal(str(payment_plans[item_id].get('percentage', 0)))
+            for item in cart_items:
+                item_total = item.variation.price * item.quantity
                 
-                # Find the appropriate interest rate for this percentage
-                interest_rate = Decimal('0')
-                i_rates = item.variation.i_rates.all().order_by('lower_range')
-                
-                for i_rate in i_rates:
-                    if i_rate.lower_range <= percentage <= i_rate.upper_range:
-                        interest_rate = i_rate.rate
-                        logger.info(f"Item {item_id}: Found interest rate {interest_rate}% for percentage {percentage}%")
-                        break
-                
-                # Calculate amounts with interest
-                pay_now_item = (item_total * percentage / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                remaining_amount = item_total - pay_now_item
-                
-                # Apply interest rate to the remaining amount
-                interest_amount = (remaining_amount * interest_rate / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                pay_later_item = remaining_amount + interest_amount
-                
-                pay_now_amount += pay_now_item
-                pay_later_amount += pay_later_item
-                total_interest += interest_amount
-                total_amount += pay_now_item  # Only charge the pay now amount
-                
-                logger.info(f"Item {item_id}: Base ${item_total}, Pay Now ${pay_now_item} ({percentage}%), Pay Later ${pay_later_item} (Interest: ${interest_amount} at {interest_rate}%)")
-            else:
-                # No payment plan, pay full amount now
-                total_amount += item_total
-                logger.info(f"Item {item_id}: No payment plan, full amount ${item_total}")
-        
-        logger.info(f"Final amounts - Total: ${total_amount}, Pay Now: ${pay_now_amount}, Pay Later: ${pay_later_amount}, Total Interest: ${total_interest}")
+                # Check if this item has a payment plan
+                item_id = str(item.id)
+                if item_id in payment_plans and payment_plans[item_id].get('enabled', False):
+                    # Calculate payment plan amounts
+                    percentage = Decimal(str(payment_plans[item_id].get('percentage', 0)))
+                    
+                    # Find the appropriate interest rate for this percentage
+                    interest_rate = Decimal('0')
+                    i_rates = item.variation.i_rates.all().order_by('lower_range')
+                    
+                    for i_rate in i_rates:
+                        if i_rate.lower_range <= percentage <= i_rate.upper_range:
+                            interest_rate = i_rate.rate
+                            logger.info(f"Item {item_id}: Found interest rate {interest_rate}% for percentage {percentage}%")
+                            break
+                    
+                    # Calculate amounts with interest
+                    pay_now_item = (item_total * percentage / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    remaining_amount = item_total - pay_now_item
+                    
+                    # Apply interest rate to the remaining amount
+                    interest_amount = (remaining_amount * interest_rate / 100).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                    pay_later_item = remaining_amount + interest_amount
+                    
+                    pay_now_amount += pay_now_item
+                    pay_later_amount += pay_later_item
+                    total_interest += interest_amount
+                    total_amount += pay_now_item  # Only charge the pay now amount
+                    
+                    logger.info(f"Item {item_id}: Base ${item_total}, Pay Now ${pay_now_item} ({percentage}%), Pay Later ${pay_later_item} (Interest: ${interest_amount} at {interest_rate}%)")
+                else:
+                    # No payment plan, pay full amount now
+                    total_amount += item_total
+                    logger.info(f"Item {item_id}: No payment plan, full amount ${item_total}")
+            
+            logger.info(f"Final amounts - Total: ${total_amount}, Pay Now: ${pay_now_amount}, Pay Later: ${pay_later_amount}, Total Interest: ${total_interest}")
         
         # Format phone number to M-Pesa format (254XXXXXXXXX)
         phone = str(phone_number).strip()
@@ -924,7 +966,10 @@ def process_mpesa_payment(request):
         
         # Generate a unique order reference
         timestamp = int(timezone.now().timestamp())
-        order_ref = f"ORD-{cart.id}-{timestamp}"
+        if order_id:
+            order_ref = f"ORD-{order_id}-{timestamp}"
+        else:
+            order_ref = f"ORD-{cart.id}-{timestamp}"
         logger.info(f"Generated order reference: {order_ref}")
         
         # Initialize M-Pesa service
@@ -938,14 +983,82 @@ def process_mpesa_payment(request):
                 'error': 'Payment service is currently unavailable. Please try again later.'
             }, status=503)
         
-        # Initiate STK push
+        # For testing, we'll use a public callback URL that M-Pesa can reach
+        # In production, replace this with your actual domain
+        # Let M-Pesa service handle callback URL generation
+        # This ensures ngrok and dynamic URLs work properly
+        callback_url = None  # Let the service determine the URL
+        
+        # Ensure amount is an integer (KSH)
+        try:
+            total_amount = int(float(total_amount))
+            if total_amount <= 0:
+                raise ValueError("Amount must be greater than 0")
+        except (ValueError, TypeError) as e:
+            error_msg = f"Invalid amount: {total_amount}. Must be a positive number."
+            logger.error(error_msg)
+            return JsonResponse({"error": error_msg, "error_code": "INVALID_AMOUNT"}, status=400)
+        
+        # Initiate STK push with proper error handling
         logger.info(f"Initiating STK push for {phone}, amount: {total_amount}")
-        response = mpesa.initiate_stk_push(
-            phone_number=phone,
-            amount=total_amount,
-            account_reference=order_ref,
-            description=f"Order {order_ref}"
-        )
+        
+        try:
+            response = mpesa.initiate_stk_push(
+                phone_number=phone,
+                amount=total_amount,
+                account_reference=f"ORDER{order_id}",  # No underscores in reference
+                request=request,
+                order_id=order_id,
+                description=f"Order {order_id}",
+                callback_url=callback_url
+            )
+            
+            # Log the raw response for debugging
+            logger.info(f"STK push response: {response}")
+            
+            # Check for errors in the response
+            if 'error' in response:
+                error_code = response.get('error_code', 'UNKNOWN')
+                error_msg = response.get('error', 'Payment request failed')
+                
+                # Log the error with details
+                logger.error(f"STK push failed: {error_msg} (Code: {error_code})")
+                
+                # User-friendly error messages based on error code
+                if error_code in ['400.002.02', '400.001.01']:
+                    error_msg = 'Invalid payment request. Please check the details and try again.'
+                elif error_code == '500.001.1001':
+                    error_msg = 'M-Pesa service is currently unavailable. Please try again later.'
+                
+                return JsonResponse({
+                    'success': False,
+                    'error': error_msg,
+                    'error_code': error_code
+                }, status=400)
+                
+            # If we get here, the STK push was initiated successfully
+            logger.info(f"STK push initiated successfully for order {order_id}")
+            
+            # Double-check the order status was saved correctly
+            order.refresh_from_db()
+            logger.info(f"Order {order_id} final status after save: {order.status}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Payment request sent to your phone. Please complete the payment on your device.',
+                'checkout_request_id': response.get('CheckoutRequestID'),
+                'merchant_request_id': response.get('MerchantRequestID'),
+                'order_id': order_id,
+                'order_status': order.status,  # Include current status in response
+                'redirect_url': f'/orders/{order_id}/'
+            })
+            
+        except Exception as e:
+            logger.exception("STK push failed with exception")
+            return JsonResponse({
+                'success': False,
+                'error': f'Payment request failed: {str(e)}'
+            }, status=500)
         
         # Handle M-Pesa response
         if 'error' in response:
@@ -955,10 +1068,18 @@ def process_mpesa_payment(request):
             # Log the error with details
             logger.error(f"STK push failed: {error_msg} (Code: {error_code})")
             
+            # Update order status to failed if we have an order
+            if order_id:
+                try:
+                    order = Order.objects.get(id=order_id)
+                    order.status = 'failed'
+                    order.save()
+                    logger.info(f"Order {order_id} status updated to 'failed' due to payment error")
+                except Order.DoesNotExist:
+                    logger.warning(f"Order {order_id} not found when trying to update status")
+            
             # User-friendly error messages based on error code
             if '500.001.1001' in str(error_code) or 'AUTH_ERROR' in str(error_code):
-                user_message = "Payment service is not configured. Please contact support."
-            elif 'credentials' in error_msg.lower() or 'configured' in error_msg.lower():
                 user_message = "Payment service is not configured. Please contact support."
             elif '400.002.02' in str(error_code):
                 user_message = "Invalid phone number. Please check and try again."
@@ -970,30 +1091,63 @@ def process_mpesa_payment(request):
             return JsonResponse({
                 'error': user_message,
                 'error_code': error_code,
-                'debug_info': 'Please check server logs for more details.'
+                'debug_info': 'Please check server logs for more details.',
+                'order_status': 'failed' if order_id else None
             }, status=400)
         
         # Success - log and return success response
         logger.info(f"STK push initiated successfully. Response: {json.dumps(response)}")
         
         # Store order data in session for confirmation page
-        order_id = int(time.time())  # Generate unique order ID
-        request.session[f'pending_order_{order_id}'] = {
-            'cart_id': cart.id,
-            'total_amount': float(total_amount),
-            'phone': phone,
-            'transaction_id': response.get('CheckoutRequestID', ''),
-            'order_ref': order_ref
-        }
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Payment request sent to your phone. Please check your M-Pesa to complete the payment.',
-            'order_reference': order_ref,
-            'order_id': order_id,
-            'redirect_url': f'/confirm-payment/{order_id}/',
-            'data': response
-        })
+        if order_id:
+            # For existing orders, create a RawPayment record
+            raw_payment = RawPayment.objects.create(
+                product_id=str(order_id),
+                payment_method='mpesa',
+                amount=total_amount,
+                currency='KES',
+                status='pending',
+                transaction_id=response.get('CheckoutRequestID', ''),
+                phone_number=phone
+            )
+            
+            # Update order with payment info and set status to pending if not already in a terminal state
+            if order.status not in ['paid', 'completed', 'shipped', 'delivered']:
+                order.payment_method = 'mpesa'
+                order.transaction_id = response.get('CheckoutRequestID', '')
+                order.status = 'pending'  # Explicitly set status to pending
+                order.save()
+                logger.info(f"Order {order.id} status set to 'pending' for M-Pesa payment")
+            else:
+                logger.info(f"Order {order.id} already in {order.status} state, not changing to pending")
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Payment request sent to your phone. Please check your M-Pesa to complete the payment.',
+                'order_reference': order_ref,
+                'order_id': order_id,
+                'redirect_url': f'/orders/{order_id}/',
+                'data': response
+            })
+        else:
+            # For cart payments, store in session as before
+            session_order_id = int(time.time())  # Generate unique order ID
+            request.session[f'pending_order_{session_order_id}'] = {
+                'cart_id': cart.id,
+                'total_amount': float(total_amount),
+                'phone': phone,
+                'transaction_id': response.get('CheckoutRequestID', ''),
+                'order_ref': order_ref
+            }
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Payment request sent to your phone. Please check your M-Pesa to complete the payment.',
+                'order_reference': order_ref,
+                'order_id': session_order_id,
+                'redirect_url': f'/confirm-payment/{session_order_id}/',
+                'data': response
+            })
         
     except Exception as e:
         logger.exception("Unexpected error processing M-Pesa payment")
@@ -1003,12 +1157,330 @@ def process_mpesa_payment(request):
         }, status=500)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def mpesa_callback(request):
+    """Handle M-Pesa payment callback to confirm payment completion."""
+    logger = logging.getLogger(__name__)
+    logger.info("Received M-Pesa callback")
+    
+    try:
+        # Parse the callback data
+        callback_data = json.loads(request.body)
+        logger.info(f"M-Pesa callback data: {callback_data}")
+        
+        # Extract relevant information
+        checkout_request_id = callback_data.get('Body', {}).get('stkCallback', {}).get('CheckoutRequestID')
+        result_code = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
+        result_desc = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultDesc')
+        merchant_request_id = callback_data.get('Body', {}).get('stkCallback', {}).get('MerchantRequestID')
+        
+        logger.info(f"Callback - CheckoutRequestID: {checkout_request_id}, ResultCode: {result_code}")
+        
+        # Try to get order_id from query parameters first
+        order_id = request.GET.get('order_id')
+        order = None
+        raw_payment = None
+        
+        # Find the RawPayment with this transaction ID
+        try:
+            raw_payment = RawPayment.objects.get(transaction_id=checkout_request_id)
+            logger.info(f"Found RawPayment {raw_payment.id} for transaction {checkout_request_id}")
+            order_id = raw_payment.product_id
+        except RawPayment.DoesNotExist:
+            logger.warning(f"No RawPayment found with transaction ID: {checkout_request_id}, trying with order_id from URL")
+            
+        # If we have an order_id, try to get the order
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id)
+                logger.info(f"Found order {order.id} from URL parameter")
+                
+                # If we don't have a raw_payment but have an order, create one
+                if not raw_payment:
+                    raw_payment = RawPayment.objects.create(
+                        product_id=str(order_id),
+                        payment_method='mpesa',
+                        amount=order.total,
+                        currency='KES',
+                        status='pending',
+                        transaction_id=checkout_request_id,
+                        phone_number='',  # Will be updated below if available
+                    )
+                    logger.info(f"Created new RawPayment {raw_payment.id} for order {order_id}")
+                    
+            except Order.DoesNotExist:
+                logger.error(f"No order found with ID: {order_id}")
+                return JsonResponse({'status': 'error', 'message': 'Order not found'}, status=404)
+        
+        if not order and not raw_payment:
+            logger.error(f"Could not find order or payment record for CheckoutRequestID: {checkout_request_id}")
+            return JsonResponse({'status': 'error', 'message': 'Order or payment record not found'}, status=404)
+        
+        # Check if payment was successful
+        if result_code == 0:
+            # Payment successful
+            logger.info(f"Payment successful for order {order.id if order else 'N/A'}")
+            
+            # Update raw payment status if we have it
+            if raw_payment:
+                # Only update if not already completed to avoid race conditions
+                if raw_payment.status != 'completed':
+                    raw_payment.status = 'completed'
+                    
+                    # Extract additional payment details if available
+                    callback_metadata = callback_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+                    logger.info(f"Callback metadata: {callback_metadata}")
+                    
+                    receipt_number = None
+                    phone_number = None
+                    
+                    for item in callback_metadata:
+                        if item.get('Name') == 'MpesaReceiptNumber':
+                            receipt_number = item.get('Value')
+                            raw_payment.mpesa_receipt = receipt_number
+                            logger.info(f"Saving M-Pesa receipt: {receipt_number}")
+                        elif item.get('Name') == 'PhoneNumber':
+                            phone_number = item.get('Value')
+                            raw_payment.phone_number = phone_number
+                            logger.info(f"Saving phone number: {phone_number}")
+                    
+                    raw_payment.save()
+                    logger.info(f"RawPayment {raw_payment.id} updated to: {raw_payment.status}")
+                    
+                    # Update order status if we have an order
+                    if order and order.status != 'paid':
+                        order.status = 'paid'
+                        order.payment_status = 'completed'
+                        order.save(update_fields=['status', 'payment_status', 'updated_at'])
+                        logger.info(f"Order {order.id} status updated to: {order.status}")
+                        
+                        # Send payment confirmation to the user
+                        try:
+                            # Add your email/sms notification logic here
+                            logger.info(f"Payment confirmation sent for order {order.id}")
+                        except Exception as e:
+                            logger.error(f"Failed to send payment confirmation: {str(e)}")
+                else:
+                    logger.info(f"Payment already marked as completed for RawPayment {raw_payment.id}")
+            else:
+                logger.warning("No RawPayment found to update for successful payment")
+            
+            # Prepare success response
+            response_data = {
+                'status': 'success',
+                'message': 'Payment processed successfully',
+            }
+            
+            if order:
+                response_data.update({
+                    'order_id': order.id,
+                    'order_status': order.status,
+                    'redirect_url': f'/orders/{order.id}/'
+                })
+            
+            return JsonResponse(response_data)
+            
+        else:
+            # Payment failed
+            logger.warning(f"Payment failed: {result_desc} (Result Code: {result_code})")
+            
+            # Update raw payment status if we have it
+            if raw_payment:
+                raw_payment.status = 'failed'
+                raw_payment.save()
+                logger.info(f"RawPayment status updated to: {raw_payment.status}")
+            
+            # Update order status if we have an order
+            if order:
+                # Only update to cancelled if it's still in pending state
+                # This prevents overriding a manually updated status
+                if order.status == 'pending':
+                    order.status = 'cancelled'
+                    order.save()
+                    logger.info(f"Order {order.id} status updated to: {order.status}")
+                else:
+                    logger.info(f"Order {order.id} status not updated as it's already {order.status}")
+            
+            logger.warning(f"Payment failed: {result_desc}")
+            
+            # Include more detailed error information
+            error_details = {
+                'code': result_code,
+                'description': result_desc,
+                'is_user_cancelled': str(result_code) == '1032',  # M-Pesa user cancellation code
+                'is_timeout': 'timeout' in result_desc.lower() or str(result_code) in ['1037', '2001'],
+                'is_insufficient_funds': 'insufficient' in result_desc.lower() or str(result_code) in ['1', '1001']
+            }
+            
+            # Log more details about the failure
+            if error_details['is_user_cancelled']:
+                logger.info("Payment was cancelled by the user")
+            elif error_details['is_timeout']:
+                logger.warning("Payment timed out")
+            elif error_details['is_insufficient_funds']:
+                logger.warning("Payment failed due to insufficient funds")
+            else:
+                logger.warning(f"Payment failed with code {result_code}: {result_desc}")
+            
+            # Prepare error response
+            response_data = {
+                'status': 'failed',
+                'message': f'Payment failed: {result_desc}',
+                'error': error_details,
+            }
+            
+            if order:
+                response_data.update({
+                    'order_id': order.id,
+                    'order_status': order.status,
+                    'redirect_url': f'/orders/{order.id}/'
+                })
+            
+            return JsonResponse(response_data)
+            
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in M-Pesa callback")
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.exception("Error processing M-Pesa callback")
+        return JsonResponse({'status': 'error', 'message': 'Internal server error'        }, status=500)
+
+
+@require_http_methods(["GET"])
+def check_payment_status(request, order_id):
+    """Check the payment status of an order."""
+    logger = logging.getLogger(__name__)
+    try:
+        order = get_object_or_404(Order, id=order_id)
+        logger.info(f"Checking payment status for order {order_id}, current status: {order.status}")
+        
+        # Get payment information from RawPayment
+        payment_info = None
+        try:
+            raw_payment = RawPayment.objects.filter(product_id=str(order_id)).order_by('-created_at').first()
+            if raw_payment:
+                # For payments less than 5 minutes old, always consider them pending
+                # regardless of their current status to allow time for M-Pesa callbacks
+                payment_age = (timezone.now() - raw_payment.created_at).total_seconds()
+                if payment_age < 300:  # 5 minutes
+                    payment_status = 'pending'
+                    logger.info(f"Payment for order {order_id} is recent ({payment_age:.0f}s old), treating as pending")
+                else:
+                    payment_status = raw_payment.status
+                
+                payment_info = {
+                    'status': payment_status,
+                    'transaction_id': raw_payment.transaction_id,
+                    'is_user_cancelled': raw_payment.status == 'cancelled',
+                    'is_timeout': raw_payment.status == 'timeout',
+                    'is_insufficient_funds': False,  # Removed notes check
+                    'created_at': raw_payment.created_at.isoformat(),
+                    'age_seconds': payment_age
+                }
+                logger.info(f"Found RawPayment for order {order_id}: {payment_info}")
+            else:
+                logger.info(f"No RawPayment found for order {order_id}")
+                
+                # If no RawPayment exists yet but order is pending, create one
+                if order.status == 'pending':
+                    payment_info = {
+                        'status': 'pending',
+                        'transaction_id': f'pending-{order_id}-{int(time.time())}',
+                        'is_user_cancelled': False,
+                        'is_timeout': False,
+                        'is_insufficient_funds': False,
+                        'created_at': timezone.now().isoformat(),
+                        'age_seconds': 0
+                    }
+                    logger.info(f"Created temporary payment info for pending order {order_id}")
+        except Exception as e:
+            logger.error(f"Error fetching payment info: {str(e)}")
+            # If there's an error, default to pending to be safe
+            payment_info = {
+                'status': 'pending',
+                'transaction_id': f'error-{order_id}-{int(time.time())}',
+                'is_user_cancelled': False,
+                'is_timeout': False,
+                'is_insufficient_funds': False,
+                'error': str(e)
+            }
+        
+        # Determine the effective status to return
+        order_status = order.status
+        
+        # Check if we have a recent payment attempt (less than 5 minutes old)
+        payment_is_recent = payment_info and payment_info.get('age_seconds', 0) < 300
+        
+        # If we have a payment that's still in progress (less than 5 minutes old),
+        # always return 'pending' status to give it time to complete
+        if payment_is_recent:
+            logger.info(f"Payment for order {order_id} is recent ({payment_info.get('age_seconds', 0):.0f}s old), returning pending")
+            order_status = 'pending'
+        # If order is marked as cancelled/failed but we have an active payment attempt,
+        # consider it still pending
+        elif order_status in ['cancelled', 'failed'] and payment_info and payment_info.get('status') == 'pending':
+            logger.info(f"Order {order_id} is in {order_status} but has active payment, returning pending")
+            order_status = 'pending'
+        # If order is marked as cancelled/failed but we have a recent payment attempt,
+        # still consider it pending to allow time for M-Pesa callbacks
+        elif order_status in ['cancelled', 'failed'] and payment_is_recent:
+            logger.info(f"Order {order_id} is in {order_status} but has recent payment attempt, returning pending")
+            order_status = 'pending'
+        
+        # Build the response data
+        payment_status = payment_info.get('status', 'pending') if payment_info else 'pending'
+        
+        response_data = {
+            'order_id': order.id,
+            'order_status': order_status,
+            'payment_status': payment_status,
+            'transaction_id': payment_info.get('transaction_id') if payment_info else None,
+            'is_pending': payment_status == 'pending',
+            'is_paid': order_status == 'paid',
+            'is_failed': order_status in ['cancelled', 'failed'],
+            'payment_info': {
+                'status': payment_status,
+                'created_at': payment_info.get('created_at') if payment_info else None,
+                'age_seconds': payment_info.get('age_seconds') if payment_info else 0,
+                'is_recent': payment_info and payment_info.get('age_seconds', 0) < 300  # Less than 5 minutes
+            },
+            'error': None
+        }
+        
+        # Include error details if available
+        if payment_info and payment_status in ['failed', 'cancelled']:
+            response_data['error'] = {
+                'is_user_cancelled': payment_info.get('is_user_cancelled', False),
+                'is_timeout': payment_info.get('is_timeout', False),
+                'is_insufficient_funds': payment_info.get('is_insufficient_funds', False),
+                'description': payment_status.capitalize(),
+                'code': payment_info.get('code')
+            }
+            
+            # If payment is failed but recent, treat it as still pending
+            if payment_info.get('age_seconds', 0) < 300:  # Less than 5 minutes
+                response_data['is_pending'] = True
+                response_data['is_failed'] = False
+                response_data['payment_status'] = 'pending'
+        
+        logger.info(f"Payment status check response: {response_data}")
+        return JsonResponse(response_data)
+        
+    except Exception as e:
+        logger.error(f"Error checking payment status: {str(e)}")
+        return JsonResponse({
+            'error': 'Failed to check payment status'
+        }, status=500)
+
+
 # ==============================
 # Order Confirmation
 # ==============================
 
 def confirm_payment(request, order_id):
     """Confirm payment page that shows order details and creates order"""
+    logger = logging.getLogger(__name__)
     try:
         # First, check if the order already exists in the database
         try:
@@ -1190,12 +1662,128 @@ def order_history(request):
 # Order Detail
 # ==============================
 
+@csrf_exempt
 def order_detail(request, order_id):
-    """Display a single Order and its items."""
+    """Display a single Order and its items. Also handles M-Pesa callbacks."""
+    logger = logging.getLogger(__name__)
     order = get_object_or_404(Order.objects.prefetch_related('items__variation__product'), id=order_id)
+    
+    # Handle M-Pesa callback if this is a POST request
+    if request.method == 'POST':
+        logger.info(f"M-Pesa callback POST received for order {order_id}")
+        print(f"DEBUG: M-Pesa callback POST received for order {order_id}")
+        try:
+            # Parse M-Pesa callback data
+            callback_data = json.loads(request.body)
+            logger.info(f"M-Pesa callback received for order {order_id}: {callback_data}")
+            print(f"DEBUG: M-Pesa callback data: {callback_data}")
+            
+            # Extract payment information from callback
+            result_code = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultCode', 0)
+            result_desc = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultDesc', '')
+            
+            if result_code == 0:
+                # Payment successful
+                callback_metadata = callback_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+                
+                # Extract payment details
+                payment_data = {}
+                for item in callback_metadata:
+                    if item.get('Name') == 'Amount':
+                        payment_data['amount'] = item.get('Value')
+                    elif item.get('Name') == 'MpesaReceiptNumber':
+                        payment_data['mpesa_receipt'] = item.get('Value')
+                    elif item.get('Name') == 'PhoneNumber':
+                        payment_data['phone_number'] = item.get('Value')
+                    elif item.get('Name') == 'TransactionDate':
+                        payment_data['transaction_date'] = item.get('Value')
+                
+                # Update order status
+                order.status = 'paid'
+                order.payment_method = 'mpesa'
+                order.save()
+                
+                # Create or update RawPayment record
+                raw_payment = RawPayment.objects.filter(product_id=str(order_id)).first()
+                if raw_payment:
+                    # Update existing record
+                    raw_payment.status = 'success'
+                    raw_payment.transaction_id = payment_data.get('mpesa_receipt', '')
+                    raw_payment.mpesa_receipt = payment_data.get('mpesa_receipt', '')
+                    raw_payment.phone_number = payment_data.get('phone_number', '')
+                    raw_payment.amount = payment_data.get('amount', 0)
+                    raw_payment.save()
+                else:
+                    # Create new record
+                    RawPayment.objects.create(
+                        product_id=str(order_id),
+                        status='success',
+                        transaction_id=payment_data.get('mpesa_receipt', ''),
+                        mpesa_receipt=payment_data.get('mpesa_receipt', ''),
+                        phone_number=payment_data.get('phone_number', ''),
+                        amount=payment_data.get('amount', 0),
+                    )
+                
+                logger.info(f"Order {order_id} payment processed successfully")
+                
+            else:
+                # Payment failed
+                logger.warning(f"Order {order_id} payment failed: {result_desc}")
+                
+                # Update order status
+                order.status = 'cancelled'
+                order.save()
+                
+                # Create or update RawPayment record for failed payment
+                raw_payment = RawPayment.objects.filter(product_id=str(order_id)).first()
+                if raw_payment:
+                    # Update existing record
+                    raw_payment.status = 'failed'
+                    raw_payment.save()
+                else:
+                    # Create new record
+                    RawPayment.objects.create(
+                        product_id=str(order_id),
+                        status='failed',
+                        transaction_id='',
+                        mpesa_receipt='',
+                        phone_number='',
+                        amount=0,
+                    )
+            
+            # Return success response to M-Pesa
+            return JsonResponse({'ResultCode': 0, 'ResultDesc': 'Success'})
+            
+        except Exception as e:
+            logger.error(f"Error processing M-Pesa callback for order {order_id}: {str(e)}")
+            return JsonResponse({'ResultCode': 1, 'ResultDesc': 'Failed'}, status=500)
+    
+    # Get payment information from RawPayment
+    payment_info = None
+    try:
+        raw_payment = RawPayment.objects.filter(product_id=str(order_id)).first()
+        if raw_payment:
+            payment_info = {
+                'status': raw_payment.status,
+                'transaction_id': raw_payment.transaction_id,
+                'mpesa_receipt': raw_payment.mpesa_receipt,
+                'phone_number': raw_payment.phone_number,
+                'card_last4': raw_payment.card_last4,
+                'card_brand': raw_payment.card_brand,
+                'created_at': raw_payment.created_at,
+            }
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error fetching payment info: {str(e)}")
+    
+    # Get additional fees for this order
+    additional_fees = OrderAdditionalFees.objects.filter(order=order)
+    
     return render(request, 'home/order_detail.html', {
         'order': order,
         'items': order.items.all(),
+        'payment_info': payment_info,
+        'additional_fees': additional_fees,
     })
 
 
@@ -1405,6 +1993,8 @@ def process_mpesa_payment_for_order_request(request, order_request_id):
                 phone_number=phone,
                 amount=amount_payable_now,
                 account_reference=f'OR-{order_request_id}',
+                request=request,
+                order_id=order_request_id,
                 description=f'OrderRequest {order_request_id} payment'
             )
             # Normalize response to dict-like
@@ -1438,3 +2028,88 @@ def process_mpesa_payment_for_order_request(request, order_request_id):
             return JsonResponse({'error': 'Failed to initiate payment. Please try again.'}, status=500)
     except:
         pass
+
+
+@require_http_methods(["POST"])
+def process_card_payment(request):
+    """Process card payment for an order."""
+    logger = logging.getLogger(__name__)
+    logger.info("Received card payment request")
+    
+    try:
+        # Parse request data
+        try:
+            data = json.loads(request.body)
+            card_number = data.get('card_number')
+            expiry_date = data.get('expiry_date')
+            cvv = data.get('cvv')
+            cardholder_name = data.get('cardholder_name')
+            order_id = data.get('order_id')
+            logger.info(f"Card payment request for order: {order_id}")
+        except json.JSONDecodeError:
+            logger.error("Invalid JSON data received")
+            return JsonResponse({'error': 'Invalid request data. Please try again.'}, status=400)
+        
+        # Validate required fields
+        if not all([card_number, expiry_date, cvv, cardholder_name, order_id]):
+            return JsonResponse({'error': 'All card details are required'}, status=400)
+        
+        # Get the order
+        try:
+            order = get_object_or_404(Order, id=order_id)
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found'}, status=404)
+        
+        # Basic card validation
+        card_number_clean = card_number.replace(' ', '').replace('-', '')
+        if not card_number_clean.isdigit() or len(card_number_clean) < 13 or len(card_number_clean) > 19:
+            return JsonResponse({'error': 'Invalid card number'}, status=400)
+        
+        # Validate expiry date format
+        if not re.match(r'^(0[1-9]|1[0-2])\/\d{2}$', expiry_date):
+            return JsonResponse({'error': 'Invalid expiry date format'}, status=400)
+        
+        # Validate CVV
+        if not re.match(r'^\d{3,4}$', cvv):
+            return JsonResponse({'error': 'Invalid CVV'}, status=400)
+        
+        # For demo purposes, we'll simulate a successful payment
+        # In a real implementation, you would integrate with a payment processor like Stripe, PayPal, etc.
+        
+        # Generate a mock transaction ID
+        import time
+        transaction_id = f"CARD_{int(time.time())}_{order_id}"
+        
+        # Create RawPayment record
+        raw_payment = RawPayment.objects.create(
+            product_id=str(order_id),
+            payment_method='card',
+            amount=order.total,
+            currency='KES',
+            status='completed',
+            transaction_id=transaction_id,
+            card_last4=card_number[-4:],
+            card_brand='Visa'  # Mock brand
+        )
+        
+        # Update order with payment information
+        order.payment_method = 'card'
+        order.status = 'paid'
+        order.transaction_id = transaction_id
+        order.save()
+        
+        logger.info(f"Card payment processed successfully for order {order_id}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Card payment processed successfully!',
+            'transaction_id': transaction_id,
+            'redirect_url': f'/orders/{order_id}/'
+        })
+        
+    except Exception as e:
+        logger.exception("Unexpected error processing card payment")
+        return JsonResponse({
+            'error': 'An unexpected error occurred. Our team has been notified.',
+            'debug_info': str(e)
+        }, status=500)

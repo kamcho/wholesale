@@ -4,6 +4,7 @@ from django.http import Http404
 
 logger = logging.getLogger(__name__)
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Count, Sum, F
@@ -12,12 +13,16 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from decimal import Decimal, InvalidOperation
 
+from django.db import transaction
+from django.views.decorators.csrf import csrf_exempt
+
 from home.models import (
     Product, ProductCategory, Business, ProductImage, 
-    BusinessCategory, ProductVariation, OrderItem, 
+    BusinessCategory, ProductVariation, OrderItem, CartItem,
     ProductAttributeAssignment, ProductAttribute, 
     ProductAttributeValue, PriceTier, PromiseFee, 
-    IRate, ProductServicing, Agent, OrderRequest, OrderRequestItem, AdditionalFees
+    IRate, ProductServicing, Agent, OrderRequest, OrderRequestItem, AdditionalFees,
+    BuyerSellerChat, Order
 )
 from .forms import (
     ProductForm,
@@ -31,6 +36,7 @@ from .forms import (
     PromiseFeeForm,
     ProductKBForm,
     IRateForm,
+    ChatOrderForm,
 )
 from django.forms import inlineformset_factory
 from django.forms import modelformset_factory
@@ -300,14 +306,15 @@ def order_request_update_status(request, pk):
         return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
     
     try:
-        # Try to parse JSON data first
-        try:
+        # Check content type and parse data accordingly
+        content_type = request.content_type
+        if 'application/json' in content_type:
             data = json.loads(request.body) if request.body else {}
-        except json.JSONDecodeError:
-            # If not JSON, try form data
-            data = request.POST.dict()
-        
-        new_status = data.get('status')
+            new_status = data.get('status')
+        else:
+            # Form data - use request.POST directly for getlist support
+            data = request.POST
+            new_status = data.get('status')
         
         if not new_status:
             return JsonResponse({'success': False, 'error': 'Status is required'}, status=400)
@@ -329,17 +336,95 @@ def order_request_update_status(request, pk):
         order_request.status = new_status
         order_request.save()
         
+        # If accepting the request, create an order and handle additional fees
+        if new_status == 'accepted':
+            from home.models import Order, OrderItem, OrderAdditionalFees
+            from decimal import Decimal, DecimalException
+            
+            # Create a new order
+            order = Order.objects.create(
+                user=order_request.user,
+                created_by=request.user,
+                status='pending',
+                total=0  # Will be calculated below
+            )
+            
+            # Add order items from the request
+            total_amount = Decimal('0')
+            for item in order_request.items.filter(variation__product__user=request.user):
+                order_item = OrderItem.objects.create(
+                    order=order,
+                    variation=item.variation,
+                    quantity=item.quantity,
+                    price=item.unit_price
+                )
+                total_amount += order_item.subtotal()
+            
+            # Handle additional fees if provided
+            if data.get('add_additional_fees') == 'on':
+                # Handle both QueryDict and regular dict
+                if hasattr(data, 'getlist'):
+                    fee_types = data.getlist('fee_types[]')
+                    fee_amounts = data.getlist('fee_amounts[]')
+                    fee_descriptions = data.getlist('fee_descriptions[]')
+                    # Get all fee_pay_now values, defaulting to 'false' if not present
+                    fee_pay_now = data.getlist('fee_pay_now[]', []) or ['false'] * len(fee_types)
+                else:
+                    # For JSON data, these would be lists already
+                    fee_types = data.get('fee_types[]', [])
+                    fee_amounts = data.get('fee_amounts[]', [])
+                    fee_descriptions = data.get('fee_descriptions[]', [])
+                    # Default to all fees being paid now if not specified
+                    fee_pay_now = data.get('fee_pay_now[]', ['true'] * len(fee_types))
+                
+                for i, fee_type in enumerate(fee_types):
+                    if fee_type and i < len(fee_amounts) and fee_amounts[i]:
+                        try:
+                            amount = Decimal(fee_amounts[i])
+                            description = fee_descriptions[i] if i < len(fee_descriptions) else ''
+                            # Check if the current index exists in fee_pay_now, default to True if not
+                            pay_now = str(fee_pay_now[i]).lower() == 'true' if i < len(fee_pay_now) else True
+                            
+                            OrderAdditionalFees.objects.create(
+                                order=order,
+                                fee_type=fee_type,
+                                description=description,
+                                amount=amount,
+                                pay_now=pay_now
+                            )
+                            
+                            if pay_now:
+                                total_amount += amount
+                                
+                        except (ValueError, DecimalException) as e:
+                            logger.warning(f"Invalid additional fee data: {e}")
+                            continue
+            
+            # Update order total
+            order.total = total_amount
+            order.save()
+            
+            # Log the order creation
+            logger.info(f"Order {order.id} created from order request {order_request.id} with total {total_amount}")
+        
         # Log the status update
         logger.info(f"Order request {order_request.id} status updated to {new_status} by user {request.user.id}")
         
-        return JsonResponse({
+        response_data = {
             'success': True,
             'status': order_request.get_status_display(),
             'status_class': 'success' if new_status == 'accepted' else 'danger' if new_status == 'rejected' else 'warning',
             'message': f'Order request status updated to {order_request.get_status_display()}'
-        })
+        }
+        
+        # If order was created, include the order ID
+        if new_status == 'accepted' and 'order' in locals():
+            response_data['order_id'] = order.id
+        
+        return JsonResponse(response_data)
         
     except Exception as e:
+        from django.conf import settings
         error_msg = str(e)
         logger.error(f"Error updating order request status: {error_msg}", exc_info=True)
         return JsonResponse({
@@ -384,29 +469,98 @@ def delete_promise_fee(request, pk):
     from django.shortcuts import get_object_or_404, redirect
     from django.contrib import messages
     
-    promise_fee = get_object_or_404(PromiseFee, pk=pk)
-    variation = promise_fee.variation
+    promise_fee = get_object_or_404(PromiseFee, id=pk)
     
     # Check if the user has permission to delete this promise fee
-    if variation.product.user != request.user and (hasattr(variation.product, 'business') and variation.product.business.owner != request.user):
-        messages.error(request, 'You do not have permission to delete this promise fee.')
-        return redirect('vendor:variation_detail', pk=variation.id)
-    
-    # Delete the promise fee
-    promise_fee.delete()
-    messages.success(request, 'Promise fee has been deleted successfully.')
-    return redirect('vendor:variation_detail', pk=variation.id)
+    if request.user != promise_fee.variation.product.business.owner and request.user != promise_fee.variation.product.user:
+        messages.error(request, "You don't have permission to delete this promise fee.")
+        return redirect('vendor:product_detail', pk=promise_fee.variation.product.id)
     
     if request.method == 'POST':
-        product.delete()
-        messages.success(request, 'Product deleted successfully!')
-        return redirect('vendor:product_list')
+        product_id = promise_fee.variation.product.id
+        promise_fee.delete()
+        messages.success(request, "Promise fee deleted successfully.")
+        return redirect('vendor:product_detail', pk=product_id)
     
-    context = {
-        'product': product,
-    }
+    return render(request, 'vendor/delete_confirm.html', {
+        'object': promise_fee,
+        'cancel_url': reverse('vendor:product_detail', kwargs={'pk': promise_fee.variation.product.id})
+    })
+
+
+@login_required
+def create_order_from_chat(request, chat_id):
+    """Create an order from a chat conversation"""
+    import logging
+    logger = logging.getLogger(__name__)
     
-    return render(request, 'vendor/delete_product.html', context)
+    try:
+        logger.info(f"Creating order from chat {chat_id} for user {request.user.id}")
+        
+        # Get the chat with related objects
+        chat = get_object_or_404(
+            BuyerSellerChat.objects.select_related('buyer', 'seller', 'product'),
+            id=chat_id,
+            seller=request.user  # Only the seller can create orders
+        )
+        
+        logger.debug(f"Found chat: {chat.id} with product: {chat.product.id if chat.product else 'None'}")
+        
+        # Check if the user is the seller in this chat
+        if request.user != chat.seller:
+            error_msg = "You don't have permission to create an order from this chat."
+            logger.warning(f"Permission denied: {error_msg}")
+            messages.error(request, error_msg)
+            return redirect('home:buyer_seller_chat', chat_id=chat_id)
+        
+        # Initialize the form with the chat and current user
+        if request.method == 'POST':
+            logger.debug("Processing POST request")
+            form = ChatOrderForm(request.POST, chat=chat, user=request.user)
+            
+            if form.is_valid():
+                logger.debug("Form is valid, attempting to save")
+                try:
+                    # Pass the current user to the form to set as created_by
+                    form._current_user = request.user
+                    order = form.save()
+                    success_msg = f"Order #{order.id} has been created successfully!"
+                    logger.info(success_msg)
+                    messages.success(request, success_msg)
+                    return redirect('vendor:orders')
+                except Exception as e:
+                    error_msg = f"An error occurred while creating the order: {str(e)}"
+                    logger.error(f"Error creating order: {error_msg}", exc_info=True)
+                    messages.error(request, error_msg)
+            else:
+                logger.warning(f"Form is invalid: {form.errors}")
+                messages.error(request, "Please correct the errors below.")
+        else:
+            logger.debug("Handling GET request")
+            form = ChatOrderForm(chat=chat, user=request.user)
+        
+        # Get the product variations for the selected product (if any)
+        variations = []
+        if chat.product:
+            variations = chat.product.variations.all()
+            logger.debug(f"Found {len(variations)} variations for product {chat.product.id}")
+        else:
+            logger.warning("No product associated with this chat")
+        
+        context = {
+            'form': form,
+            'chat': chat,
+            'variations': variations,
+            'title': 'Create Order from Chat'
+        }
+        
+        return render(request, 'vendor/create_order_from_chat_new.html', context)
+        
+    except Exception as e:
+        error_msg = f"An unexpected error occurred: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        messages.error(request, error_msg)
+        return redirect('vendor:dashboard')  # Redirect to a safe page
 
 
 @login_required
@@ -696,6 +850,43 @@ def variation_detail(request, pk):
         can_delete=True,
         fields=('lower_range', 'upper_range', 'must_pay_shipping', 'rate')
     )
+    
+    # Get analytics data
+    from django.db.models import Sum, Count, Q, F
+    
+    # Number of carts containing this variation
+    cart_count = CartItem.objects.filter(variation=variation).count()
+    
+    # Number of orders for this variation
+    order_count = OrderItem.objects.filter(variation=variation).count()
+    
+    # Number of order requests for this variation
+    order_request_count = OrderRequestItem.objects.filter(variation=variation).count()
+    
+    # Total quantity ordered
+    total_ordered = OrderItem.objects.filter(variation=variation).aggregate(
+        total=Sum('quantity')
+    )['total'] or 0
+    
+    # Total revenue from this variation
+    total_revenue = OrderItem.objects.filter(
+        variation=variation,
+        order__status='completed'  # Only count completed orders
+    ).aggregate(
+        total=Sum(F('price') * F('quantity'))
+    )['total'] or 0
+    
+    # Get recent orders for this variation
+    recent_orders = OrderItem.objects.filter(variation=variation).select_related(
+        'order', 'order__user'
+    ).order_by('-order__created_at')[:5]
+    
+    # Get recent order requests for this variation
+    recent_order_requests = OrderRequestItem.objects.filter(
+        variation=variation
+    ).select_related(
+        'order_request', 'order_request__user'
+    ).order_by('-order_request__created_at')[:5]
     
     if request.method == 'POST' and 'price_tier_submit' in request.POST:
         price_tier_formset = PriceTierFormSet(
@@ -1057,6 +1248,13 @@ def variation_detail(request, pk):
         'promise_fees': promise_fees,
         'kb_form': kb_form,
         'kb_entry': kb_entry if 'kb_entry' in locals() else None,
+        'cart_count': cart_count,
+        'order_count': order_count,
+        'order_request_count': order_request_count,
+        'total_ordered': total_ordered,
+        'total_revenue': total_revenue,
+        'recent_orders': recent_orders,
+        'recent_order_requests': recent_order_requests,
     }
     
     # Debug output of context keys

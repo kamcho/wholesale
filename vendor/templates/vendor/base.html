@@ -14,22 +14,78 @@
             --primary-hover: #4338ca;   /* indigo-700 */
             --accent: #22c55e;          /* green-500 */
             --danger: #ef4444;          /* red-500 */
-            --bg: #f6f7fb;              /* soft background */
-            --surface: #ffffff;         /* card surface */
-            --muted: #6b7280;           /* gray-500 */
-            --border: #e5e7eb;          /* gray-200 */
-            --shadow-sm: 0 6px 18px rgba(17, 24, 39, 0.06);
-            --shadow-md: 0 12px 28px rgba(17, 24, 39, 0.08);
+            --bg: #0f172a;              /* dark background */
+            --surface: #1e293b;         /* dark card surface */
+            --surface-hover: #334155;   /* dark surface hover */
+            --muted: #94a3b8;           /* gray-400 */
+            --text-primary: #f1f5f9;    /* gray-100 */
+            --text-secondary: #cbd5e1;  /* gray-300 */
+            --text-muted: #64748b;      /* gray-500 */
+            --border: #374151;          /* gray-700 */
+            --border-light: #4b5563;    /* gray-600 */
+            --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.4);
             --radius: 14px;
         }
 
         body {
             background: var(--bg);
+            color: var(--text-primary);
+        }
+
+        /* Sidebar Toggle Button (Mobile) */
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1100;
+            background: var(--primary);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px; /* Start off-screen on mobile */
+            bottom: 0;
+            width: 280px;
             min-height: 100vh;
+            overflow-y: auto;
             background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+            z-index: 1050;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
         }
         .sidebar .nav-link {
             color: #cbd5e1;
@@ -51,7 +107,46 @@
         }
 
         .main-content {
+            margin-left: 0;
             padding: 2rem;
+            width: 100%;
+            transition: all 0.3s ease-in-out;
+        }
+
+        /* Desktop styles */
+        @media (min-width: 992px) {
+            .sidebar {
+                left: 0;
+                width: 280px;
+            }
+            
+            .main-content {
+                margin-left: 280px;
+                width: calc(100% - 280px);
+            }
+            
+            .sidebar-toggle {
+                display: none;
+            }
+        }
+
+        /* Mobile styles */
+        @media (max-width: 991.98px) {
+            .sidebar-toggle {
+                display: flex;
+            }
+            
+            .sidebar {
+                left: -300px;
+            }
+            
+            .sidebar.active {
+                left: 0;
+            }
+            
+            .main-content {
+                padding-top: 4rem; /* Add space for the toggle button */
+            }
         }
 
         .card {
@@ -59,14 +154,19 @@
             background: var(--surface);
             border-radius: var(--radius);
             box-shadow: var(--shadow-sm);
+            color: var(--text-primary);
         }
-        .card:hover { box-shadow: var(--shadow-md); }
+        .card:hover { 
+            box-shadow: var(--shadow-md);
+            background: var(--surface-hover);
+        }
 
         .card-header {
-            background: linear-gradient(180deg, rgba(79,70,229,0.06) 0%, rgba(79,70,229,0) 100%);
+            background: linear-gradient(180deg, rgba(79,70,229,0.1) 0%, rgba(79,70,229,0) 100%);
             border-bottom: 1px solid var(--border);
             border-top-left-radius: var(--radius);
             border-top-right-radius: var(--radius);
+            color: var(--text-primary);
         }
 
         .btn-primary {
@@ -111,11 +211,140 @@
         }
         .stats-card .card-body { padding: 1.5rem; }
         .stats-number { font-size: 2rem; font-weight: 800; }
+
+        /* Dark theme text colors */
+        .text-gray-100 { color: var(--text-primary) !important; }
+        .text-gray-200 { color: var(--text-secondary) !important; }
+        .text-gray-300 { color: var(--text-secondary) !important; }
+        .text-gray-400 { color: var(--text-muted) !important; }
+        .text-gray-500 { color: var(--text-muted) !important; }
+        .text-muted { color: var(--text-muted) !important; }
+
+        /* Dark theme backgrounds */
+        .bg-gray-800 { background-color: var(--surface) !important; }
+        .bg-gray-700 { background-color: var(--surface-hover) !important; }
+        .bg-gray-600 { background-color: var(--border-light) !important; }
+
+        /* Dark theme borders */
+        .border-gray-700 { border-color: var(--border) !important; }
+        .border-gray-600 { border-color: var(--border-light) !important; }
+
+        /* Form controls dark theme */
+        .form-control {
+            background-color: var(--surface);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+        .form-control:focus {
+            background-color: var(--surface);
+            border-color: var(--primary);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+        }
+        .form-control::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Input group text dark theme */
+        .input-group-text {
+            background-color: var(--surface);
+            border-color: var(--border);
+            color: var(--text-secondary);
+        }
+
+        /* Table dark theme */
+        .table {
+            color: var(--text-primary);
+        }
+        .table th {
+            border-color: var(--border);
+            color: var(--text-secondary);
+        }
+        .table td {
+            border-color: var(--border);
+        }
+        .table-hover tbody tr:hover {
+            background-color: var(--surface-hover);
+        }
+
+        /* Pagination dark theme */
+        .page-link {
+            background-color: var(--surface);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+        .page-link:hover {
+            background-color: var(--surface-hover);
+            border-color: var(--border-light);
+            color: var(--text-primary);
+        }
+        .page-item.active .page-link {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Dropdown dark theme */
+        .dropdown-menu {
+            background-color: var(--surface);
+            border-color: var(--border);
+        }
+        .dropdown-item {
+            color: var(--text-primary);
+        }
+        .dropdown-item:hover {
+            background-color: var(--surface-hover);
+            color: var(--text-primary);
+        }
+        .dropdown-divider {
+            border-color: var(--border);
+        }
+
+        /* Alert dark theme */
+        .alert {
+            border: 1px solid var(--border);
+        }
+        .alert-primary {
+            background-color: rgba(79, 70, 229, 0.1);
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+        .alert-success {
+            background-color: rgba(34, 197, 94, 0.1);
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .alert-danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-color: var(--danger);
+            color: var(--text-primary);
+        }
+        .alert-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-color: #f59e0b;
+            color: var(--text-primary);
+        }
+
+        /* Hover effects */
+        .hover-bg-gray-700:hover {
+            background-color: var(--surface-hover) !important;
+        }
+        .transition-colors {
+            transition: background-color 0.2s ease-in-out;
+        }
     </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
+    <!-- Mobile Sidebar Toggle Button -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <div class="min-h-screen flex flex-col">
+        <div class="flex-grow container-fluid px-4 py-3">
+            <div class="row g-4">
             <!-- Sidebar -->
             <nav class="col-md-3 col-lg-2 d-md-block sidebar">
                 <div class="position-sticky pt-3">
@@ -209,10 +438,69 @@
                 {% endblock %}
             </main>
         </div>
+            </div>
+        </div>
     </div>
     
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mobile sidebar toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.querySelector('.sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            // Toggle sidebar when button is clicked
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    sidebarOverlay.classList.toggle('active');
+                    document.body.classList.toggle('sidebar-open');
+                });
+            }
+            
+            // Close sidebar when overlay is clicked
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                });
+            }
+            
+            // Close sidebar when a nav link is clicked (on mobile)
+            const navLinks = document.querySelectorAll('.sidebar .nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 992) { // Only on mobile
+                        sidebar.classList.remove('active');
+                        sidebarOverlay.classList.remove('active');
+                        document.body.classList.remove('sidebar-open');
+                    }
+                });
+            });
+            
+            // Handle window resize
+            function handleResize() {
+                if (window.innerWidth >= 992) {
+                    // On desktop, ensure sidebar is visible
+                    sidebar.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                }
+            }
+            
+            // Add resize event listener
+            window.addEventListener('resize', handleResize);
+            
+            // Initialize Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

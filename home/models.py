@@ -570,7 +570,13 @@ class Order(models.Model):
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
     ]
-
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="order_creator"
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -594,10 +600,17 @@ class Order(models.Model):
     billing_address = models.TextField(blank=True, null=True)
     payment_method = models.CharField(max_length=50, blank=True, null=True)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    note = models.TextField(blank=True, null=True, help_text="Additional notes or instructions for this order")
 
     def calculate_total(self):
         self.total = sum(item.subtotal() for item in self.items.all())
         self.save()
+        
+    def save(self, *args, **kwargs):
+        # Set created_by to the user if it's a new order and created_by is not set
+        if not self.pk and not self.created_by_id and hasattr(self, '_current_user'):
+            self.created_by = self._current_user
+        super().save(*args, **kwargs)
 
     def __str__(self):
         if self.user:
@@ -783,7 +796,7 @@ class RawPayment(models.Model):
 class Payment(models.Model):
    
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payments")
-    order_id = models.ForeignKey(ProductOrder, on_delete=models.CASCADE, related_name="payments")
+    order_id = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments")
 
     raw_payment = models.ForeignKey(RawPayment, on_delete=models.CASCADE, related_name="payments")
 
@@ -791,6 +804,25 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.raw_payment.transaction_id} - {self.raw_payment.payment_method} - {self.raw_payment.amount} {self.raw_payment.currency}"
+
+
+class OrderAdditionalFees(models.Model):
+    """Additional fees for orders (customs, shipping, handling, etc.)"""
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="additional_fees")
+    fee_type = models.CharField(max_length=100, help_text="Type of fee (e.g., Customs, Shipping, Handling)")
+    description = models.TextField(blank=True, help_text="Description of the additional fee")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, help_text="Amount of the additional fee")
+    pay_now = models.BooleanField(default=True, help_text="Whether this fee should be paid immediately")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Order Additional Fee"
+        verbose_name_plural = "Order Additional Fees"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.order} - {self.fee_type}: KSh {self.amount}"
 
 
 class ChatMessage(models.Model):

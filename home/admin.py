@@ -12,7 +12,7 @@ from .models import (
     PriceTier,
     ProductOrder,
     ProductAttribute,
-    ProductAttributeValue,
+    ProductAttributeValue,RawPayment,OrderAdditionalFees,
     ProductAttributeAssignment,PromiseFee,ProductKB, ServiceCategory,Agent, AgentImage, AgentReview, AgentAIKnowledgeBase, ExchangeRate, Order, OrderRequest,OrderRequestItem,AdditionalFees)
 admin.site.register(Order)
 admin.site.register(OrderRequest)
@@ -22,11 +22,13 @@ admin.site.register(ServiceCategory)
 admin.site.register(Agent)
 admin.site.register(ExchangeRate)
 admin.site.register(AdditionalFees)
+admin.site.register(RawPayment)
 class ProductVariationInline(admin.TabularInline):
     model = ProductVariation
     extra = 1
     fields = ("name", "moq", "price")
 admin.site.register(ProductKB)
+admin.site.register(OrderAdditionalFees)
 admin.site.register(AgentImage)
 admin.site.register(AgentReview)
 admin.site.register(AgentAIKnowledgeBase)

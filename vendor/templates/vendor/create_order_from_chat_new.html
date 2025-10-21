@@ -1,0 +1,349 @@
+{% extends 'vendor/base.html' %}
+{% load static %}
+{% load form_helpers %}
+
+{% block title %}{{ title }} | Vendor Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> {{ title }}</h4>
+                        <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="btn btn-sm btn-light">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Chat
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Order Context -->
+                    <div class="alert alert-info">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-info-circle me-2 fs-4"></i>
+                            <div>
+                                <h5 class="alert-heading mb-1">Order Context</h5>
+                                <p class="mb-0">
+                                    This order is being created from a conversation about: 
+                                    <strong>{{ chat.product.name|default:"General Inquiry" }}</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Customer Information -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Customer Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Name</label>
+                                    <p class="mb-0 fw-semibold">{{ chat.buyer.get_full_name|default:chat.buyer.email }}</p>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label text-muted">Email</label>
+                                    <p class="mb-0">{{ chat.buyer.email }}</p>
+                                </div>
+                            </div>
+                            {% if chat.buyer.phone_number %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted">Phone</label>
+                                    <p class="mb-0">{{ chat.buyer.phone_number|default:"Not provided" }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Order Form -->
+                    <form method="post" id="orderForm" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Hidden fields -->
+                        {% if form.user %}
+                            {{ form.user }}
+                        {% else %}
+                            <input type="hidden" name="user" value="{{ chat.buyer.id }}">
+                        {% endif %}
+                        <input type="hidden" name="product" value="{{ chat.product.id }}">
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- Product & Variations -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Order Items</h5>
+                                <span class="badge bg-primary">{{ form.variations.count }} variations available</span>
+                            </div>
+                            <div class="card-body">
+                                {% if form.variations %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th width="5%">Add</th>
+                                                    <th>Variation</th>
+                                                    <th>Price</th>
+                                                    <th>Quantity</th>
+                                                    <th>Custom Price</th>
+                                                    <th>Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for variation in variations %}
+                                                    <tr class="variation-row" data-variation-id="{{ variation.id }}">
+                                                        <td>
+                                                            <input type="checkbox" 
+                                                                   name="variation_{{ variation.id }}" 
+                                                                   id="id_variation_{{ variation.id }}" 
+                                                                   class="form-check-input variation-checkbox" 
+                                                                   data-variation-id="{{ variation.id }}">
+                                                        </td>
+                                                        <td>
+                                                            <label for="id_variation_{{ variation.id }}" class="form-check-label">
+                                                                {{ variation.name|default:"Default" }}
+                                                            </label>
+                                                        </td>
+                                                        <td class="price-cell">
+                                                            <span class="default-price">KSh {{ variation.price|floatformat:2 }}</span>
+                                                        </td>
+                                                        <td style="width: 150px;">
+                                                            <div class="input-group">
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm decrease-qty" data-variation-id="{{ variation.id }}">
+                                                                    <i class="fas fa-minus"></i>
+                                                                </button>
+                                                                <input type="number" 
+                                                                       name="quantity_{{ variation.id }}"
+                                                                       id="id_quantity_{{ variation.id }}"
+                                                                       class="form-control text-center variation-quantity"
+                                                                       min="1"
+                                                                       value="1"
+                                                                       data-variation-id="{{ variation.id }}"
+                                                                       disabled>
+                                                                <button type="button" class="btn btn-outline-secondary btn-sm increase-qty" data-variation-id="{{ variation.id }}">
+                                                                    <i class="fas fa-plus"></i>
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td style="width: 200px;">
+                                                            <div class="d-flex align-items-center">
+                                                                <div class="form-check form-switch me-2">
+                                                                    <input type="checkbox" 
+                                                                           name="use_custom_price_{{ variation.id }}"
+                                                                           id="id_use_custom_price_{{ variation.id }}"
+                                                                           class="form-check-input custom-price-toggle"
+                                                                           data-variation-id="{{ variation.id }}">
+                                                                    <label class="form-check-label" for="id_use_custom_price_{{ variation.id }}"></label>
+                                                                </div>
+                                                                <div class="custom-price-input" style="display: none;" data-variation-id="{{ variation.id }}">
+                                                                    <div class="input-group input-group-sm">
+                                                                        <span class="input-group-text">KSh</span>
+                                                                        <input type="number"
+                                                                               name="custom_price_{{ variation.id }}"
+                                                                               id="id_custom_price_{{ variation.id }}"
+                                                                               class="form-control custom-price"
+                                                                               step="0.01"
+                                                                               min="0.01"
+                                                                               data-variation-id="{{ variation.id }}"
+                                                                               disabled>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="subtotal-cell" data-variation-id="{{ variation.id }}">
+                                                            KSh 0.00
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                            <tfoot>
+                                                <tr class="table-light">
+                                                    <td colspan="5" class="text-end fw-bold">Total:</td>
+                                                    <td class="fw-bold" id="order-total">KSh 0.00</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        No variations available for this product.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Order Notes -->
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Order Notes</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group mb-0">
+                                    {{ form.note }}
+                                    <div class="form-text">Add any special instructions or notes about this order.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle me-2"></i> Create Order
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Initialize form validation
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+
+    // Format number with commas
+    function formatNumber(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    // Toggle custom price input
+    $('.custom-price-toggle').on('change', function() {
+        const variationId = $(this).data('variation-id');
+        const customPriceInput = $(`.custom-price-input[data-variation-id="${variationId}"]`);
+        customPriceInput.toggle(this.checked);
+        
+        if (this.checked) {
+            customPriceInput.find('input').prop('disabled', false).focus();
+        } else {
+            customPriceInput.find('input').prop('disabled', true);
+        }
+        
+        updateOrderTotal();
+    });
+
+    // Toggle quantity input when variation is selected/deselected
+    $('.variation-checkbox').on('change', function() {
+        const variationId = $(this).data('variation-id');
+        const quantityInput = $(`#id_quantity_${variationId}`);
+        const customPriceToggle = $(`#id_use_custom_price_${variationId}`);
+        
+        if (this.checked) {
+            quantityInput.prop('disabled', false);
+            customPriceToggle.prop('disabled', false);
+        } else {
+            quantityInput.prop('disabled', true);
+            customPriceToggle.prop('disabled', true).prop('checked', false);
+            $(`.custom-price-input[data-variation-id="${variationId}"]`).hide().find('input').prop('disabled', true);
+        }
+        
+        updateOrderTotal();
+    });
+
+    // Quantity controls
+    $('.increase-qty').on('click', function() {
+        const variationId = $(this).data('variation-id');
+        const quantityInput = $(`#id_quantity_${variationId}`);
+        const currentVal = parseInt(quantityInput.val()) || 0;
+        quantityInput.val(currentVal + 1).trigger('change');
+    });
+
+    $('.decrease-qty').on('click', function() {
+        const variationId = $(this).data('variation-id');
+        const quantityInput = $(`#id_quantity_${variationId}`);
+        const currentVal = parseInt(quantityInput.val()) || 1;
+        if (currentVal > 1) {
+            quantityInput.val(currentVal - 1).trigger('change');
+        }
+    });
+
+    // Update order total when any relevant field changes
+    $('.variation-checkbox, .variation-quantity, .custom-price-toggle, .custom-price').on('change keyup', updateOrderTotal);
+
+    // Calculate and update order total
+    function updateOrderTotal() {
+        let orderTotal = 0;
+        
+        $('.variation-row').each(function() {
+            const variationId = $(this).data('variation-id');
+            const isSelected = $(`#id_variation_${variationId}`).is(':checked');
+            
+            if (isSelected) {
+                const quantity = parseInt($(`#id_quantity_${variationId}`).val()) || 0;
+                const useCustomPrice = $(`#id_use_custom_price_${variationId}`).is(':checked');
+                let price = parseFloat($(this).find('.default-price').text().replace('KSh', '').trim());
+                
+                if (useCustomPrice) {
+                    const customPrice = parseFloat($(`#id_custom_price_${variationId}`).val());
+                    if (!isNaN(customPrice) && customPrice > 0) {
+                        price = customPrice;
+                    }
+                }
+                
+                const subtotal = price * quantity;
+                $(`.subtotal-cell[data-variation-id="${variationId}"]`).text('KSh ' + formatNumber(subtotal.toFixed(2)));
+                orderTotal += subtotal;
+            } else {
+                $(`.subtotal-cell[data-variation-id="${variationId}"]`).text('KSh 0.00');
+            }
+        });
+        
+        $('#order-total').text('KSh ' + formatNumber(orderTotal.toFixed(2)));
+    }
+
+    // Initialize the form
+    $('.variation-checkbox').trigger('change');
+    $('.custom-price-toggle').trigger('change');
+});
+</script>
+
+<style>
+.variation-row:hover {
+    background-color: #f8f9fa;
+}
+
+.variation-row td {
+    vertical-align: middle;
+}
+
+.subtotal-cell {
+    font-weight: 500;
+}
+
+.price-cell {
+    white-space: nowrap;
+}
+
+.custom-price-input {
+    width: 120px;
+}
+</style>
+{% endblock %}

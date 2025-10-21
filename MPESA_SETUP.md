@@ -23,6 +23,22 @@ MPESA_PASSKEY=your_actual_passkey
 MPESA_CALLBACK_URL=https://yourdomain.com/api/mpesa-callback/
 ```
 
+### For Development with Ngrok
+
+If you're using ngrok for development, add these settings to your .env file:
+
+```
+# Enable ngrok mode
+USE_NGROK=True
+NGROK_HOSTNAME=your-ngrok-subdomain.ngrok-free.dev
+
+# Example:
+# USE_NGROK=True
+# NGROK_HOSTNAME=arhythmically-unciliated-danna.ngrok-free.dev
+```
+
+When `USE_NGROK=True`, the system will automatically use your ngrok hostname for the M-Pesa callback URL, sending callbacks directly to the order detail page (e.g., `https://your-ngrok-subdomain.ngrok-free.dev/orders/1760821562/`) instead of a generic callback endpoint.
+
 ## 3. Important Notes
 
 - Use HTTPS for callback URL in production

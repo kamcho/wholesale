@@ -41,13 +41,27 @@
                     </div>
                     <div class="flex items-center space-x-2">
                         {% if chat.product %}
+                        <!-- View Product Button -->
                         <a href="{% url 'home:product_detail' chat.product.id %}" 
-                           class="text-blue-100 hover:text-white p-2 rounded-lg hover:bg-blue-800 transition-colors">
+                           class="text-blue-100 hover:text-white p-2 rounded-lg hover:bg-blue-800 transition-colors"
+                           title="View Product">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                             </svg>
                         </a>
+                        
+                        <!-- Create Order Button - Only show for Manager who is the product creator -->
+                        {% if is_manager and is_product_creator and not is_buyer %}
+                        <a href="{% url 'vendor:create_order_from_chat' chat.id %}" 
+                           class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-1"
+                           title="Create Order">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            <span>Create Order</span>
+                        </a>
+                        {% endif %}
                         {% endif %}
                         <a href="{% url 'home:delete_chat' chat.id %}" 
                            class="text-red-200 hover:text-red-100 p-2 rounded-lg hover:bg-red-800 transition-colors"

@@ -5,11 +5,30 @@
 {% block content %}
 <style>
 .hover-lift {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.2s ease;
 }
 .hover-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow-md);
+}
+
+/* Dark mode overrides */
+.dark .card {
+    background-color: var(--surface);
+    border-color: var(--border);
+}
+
+.dark .card-header {
+    background-color: var(--surface);
+    border-bottom-color: var(--border);
+}
+
+.dark .border {
+    border-color: var(--border) !important;
+}
+
+.dark .text-muted {
+    color: var(--text-muted) !important;
 }
 </style>
 
@@ -55,45 +74,88 @@
 <div class="row">
     <div class="col-lg-8">
         <!-- Product Images -->
-        <div class="card mb-4 border-0 shadow-lg">
-            <div class="card-header d-flex justify-content-between align-items-center border-0 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <h5 class="card-title mb-0">
-                    <svg class="w-5 h-5 me-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    Product Images
-                </h5>
-                <a href="{% url 'vendor:add_product_image' product.id %}" class="btn btn-sm btn-primary hover-lift">
-                    <svg class="w-4 h-4 me-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="card mb-6 border border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 bg-gray-800">
+            <div class="card-header d-flex justify-between items-center p-4 border-b border-gray-700 bg-gray-800">
+                <div class="flex items-center">
+                    <div class="p-1.5 rounded-lg bg-indigo-900/50 mr-3">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h5 class="text-lg font-semibold text-gray-100">Product Gallery</h5>
+                        <p class="text-xs text-gray-400">Manage your product images</p>
+                    </div>
+                    <span class="ml-3 px-2 py-1 text-xs font-medium bg-gray-700 text-gray-200 rounded-full">{{ images|length }} {{ images|length|pluralize:"image,images" }}</span>
+                </div>
+                <a href="{% url 'vendor:add_product_image' product.id %}" 
+                   class="inline-flex items-center px-3.5 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
                     Add Image
                 </a>
             </div>
-            <div class="card-body">
+            <div class="p-4 bg-gray-50 dark:bg-gray-800/50">
                 {% if images %}
-                    <div class="row g-3">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {% for image in images %}
-                        <div class="col-6 col-md-4">
-                            <div class="position-relative border rounded overflow-hidden">
+                        <div class="group relative rounded-lg overflow-hidden bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+                            <div class="aspect-w-4 aspect-h-3 bg-gray-100 dark:bg-gray-600">
                                 <img src="{{ image.image.url }}"
-                                     class="w-100 d-block"
+                                     class="w-full h-48 object-cover"
                                      alt="{{ image.caption|default:product.name }}"
-                                     loading="lazy"
-                                     style="height: 220px; object-fit: cover; background:#f8f9fa;">
-                                {% if image.is_default %}
-                                    <span class="position-absolute top-0 start-0 badge bg-primary m-2">Default</span>
-                                {% endif %}
-                                <div class="position-absolute top-0 end-0 m-2 d-flex gap-1">
-                                    <button class="btn btn-sm btn-outline-danger hover-lift" onclick="deleteImage({{ image.id }})" title="Delete">
+                                     loading="lazy">
+                            </div>
+                            
+                            {% if image.is_default %}
+                                <span class="absolute top-2 left-2 px-2 py-1 text-xs font-semibold text-white bg-green-600 rounded-full flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    Default
+                                </span>
+                            {% endif %}
+                            
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div class="flex space-x-2">
+                                    <button class="p-2 bg-white dark:bg-gray-800 rounded-full text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors" 
+                                            onclick="deleteImage({{ image.id }})" 
+                                            title="Delete image">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                         </svg>
                                     </button>
+                                    {% if not image.is_default %}
+                                    <form method="post" action="{% url 'vendor:product_detail' product.id %}" class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="set_default_image" value="{{ image.id }}">
+                                        <button type="submit" class="p-2 bg-white dark:bg-gray-800 rounded-full text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors" 
+                                                title="Set as default">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    {% endif %}
                                 </div>
                             </div>
+                            
                             {% if image.caption %}
-                                <div class="mt-2 small text-muted" title="{{ image.caption }}">{{ image.caption|truncatechars:40 }}</div>
+                                <div class="p-3 border-t border-gray-100 dark:border-gray-600">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" title="{{ image.caption }}">
+                                        {{ image.caption|truncatechars:30 }}
+                                    </p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Added {{ image.created_at|timesince }} ago
+                                    </p>
+                                </div>
+                            {% else %}
+                                <div class="p-3 border-t border-gray-100 dark:border-gray-600">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                                        No caption
+                                    </p>
+                                </div>
                             {% endif %}
                         </div>
                         {% endfor %}
@@ -116,87 +178,106 @@
         </div>
         
         <!-- Product Details -->
-        <div class="card border-0 shadow-lg">
-            <div class="card-header border-0 bg-gradient-to-r from-indigo-50 to-blue-50">
-                <h5 class="card-title mb-0">
-                    <svg class="w-5 h-5 me-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Product Details
-                </h5>
+        <div class="card border border-gray-700 shadow-lg bg-gray-800 overflow-hidden">
+            <div class="card-header px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 p-2 rounded-lg bg-indigo-900/30 border border-indigo-800/50 shadow-sm">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold text-gray-100">Product Details</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">Overview and specifications</p>
+                    </div>
+                    <div class="ml-auto flex items-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                            <span class="flex w-2 h-2 rounded-full bg-green-400 mr-1.5"></span>
+                            Active
+                        </span>
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-6">
                 <!-- Main Info Grid -->
-                <div class="row g-4 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <!-- MOQ Card -->
-                    <div class="col-sm-6 col-lg-6">
-                        <div class="p-4 border-0 rounded-3 d-flex align-items-center h-100 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover-lift">
-                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center me-3">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-indigo-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5 flex items-start">
+                            <div class="flex-shrink-0 p-3 rounded-xl bg-blue-900/40 border border-blue-800/50 shadow-inner">
+                                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                                 </svg>
                             </div>
-                            <div>
-                                <div class="text-blue-700 small fw-medium">Minimum Order Quantity</div>
-                                <div class="h5 text-blue-800 fw-bold mb-0">{{ product.moq }} units</div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-400 mb-1">Minimum Order Quantity</div>
+                                <div class="text-xl font-bold text-white">{{ product.moq }} units</div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Variations Card -->
-                    <div class="col-sm-6 col-lg-6">
-                        <div class="p-4 border-0 rounded-3 d-flex align-items-center h-100 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 hover-lift">
-                            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center me-3">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-green-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-green-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5 flex items-start">
+                            <div class="flex-shrink-0 p-3 rounded-xl bg-green-900/40 border border-green-800/50 shadow-inner">
+                                <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
                                 </svg>
                             </div>
-                            <div>
-                                <div class="text-green-700 small fw-medium">Product Variations</div>
-                                <div class="h5 text-green-800 fw-bold mb-0">{{ variations.count }} available</div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-400 mb-1">Product Variations</div>
+                                <div class="text-xl font-bold text-white">{{ variations.count }} available</div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Categories Card -->
-                    <div class="col-sm-6 col-lg-6">
-                        <div class="p-4 border-0 rounded-3 d-flex align-items-start h-100 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 hover-lift">
-                            <div class="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center me-3 flex-shrink-0">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="text-purple-700 small fw-medium mb-2">Categories</div>
-                                <div>
-                                    {% with cats=product.categories.all %}
-                                        {% if cats %}
-                                            {% for c in cats %}
-                                                <span class="badge bg-purple-600 me-1 mb-1">{{ c.name }}</span>
-                                            {% endfor %}
-                                        {% else %}
-                                            <span class="text-muted small">No categories assigned</span>
-                                        {% endif %}
-                                    {% endwith %}
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-purple-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 p-3 rounded-xl bg-purple-900/40 border border-purple-800/50 shadow-inner">
+                                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-400 mb-2">Categories</div>
+                                    <div class="flex flex-wrap gap-2">
+                                        {% with cats=product.categories.all %}
+                                            {% if cats %}
+                                                {% for c in cats %}
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-900/50 text-purple-200 border border-purple-800/50">
+                                                        {{ c.name }}
+                                                    </span>
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="text-sm text-gray-500">No categories assigned</span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Business Card -->
-                    <div class="col-sm-6 col-lg-6">
-                        <div class="p-4 border-0 rounded-3 d-flex align-items-center h-100 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 hover-lift">
-                            <div class="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center me-3">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-orange-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5 flex items-start">
+                            <div class="flex-shrink-0 p-3 rounded-xl bg-orange-900/40 border border-orange-800/50 shadow-inner">
+                                <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2h-4.18a2 2 0 01-1.664-.89l-1.732-2.602A2 2 0 008.18 1H6a2 2 0 00-2 2v2m0 0a2 2 0 01-2-2V1m4 4h10a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/>
                                 </svg>
                             </div>
                             <div>
-                                <div class="text-orange-700 small fw-medium">Business</div>
+                                <div class="text-sm font-medium text-gray-400 mb-1">Business</div>
                                 {% if product.business %}
-                                    <div class="text-orange-800 fw-bold">{{ product.business.name }}</div>
+                                    <div class="text-xl font-bold text-white">{{ product.business.name }}</div>
                                 {% else %}
-                                    <div class="text-muted small">No business assigned</div>
+                                    <div class="text-sm text-gray-500">No business assigned</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -204,33 +285,46 @@
                 </div>
                 
                 <!-- Timeline Section -->
-                <div class="row g-4 mb-4">
-                    <div class="col-sm-6 col-lg-6">
-                        <div class="p-4 border-0 rounded-3 h-100 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center me-3">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Created Date -->
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-indigo-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5">
+                            <div class="flex items-center mb-3">
+                                <div class="flex-shrink-0 p-2 rounded-lg bg-indigo-900/40 border border-indigo-800/50 shadow-inner">
+                                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                     </svg>
                                 </div>
-                                <div class="text-gray-700 small fw-medium">Created</div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-gray-400">Created</h4>
+                                </div>
                             </div>
-                            <div class="text-gray-800 fw-semibold">{{ product.created_at|date:"M d, Y" }}</div>
-                            <div class="text-gray-600 small">{{ product.created_at|date:"H:i" }}</div>
+                            <div class="flex items-baseline">
+                                <span class="text-2xl font-bold text-white">{{ product.created_at|date:"M d, Y" }}</span>
+                                <span class="ml-2 text-sm text-gray-400">{{ product.created_at|date:"H:i" }}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-sm-6 col-lg-6">
-                        <div class="p-4 border-0 rounded-3 h-100 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center me-3">
-                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+
+                    <!-- Last Updated -->
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-purple-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5">
+                            <div class="flex items-center mb-3">
+                                <div class="flex-shrink-0 p-2 rounded-lg bg-purple-900/40 border border-purple-800/50 shadow-inner">
+                                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                     </svg>
                                 </div>
-                                <div class="text-gray-700 small fw-medium">Last Updated</div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-gray-400">Last Updated</h4>
+                                </div>
                             </div>
-                            <div class="text-gray-800 fw-semibold">{{ product.updated_at|date:"M d, Y" }}</div>
-                            <div class="text-gray-600 small">{{ product.updated_at|date:"H:i" }}</div>
+                            <div class="flex items-baseline">
+                                <span class="text-2xl font-bold text-white">{{ product.updated_at|date:"M d, Y" }}</span>
+                                <span class="ml-2 text-sm text-gray-400">{{ product.updated_at|date:"H:i" }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -255,43 +349,89 @@
         </div>
         
         <!-- Product Variations -->
-        <div class="card mt-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-tags me-2"></i>Product Variations
-                </h5>
-                <a href="{% url 'vendor:add_product_variation' product.id %}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus me-1"></i> Add Variation
-                </a>
+        <div class="card border border-gray-700 shadow-lg bg-gray-800 overflow-hidden mt-6">
+            <div class="card-header px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 p-2 rounded-lg bg-purple-900/30 border border-purple-800/50 shadow-sm">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-lg font-semibold text-gray-100">Product Variations</h2>
+                            <p class="text-xs text-gray-400 mt-0.5">Manage different versions of this product</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'vendor:add_product_variation' product.id %}" 
+                       class="inline-flex items-center px-3.5 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        Add Variation
+                    </a>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="p-6">
                 {% if variations %}
-                    <div class="row g-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {% for variation in variations %}
-                        <div class="col-12 col-md-6">
-                            <a href="{% url 'vendor:variation_detail' variation.id %}" class="text-decoration-none text-reset">
-                                <div class="p-3 border rounded-3 h-100 d-flex justify-content-between align-items-start hover-shadow" style="transition: box-shadow .2s, transform .05s;">
-                                    <div>
-                                        <div class="fw-semibold">{{ variation.name }}</div>
-                                        <div class="text-muted small">MOQ: {{ variation.moq }} units</div>
-                                        <div class="text-muted small">Created {{ variation.created_at|date:"M d, Y" }}</div>
+                        <a href="{% url 'vendor:variation_detail' variation.id %}" class="group block">
+                            <div class="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-purple-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full">
+                                <div class="absolute inset-0 bg-gradient-to-br from-purple-900/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <div class="relative p-5">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-white mb-1">{{ variation.name }}</h3>
+                                            <div class="flex items-center text-sm text-gray-400 mb-3">
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300 mr-2">
+                                                    MOQ: {{ variation.moq }} units
+                                                </span>
+                                                <span class="text-xs text-gray-500">
+                                                    Created {{ variation.created_at|date:"M d, Y" }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-purple-900/30 text-purple-400 group-hover:bg-purple-800/50 transition-colors duration-200">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                            </svg>
+                                        </span>
                                     </div>
-                                    <div class="text-end">
-                                        <div class="h5 text-primary mb-2">${{ variation.price }}</div>
-                                        <span class="btn btn-sm btn-outline-secondary" title="Open Variation"><i class="fas fa-arrow-right"></i></span>
+                                    <div class="mt-2 flex items-baseline">
+                                        <span class="text-2xl font-bold text-white">${{ variation.price }}</span>
+                                        <span class="ml-2 text-sm text-green-400">
+                                            <svg class="w-4 h-4 inline-block -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
+                                            </svg>
+                                            In Stock
+                                        </span>
                                     </div>
                                 </div>
-                            </a>
-                        </div>
+                            </div>
+                        </a>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-tags fa-3x text-muted mb-3"></i>
-                        <p class="text-muted mb-3">No variations added yet</p>
-                        <a href="{% url 'vendor:add_product_variation' product.id %}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus me-1"></i> Add First Variation
-                        </a>
+                    <div class="text-center py-12 px-4 rounded-xl border-2 border-dashed border-gray-700 hover:border-indigo-500/50 transition-colors duration-200">
+                        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-purple-900/20 mb-4">
+                            <svg class="h-8 w-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-200">No variations yet</h3>
+                        <p class="mt-1 text-sm text-gray-400 max-w-md mx-auto">
+                            Create variations to offer different options like size, color, or style for this product.
+                        </p>
+                        <div class="mt-6">
+                            <a href="{% url 'vendor:add_product_variation' product.id %}" 
+                               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 hover:shadow-md">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Add First Variation
+                            </a>
+                        </div>
                     </div>
                 {% endif %}
             </div>
@@ -300,65 +440,125 @@
     
     <div class="col-lg-4">
         <!-- Quick Actions -->
-        <div class="card mb-4 border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <div class="card-header border-0" style="background: transparent;">
-                <h6 class="card-title mb-0 text-white">
-                    <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    Quick Actions
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-12">
-                        <a href="{% url 'vendor:edit_product' product.id %}" class="btn btn-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg shadow-sm hover-lift" style="transition: all 0.3s ease;">
-                            <svg class="w-5 h-5 me-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                            </svg>
-                            <span class="fw-semibold">Edit Product</span>
-                        </a>
-                    </div>
-                    <div class="col-12">
-                        <a href="{% url 'vendor:add_product_image' product.id %}" class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg hover-lift" style="transition: all 0.3s ease;">
-                            <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                            <span class="fw-semibold">Add Image</span>
-                        </a>
-                    </div>
-                    <div class="col-12">
-                        <a href="{% url 'vendor:add_product_variation' product.id %}" class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg hover-lift" style="transition: all 0.3s ease;">
-                            <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                            </svg>
-                            <span class="fw-semibold">Add Variation</span>
-                        </a>
-                    </div>
-                    <div class="col-12">
-                        <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-light w-100 d-flex align-items-center justify-content-center py-3 rounded-lg hover-lift" style="transition: all 0.3s ease;">
-                            <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                            </svg>
-                            <span class="fw-semibold">Back to Products</span>
-                        </a>
-                    </div>
-                </div>
+        <div class="card mb-6 border-0 shadow-lg overflow-hidden">
+            <div class="relative">
+                <!-- Gradient Background -->
+                <div class="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 opacity-90"></div>
+                <!-- Noise Texture -->
+                <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwMDAwIj48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDBMNCA0Wk00IDBMMCA0WiIgc3Ryb2tlLXdpZHRoPSIwLjUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSIvPgo8L3N2Zz4=')] opacity-20"></div>
                 
-                <!-- Pro Tip Section -->
-                <div class="mt-6 p-5 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl border border-amber-100 shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-0.5">
-                    <div class="flex items-start">
-                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full flex items-center justify-center shadow-md">
+                <!-- Header -->
+                <div class="relative px-6 py-4">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 p-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/10 shadow-sm">
                             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12c0 2.8 0 4.2-.545 5.27a5 5 0 01-2.118 2.18c-.98.54-2.31.54-4.97.54h-.6c-2.66 0-3.99 0-4.97-.54a5 5 0 01-2.118-2.18C4 16.2 4 14.8 4 12s0-4.2.545-5.27a5 5 0 012.118-2.18C7.642 4 8.972 4 11.632 4h.6c2.66 0 3.99 0 4.97.55a5 5 0 012.118 2.18c.35.65.476 1.426.513 2.67"/>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12h-5m5 0l-2 2m2-2l-2-2"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                             </svg>
                         </div>
                         <div class="ml-4">
-                            <h4 class="text-base font-semibold text-amber-800 flex items-center">
-                                Pro Tip
-                                <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">Recommended</span>
-                            </h4>
+                            <h2 class="text-lg font-semibold text-white">Quick Actions</h2>
+                            <p class="text-xs text-indigo-100 mt-0.5">Manage your product efficiently</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="p-6 bg-gray-800">
+                <div class="space-y-3">
+                    <!-- Edit Product -->
+                    <a href="{% url 'vendor:edit_product' product.id %}" 
+                       class="group relative flex items-center w-full px-4 py-3 text-sm font-medium text-left text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-all duration-200 hover:shadow-lg hover:translate-x-1">
+                        <div class="flex-shrink-0 p-2 rounded-lg bg-indigo-600 group-hover:bg-indigo-500 transition-colors duration-200">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <span class="block">Edit Product</span>
+                            <span class="text-xs text-gray-400 group-hover:text-gray-300">Update product details</span>
+                        </div>
+                        <div class="ml-auto text-gray-400 group-hover:text-white transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+                    
+                    <!-- Add Image -->
+                    <a href="{% url 'vendor:add_product_image' product.id %}" 
+                       class="group relative flex items-center w-full px-4 py-3 text-sm font-medium text-left text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-all duration-200 hover:shadow-lg hover:translate-x-1">
+                        <div class="flex-shrink-0 p-2 rounded-lg bg-purple-600 group-hover:bg-purple-500 transition-colors duration-200">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <span class="block">Add Image</span>
+                            <span class="text-xs text-gray-400 group-hover:text-gray-300">Upload product photos</span>
+                        </div>
+                        <div class="ml-auto text-gray-400 group-hover:text-white transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+                    
+                    <!-- Add Variation -->
+                    <a href="{% url 'vendor:add_product_variation' product.id %}" 
+                       class="group relative flex items-center w-full px-4 py-3 text-sm font-medium text-left text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-all duration-200 hover:shadow-lg hover:translate-x-1">
+                        <div class="flex-shrink-0 p-2 rounded-lg bg-pink-600 group-hover:bg-pink-500 transition-colors duration-200">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <span class="block">Add Variation</span>
+                            <span class="text-xs text-gray-400 group-hover:text-gray-300">Create product options</span>
+                        </div>
+                        <div class="ml-auto text-gray-400 group-hover:text-white transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+                    
+                    <!-- Back to Products -->
+                    <a href="{% url 'vendor:product_list' %}" 
+                       class="group relative flex items-center w-full px-4 py-3 text-sm font-medium text-left text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-all duration-200 hover:shadow-lg hover:translate-x-1">
+                        <div class="flex-shrink-0 p-2 rounded-lg bg-gray-600 group-hover:bg-gray-500 transition-colors duration-200">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <span class="block">Back to Products</span>
+                            <span class="text-xs text-gray-400 group-hover:text-gray-300">View all your products</span>
+                        </div>
+                        <div class="ml-auto text-gray-400 group-hover:text-white transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </a>
+                </div>
+                
+                <!-- Pro Tip Section -->
+                <div class="mt-6 p-4 bg-gradient-to-br from-amber-900/40 to-amber-800/20 rounded-xl border border-amber-800/30 shadow-sm hover:shadow-md transition-all duration-300 group">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-amber-500 to-yellow-500 rounded-full flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                            <svg class="w-5 h-5 text-amber-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12c0 2.8 0 4.2-.545 5.27a5 5 0 01-2.118 2.18c-.98.54-2.31.54-4.97.54h-.6c-2.66 0-3.99 0-4.97-.54a5 5 0 01-2.118-2.18C4 16.2 4 14.8 4 12s0-4.2.545-5.27a5 5 0 012.118-2.18C7.642 4 8.972 4 11.632 4h.6c2.66 0 3.99 0 4.97.55a5 5 0 012.118 2.18c.35.65.476 1.426.513 2.67"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12h-5m5 0l-2 2m2-2l-2-2"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <div class="flex items-center">
+                                <h4 class="text-sm font-semibold text-amber-200">
+                                    Pro Tip
+                                </h4>
+                                <span class="ml-2 px-2 py-0.5 text-xs font-medium bg-amber-900/50 text-amber-200 rounded-full border border-amber-800/50">Recommended</span>
+                            </div>
                             <p class="mt-1.5 text-sm text-amber-700">
                                 Boost your product's appeal and sales by adding high-quality images, detailed descriptions, and multiple variations with competitive pricing. Don't forget to update your MOQ to attract both small and bulk buyers.
                             </p>
@@ -383,89 +583,129 @@
         </div>
         
         <!-- Product Statistics -->
-        <div class="card mb-4 border-0 shadow-lg">
-            <div class="card-header border-0 bg-gradient-to-r from-purple-50 to-pink-50">
-                <h6 class="card-title mb-0">
-                    <svg class="w-5 h-5 me-2 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    Product Statistics
-                </h6>
+        <div class="card mb-6 border border-gray-700 shadow-lg bg-gray-800 overflow-hidden">
+            <div class="card-header px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 p-2 rounded-lg bg-purple-900/30 border border-purple-800/50 shadow-sm">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold text-gray-100">Product Statistics</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">Key metrics at a glance</p>
+                    </div>
+                </div>
             </div>
-            <div class="card-body p-4">
+            <div class="p-6">
                 <!-- Main Stats Row -->
-                <div class="row g-3 mb-4">
-                    <div class="col-6">
-                        <div class="text-center p-3 rounded-3 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-                            <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- Images Card -->
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-blue-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-blue-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 p-3 rounded-xl bg-blue-900/40 border border-blue-800/50 shadow-inner">
+                                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-400">Images</div>
+                                    <div class="text-2xl font-bold text-white">{{ images.count }}</div>
+                                </div>
                             </div>
-                            <h4 class="text-blue-600 mb-1 fw-bold">{{ images.count }}</h4>
-                            <small class="text-blue-700 fw-medium">Images</small>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="text-center p-3 rounded-3 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-                            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
+                    
+                    <!-- Variations Card -->
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-green-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-green-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 p-3 rounded-xl bg-green-900/40 border border-green-800/50 shadow-inner">
+                                    <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-400">Variations</div>
+                                    <div class="text-2xl font-bold text-white">{{ variations.count }}</div>
+                                </div>
                             </div>
-                            <h4 class="text-green-600 mb-1 fw-bold">{{ variations.count }}</h4>
-                            <small class="text-green-700 fw-medium">Variations</small>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Secondary Stats Row -->
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="text-center p-3 rounded-3 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
-                            <div class="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                </svg>
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- MOQ Card -->
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-orange-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-orange-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 p-3 rounded-xl bg-orange-900/40 border border-orange-800/50 shadow-inner">
+                                    <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-400">MOQ</div>
+                                    <div class="text-2xl font-bold text-white">{{ product.moq }}</div>
+                                </div>
                             </div>
-                            <h5 class="text-orange-600 mb-1 fw-bold">{{ product.moq }}</h5>
-                            <small class="text-orange-700 fw-medium">MOQ</small>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="text-center p-3 rounded-3 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
-                            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
+                    
+                    <!-- Categories Card -->
+                    <div class="group relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-purple-500/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                        <div class="absolute inset-0 bg-gradient-to-br from-purple-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div class="relative p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 p-3 rounded-xl bg-purple-900/40 border border-purple-800/50 shadow-inner">
+                                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-400">Categories</div>
+                                    <div class="text-2xl font-bold text-white">{{ product.categories.count }}</div>
+                                </div>
                             </div>
-                            <h5 class="text-purple-600 mb-1 fw-bold">{{ product.categories.count }}</h5>
-                            <small class="text-purple-700 fw-medium">Categories</small>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Performance Indicator -->
-                <div class="mt-4 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-3 border">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center">
-                            <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center me-3">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                <div class="mt-6 p-5 bg-gray-800/50 rounded-xl border border-gray-700 hover:border-indigo-500/30 transition-all duration-300">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 p-2 rounded-lg bg-indigo-900/40 border border-indigo-800/50 shadow-sm">
+                                <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
                             </div>
-                            <div>
-                                <div class="fw-semibold text-gray-800">Product Completeness</div>
-                                <div class="text-sm text-gray-600">Based on images, variations, and details</div>
+                            <div class="ml-4">
+                                <h4 class="text-sm font-semibold text-gray-100">Product Completeness</h4>
+                                <p class="text-xs text-gray-400 mt-0.5">Based on images, variations, and details</p>
                             </div>
                         </div>
-                        <div class="text-end">
+                        <div>
                             {% if images.count > 0 and variations.count > 0 %}
-                                <span class="badge bg-success fs-6">Complete</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900/50 text-green-300 border border-green-800/50">
+                                    <span class="flex w-2 h-2 rounded-full bg-green-400 mr-1.5"></span>
+                                    Complete
+                                </span>
                             {% elif images.count > 0 or variations.count > 0 %}
-                                <span class="badge bg-warning fs-6">Partial</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-900/50 text-yellow-300 border border-yellow-800/50">
+                                    <span class="flex w-2 h-2 rounded-full bg-yellow-400 mr-1.5"></span>
+                                    Partial
+                                </span>
                             {% else %}
-                                <span class="badge bg-secondary fs-6">Incomplete</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700/50 text-gray-300 border border-gray-600/50">
+                                    <span class="flex w-2 h-2 rounded-full bg-gray-500 mr-1.5"></span>
+                                    Incomplete
+                                </span>
                             {% endif %}
                         </div>
                     </div>
@@ -474,8 +714,8 @@
         </div>
         
         <!-- Product Servicing -->
-        <div class="card mb-4 border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div class="card-header border-0 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-t-lg">
+        <div class="card mb-4 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div class="card-header border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-700 dark:to-indigo-700 rounded-t-lg">
                 <h5 class="card-title mb-0 text-white font-medium">
                     <svg class="w-5 h-5 me-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -483,7 +723,7 @@
                     Product Servicing
                 </h5>
             </div>
-            <div class="card-body p-5 bg-white rounded-b-lg">
+            <div class="card-body p-5 bg-white dark:bg-gray-800 rounded-b-lg">
                 <form method="post" action="{% url 'vendor:product_detail' product.id %}" class="space-y-5">
                     {% csrf_token %}
                     <input type="hidden" name="update_servicing" value="1">
@@ -564,8 +804,8 @@
         </div>
         
         <!-- Additional Fees -->
-        <div class="card mb-4 border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div class="card-header border-0 bg-gradient-to-r from-green-600 to-emerald-600 rounded-t-lg">
+        <div class="card mb-4 border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300">
+            <div class="card-header border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-700 dark:to-emerald-700 rounded-t-lg">
                 <h5 class="card-title mb-0 text-white font-medium">
                     <svg class="w-5 h-5 me-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -573,7 +813,7 @@
                     Additional Fees
                 </h5>
             </div>
-            <div class="card-body p-5 bg-white rounded-b-lg">
+            <div class="card-body p-5 bg-white dark:bg-gray-800 rounded-b-lg">
                 <!-- Add New Fee Form -->
                 <form method="post" action="{% url 'vendor:product_detail' product.id %}" class="mb-6">
                     {% csrf_token %}
@@ -637,7 +877,7 @@
                     <h6 class="text-lg font-medium text-gray-900 mb-3">Current Fees</h6>
                     <div class="space-y-3">
                         {% for fee in existing_fees %}
-                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                             <div class="flex-1">
                                 <div class="flex items-center">
                                     <h6 class="text-sm font-medium text-gray-900">{{ fee.name }}</h6>
@@ -684,8 +924,8 @@
         </div>
         
         <!-- Business Information -->
-        <div class="card border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 mb-4">
-            <div class="card-header border-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-t-lg">
+        <div class="card border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow duration-300 mb-4">
+            <div class="card-header border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 rounded-t-lg">
                 <h5 class="card-title mb-0 text-white font-medium">
                     <svg class="w-5 h-5 me-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2h-4.18a2 2 0 01-1.664-.89l-1.732-2.602A2 2 0 008.18 1H6a2 2 0 00-2 2v2m0 0a2 2 0 01-2-2V1m4 4h10a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/>
@@ -693,11 +933,11 @@
                     Business Information
                 </h5>
             </div>
-            <div class="card-body p-5 bg-white rounded-b-lg">
+            <div class="card-body p-5 bg-white dark:bg-gray-800 rounded-b-lg">
                 {% if product.business %}
                     <div class="space-y-4">
                         <div class="flex items-start">
-                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                                 <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m-1-7v3m4-6v6m4-3v3"/>
                                 </svg>
@@ -766,7 +1006,7 @@
                     </div>
                 {% else %}
                     <div class="text-center py-8 px-4">
-                        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-4">
+                        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-4">
                             <svg class="h-8 w-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2h-4.18a2 2 0 01-1.664-.89l-1.732-2.602A2 2 0 008.18 1H6a2 2 0 00-2 2v2m0 0a2 2 0 01-2-2V1m4 4h10a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5z"/>
                             </svg>

@@ -51,7 +51,27 @@ SECRET_KEY = 'django-insecure-w!k609iedac*rt_e$wwwnh&6bl4f-ddyohx(u%1j1%r)s)-f$j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'arhythmically-unciliated-danna.ngrok-free.dev',
+    '.ngrok-free.dev',  # Allow all ngrok subdomains
+]
+
+# M-Pesa Configuration
+MPESA_CONSUMER_KEY = os.getenv('MPESA_CONSUMER_KEY', '')
+MPESA_CONSUMER_SECRET = os.getenv('MPESA_CONSUMER_SECRET', '')
+MPESA_BUSINESS_SHORTCODE = os.getenv('MPESA_BUSINESS_SHORTCODE', '')
+MPESA_PASSKEY = os.getenv('MPESA_PASSKEY', '')
+MPESA_CALLBACK_URL = os.getenv('MPESA_CALLBACK_URL', 'https://yourdomain.com/api/mpesa-callback/')
+
+# Dynamic hostname for development (ngrok support)
+NGROK_HOSTNAME = os.getenv('NGROK_HOSTNAME', 'localhost:8000')
+USE_NGROK = os.getenv('USE_NGROK', 'False').lower() == 'true'
+
+# Build callback URL dynamically
+if USE_NGROK and NGROK_HOSTNAME != 'localhost:8000':
+    MPESA_CALLBACK_URL = f"https://{NGROK_HOSTNAME}/api/mpesa-callback/"
 
 
 # Authentication backends
@@ -200,7 +220,7 @@ MPESA_CONSUMER_KEY = os.environ.get('MPESA_CONSUMER_KEY', '')
 MPESA_CONSUMER_SECRET = os.environ.get('MPESA_CONSUMER_SECRET', '')
 MPESA_BUSINESS_SHORTCODE = os.environ.get('MPESA_BUSINESS_SHORTCODE', '')
 MPESA_PASSKEY = os.environ.get('MPESA_PASSKEY', '')
-MPESA_CALLBACK_URL = os.environ.get('MPESA_CALLBACK_URL', 'https://yourdomain.com/api/mpesa-callback/')
+MPESA_CALLBACK_URL = os.environ.get('MPESA_CALLBACK_URL', 'https://arhythmically-unciliated-danna.ngrok-free.dev/api/mpesa-callback/')
 
 # Log M-Pesa configuration status
 if not MPESA_CONSUMER_KEY:

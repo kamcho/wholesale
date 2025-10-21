@@ -93,7 +93,7 @@
                         {% for item in page_obj %}
                         <tr class="align-middle border-top border-gray-700 hover-bg-gray-700 transition-colors">
                             <td class="ps-4">
-                                <a href="#" class="text-primary text-decoration-none fw-bold">#{{ item.order.id }}</a>
+                                <a href="{% url 'vendor:order_detail' item.order.id %}" class="text-primary text-decoration-none fw-bold">#{{ item.order.id }}</a>
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">

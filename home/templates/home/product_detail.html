@@ -589,6 +589,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </svg>
                         Chat with Seller
                     </a>
+                    {% elif request.user.is_authenticated and request.user == product.business.owner %}
                     {% else %}
                     <a href="{% url 'login' %}"
                        class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold text-center hover:bg-blue-700 transition-colors">
@@ -665,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </button>
                         <button onclick="showTab('requests-tab', 'requests-content', this)" 
                                 class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                            Order Requests ({{ related_order_requests.count }})
+                            Order Requests ({{ related_order_requests|length }})
                         </button>
                     </nav>
                 </div>
@@ -673,30 +674,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 <!-- Orders Tab Content -->
                 <div id="orders-content" class="space-y-4">
                     {% if related_orders %}
-                        {% for item in related_orders %}
+                        {% for order in related_orders %}
                         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                             <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
                                 <div>
                                     <h4 class="text-lg leading-6 font-medium text-gray-900">
-                                        Order #{{ item.order.id }} - {{ item.order.get_status_display }}
+                                        Order #{{ order.id }} - {{ order.get_status_display }}
                                     </h4>
                                     <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                                        {{ item.order.created_at|date:"F j, Y" }}
+                                        {{ order.created_at|date:"F j, Y" }}
                                     </p>
                                 </div>
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {% if item.order.status == 'completed' %}bg-green-100 text-green-800{% elif item.order.status == 'cancelled' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                    {{ item.order.get_status_display }}
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {% if order.status == 'completed' %}bg-green-100 text-green-800{% elif order.status == 'cancelled' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ order.get_status_display }}
                                 </span>
                             </div>
                             <div class="border-t border-gray-200 px-4 py-5 sm:p-0">
                                 <dl class="sm:divide-y sm:divide-gray-200">
+                                    {% for item in order.product_items %}
                                     <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                                         <dt class="text-sm font-medium text-gray-500">Product</dt>
                                         <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                            {{ item.variation.product.name }} - 
-                                            {% for attr in item.variation.attributes.all %}
-                                                {{ attr.attribute.name }}: {{ attr.value.value }}{% if not forloop.last %}, {% endif %}
-                                            {% endfor %}
+                                            {{ item.variation.product.name }} - {{ item.variation.name }}
                                         </dd>
                                     </div>
                                     <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -705,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </div>
                                     <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                                         <dt class="text-sm font-medium text-gray-500">Price</dt>
-                                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">KSh {{ item.unit_price|intcomma }}</dd>
+                                        <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">KSh {{ item.price|intcomma }}</dd>
                                     </div>
                                     <div class="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                                         <dt class="text-sm font-medium text-gray-500">Total</dt>
@@ -713,6 +712,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                             KSh {{ item.subtotal|intcomma }}
                                         </dd>
                                     </div>
+                                    {% if not forloop.last %}<hr class="my-4">{% endif %}
+                                    {% endfor %}
                                 </dl>
                             </div>
                         </div>

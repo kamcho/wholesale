@@ -6,6 +6,7 @@ import datetime
 from datetime import datetime, timedelta
 from requests.auth import HTTPBasicAuth
 from django.conf import settings
+from django.http import HttpRequest
 import requests
 import pytz
 
@@ -18,12 +19,12 @@ class MPesaService:
     """
     
     def __init__(self):
-        """Initialize M-Pesa service with credentials from environment variables."""
-        self.consumer_key = getattr(settings, 'MPESA_CONSUMER_KEY', os.getenv('MPESA_CONSUMER_KEY'))
-        self.consumer_secret = getattr(settings, 'MPESA_CONSUMER_SECRET', os.getenv('MPESA_CONSUMER_SECRET'))
-        self.business_shortcode = getattr(settings, 'MPESA_BUSINESS_SHORTCODE', os.getenv('MPESA_BUSINESS_SHORTCODE'))
-        self.passkey = getattr(settings, 'MPESA_PASSKEY', os.getenv('MPESA_PASSKEY'))
-        self.callback_url = getattr(settings, 'MPESA_CALLBACK_URL', os.getenv('MPESA_CALLBACK_URL'))
+        """Initialize M-Pesa service with credentials from Django settings."""
+        self.consumer_key = getattr(settings, 'MPESA_CONSUMER_KEY', '')
+        self.consumer_secret = getattr(settings, 'MPESA_CONSUMER_SECRET', '')
+        self.business_shortcode = getattr(settings, 'MPESA_BUSINESS_SHORTCODE', '')
+        self.passkey = getattr(settings, 'MPESA_PASSKEY', '')
+        self.callback_url = getattr(settings, 'MPESA_CALLBACK_URL', '')
         # Use production URL for live M-Pesa API
         self.base_url = "https://api.safaricom.co.ke"
         
@@ -34,6 +35,13 @@ class MPesaService:
         logger.info(f"Callback URL: {self.callback_url}")
         logger.info(f"Consumer Key: {'*' * 8 + self.consumer_key[-4:] if self.consumer_key else 'Not set'}")
         logger.info(f"Passkey: {'*' * 8 + self.passkey[-4:] if self.passkey else 'Not set'}")
+        
+        # Debug ngrok settings
+        use_ngrok = getattr(settings, 'USE_NGROK', False)
+        ngrok_hostname = getattr(settings, 'NGROK_HOSTNAME', 'localhost:8000')
+        logger.info(f"USE_NGROK: {use_ngrok}")
+        logger.info(f"NGROK_HOSTNAME: {ngrok_hostname}")
+        print(f"DEBUG: USE_NGROK={use_ngrok}, NGROK_HOSTNAME={ngrok_hostname}")
         
         # Debug: Check if credentials are being read correctly
         logger.info(f"Debug - Consumer Key length: {len(self.consumer_key) if self.consumer_key else 0}")
@@ -63,6 +71,34 @@ class MPesaService:
             logger.error("Or add them to your .env file. See .env.example for reference.")
             # Don't raise an exception, just log the error and continue
             # This allows the app to start but M-Pesa payments will fail gracefully
+    
+    def get_callback_url(self, request=None, order_id=None):
+        """
+        Get the callback URL for order detail page, using dynamic hostname if ngrok is enabled.
+        """
+        if order_id:
+            if getattr(settings, 'USE_NGROK', False):
+                ngrok_hostname = getattr(settings, 'NGROK_HOSTNAME', 'localhost:8000')
+                if ngrok_hostname != 'localhost:8000':
+                    callback_url = f"https://{ngrok_hostname}/orders/{order_id}/"
+                else:
+                    callback_url = f"http://localhost:8000/orders/{order_id}/"
+            else:
+                # Use the request to build the URL dynamically
+                if request:
+                    callback_url = f"{request.scheme}://{request.get_host()}/orders/{order_id}/"
+                else:
+                    callback_url = f"http://localhost:8000/orders/{order_id}/"
+            
+            # Print callback URL for debugging
+            logger.info(f"Generated callback URL for order {order_id}: {callback_url}")
+            print(f"DEBUG: Callback URL for order {order_id}: {callback_url}")
+            return callback_url
+        
+        # Fallback to configured callback URL
+        logger.info(f"Using fallback callback URL: {self.callback_url}")
+        print(f"DEBUG: Using fallback callback URL: {self.callback_url}")
+        return self.callback_url
     
     def _is_html_response(self, response_text):
         """Check if the response is HTML instead of JSON."""
@@ -180,7 +216,7 @@ class MPesaService:
             logger.error(f"Error generating password: {str(e)}", exc_info=True)
             return None, None
     
-    def initiate_stk_push(self, phone_number, amount, account_reference, description="Payment"):
+    def initiate_stk_push(self, phone_number, amount, account_reference, description="Payment", callback_url=None, request=None, order_id=None):
         """
         Initiate STK push payment request.
         
@@ -249,7 +285,7 @@ class MPesaService:
                 'PartyA': phone,
                 'PartyB': self.business_shortcode,
                 'PhoneNumber': phone,
-                'CallBackURL': self.callback_url,
+                'CallBackURL': callback_url or self.get_callback_url(request, order_id),
                 'AccountReference': account_reference[:12],  # Max 12 chars
                 'TransactionDesc': description[:13]  # Max 13 chars
             }
@@ -258,6 +294,7 @@ class MPesaService:
             log_payload = payload.copy()
             log_payload['Password'] = '***'
             logger.info(f"Initiating STK push with payload: {log_payload}")
+            print(f"DEBUG: STK Push Callback URL: {payload['CallBackURL']}")
             
             # Make the API request
             url = f"{self.base_url}/mpesa/stkpush/v1/processrequest"

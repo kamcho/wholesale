@@ -1,9 +1,10 @@
 {% extends 'users/base.html' %}
-{% load static humanize %}
+{% load static humanize order_filters %}
 
 {% block title %}Order #{{ order.id }} - {{ block.super }}{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
     <div class="max-w-5xl mx-auto">
         <!-- Order Header -->
@@ -98,12 +99,41 @@
                             {% if order.discount_amount %}
                             <div class="flex items-center justify-between">
                                 <dt class="text-sm text-gray-600">Discount</dt>
-                                <dd class="text-sm font-medium text-green-600">-KSh {{ order.discount_amount|intcomma }}</dd>
+                                <dd class="text-sm font-medium text-red-600">- KSh {{ order.discount_amount|intcomma }}</dd>
                             </div>
                             {% endif %}
+                            
+                            <!-- Additional Fees Section -->
+                            {% if additional_fees %}
+                                {% for fee in additional_fees %}
+                                <div class="flex items-center justify-between">
+                                    <dt class="text-sm text-gray-600">
+                                        {{ fee.fee_type }}
+                                        {% if fee.description %}
+                                            <span class="text-xs text-gray-500 block">{{ fee.description }}</span>
+                                        {% endif %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if fee.pay_now %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %} ml-1">
+                                            {% if fee.pay_now %}Paid Now{% else %}Pay Later{% endif %}
+                                        </span>
+                                    </dt>
+                                    <dd class="text-sm font-medium text-gray-900">KSh {{ fee.amount|intcomma }}</dd>
+                                </div>
+                                {% endfor %}
+                                
+                                <!-- Total Additional Fees -->
+                                <div class="flex items-center justify-between border-t border-gray-200 pt-2">
+                                    <dt class="text-sm font-medium text-gray-600">Total Additional Fees</dt>
+                                    <dd class="text-sm font-medium text-gray-900">
+                                        KSh {{ additional_fees|sum_fees|intcomma }}
+                                    </dd>
+                                </div>
+                            {% endif %}
+                            
                             <div class="border-t border-gray-200 pt-4 flex items-center justify-between">
                                 <dt class="text-base font-medium text-gray-900">Total</dt>
-                                <dd class="text-base font-bold text-gray-900">KSh {{ order.total|intcomma }}</dd>
+                                <dd class="text-base font-medium text-gray-900">
+                                    KSh {{ order|calculate_order_total:additional_fees|intcomma }}
+                                </dd>
                             </div>
                         </dl>
                     </div>
@@ -112,48 +142,209 @@
 
             <!-- Order Details -->
             <div class="space-y-6">
-                <!-- Shipping Address -->
+                <!-- M-Pesa Payment Section -->
                 <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                     <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Shipping Address</h3>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                            <svg class="w-6 h-6 mr-2 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                            M-Pesa Payment
+                        </h3>
                     </div>
                     <div class="px-4 py-5 sm:p-6">
-                        <address class="not-italic">
-                            <div class="text-sm text-gray-700">
-                                <p class="font-medium">{{ order.shipping_name|default:order.user.get_full_name }}</p>
-                                <p>{{ order.shipping_address_line1 }}</p>
-                                {% if order.shipping_address_line2 %}
-                                <p>{{ order.shipping_address_line2 }}</p>
-                                {% endif %}
-                                <p>{{ order.shipping_city }}, {{ order.shipping_state }}</p>
-                                <p>{{ order.shipping_country.name }} {{ order.shipping_postal_code }}</p>
-                                <p class="mt-2">Phone: {{ order.shipping_phone|default:order.user.phone_number|default:"Not provided" }}</p>
-                                <p>Email: {{ order.user.email }}</p>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="mpesa-phone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                                <div class="mt-1">
+                                    <input type="tel" 
+                                           id="mpesa-phone" 
+                                           name="mpesa-phone"
+                                           placeholder="07XXXXXXXX or 254XXXXXXXXX"
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm">
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500">Enter your M-Pesa registered phone number</p>
                             </div>
-                        </address>
+                            <div class="bg-green-50 border border-green-200 rounded-md p-3">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-green-700">
+                                            You will receive an M-Pesa STK push notification to complete the payment.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    id="mpesa-pay-btn"
+                                    class="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                                Pay with M-Pesa - KSh {{ order.total|intcomma }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Payment Section -->
+                <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                            <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                            Card Payment
+                        </h3>
+                    </div>
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="card-number" class="block text-sm font-medium text-gray-700">Card Number</label>
+                                <div class="mt-1">
+                                    <input type="text" 
+                                           id="card-number" 
+                                           name="card-number"
+                                           placeholder="1234 5678 9012 3456"
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="expiry-date" class="block text-sm font-medium text-gray-700">Expiry Date</label>
+                                    <div class="mt-1">
+                                        <input type="text" 
+                                               id="expiry-date" 
+                                               name="expiry-date"
+                                               placeholder="MM/YY"
+                                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label for="cvv" class="block text-sm font-medium text-gray-700">CVV</label>
+                                    <div class="mt-1">
+                                        <input type="text" 
+                                               id="cvv" 
+                                               name="cvv"
+                                               placeholder="123"
+                                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label for="cardholder-name" class="block text-sm font-medium text-gray-700">Cardholder Name</label>
+                                <div class="mt-1">
+                                    <input type="text" 
+                                           id="cardholder-name" 
+                                           name="cardholder-name"
+                                           placeholder="John Doe"
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                </div>
+                            </div>
+                            <div class="bg-blue-50 border border-blue-200 rounded-md p-3">
+                                <div class="flex">
+                                    <div class="flex-shrink-0">
+                                        <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <p class="text-sm text-blue-700">
+                                            Your payment information is encrypted and secure.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    id="card-pay-btn"
+                                    class="w-full flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                                Pay with Card - KSh {{ order.total|intcomma }}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Payment Information -->
                 <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                     <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">Payment Information</h3>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 flex items-center">
+                            <svg class="w-6 h-6 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Payment Information
+                        </h3>
                     </div>
                     <div class="px-4 py-5 sm:p-6">
-                        <div class="text-sm text-gray-700">
-                            <p class="font-medium">Payment Method</p>
-                            <p class="mt-1">{{ order.get_payment_method_display|default:"Not specified" }}</p>
-                            <p class="mt-2 font-medium">Payment Status</p>
-                            <p class="mt-1">
-                                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                    {% if order.payment_status == 'paid' %}bg-green-100 text-green-800
-                                    {% elif order.payment_status == 'failed' %}bg-red-100 text-red-800
-                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-                                    {{ order.get_payment_status_display|default:"Pending" }}
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Payment Method</span>
+                                <span class="text-sm text-gray-900">
+                                    {% if order.payment_method == 'mpesa' %}
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                            </svg>
+                                            M-Pesa
+                                        </span>
+                                    {% elif order.payment_method == 'card' %}
+                                        <span class="flex items-center">
+                                            <svg class="w-4 h-4 mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                            </svg>
+                                            Card Payment
+                                        </span>
+                                    {% else %}
+                                        {{ order.get_payment_method_display|default:"Not specified" }}
+                                    {% endif %}
                                 </span>
-                            </p>
-                            {% if order.paid_at %}
-                            <p class="mt-2 text-sm text-gray-500">Paid on {{ order.paid_at|date:"F j, Y" }}</p>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-700">Payment Status</span>
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if order.status == 'paid' %}bg-green-100 text-green-800
+                                    {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
+                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ order.get_status_display|default:"Pending" }}
+                                </span>
+                            </div>
+                            {% if payment_info %}
+                                {% if payment_info.created_at %}
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700">Payment Date</span>
+                                    <span class="text-sm text-gray-900">{{ payment_info.created_at|date:"F j, Y g:i A" }}</span>
+                                </div>
+                                {% endif %}
+                                {% if payment_info.transaction_id %}
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700">Transaction ID</span>
+                                    <span class="text-sm text-gray-900 font-mono">{{ payment_info.transaction_id|truncatechars:20 }}</span>
+                                </div>
+                                {% endif %}
+                                {% if payment_info.mpesa_receipt %}
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700">M-Pesa Receipt</span>
+                                    <span class="text-sm text-gray-900 font-mono">{{ payment_info.mpesa_receipt }}</span>
+                                </div>
+                                {% endif %}
+                                {% if payment_info.phone_number %}
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700">Phone Number</span>
+                                    <span class="text-sm text-gray-900">{{ payment_info.phone_number }}</span>
+                                </div>
+                                {% endif %}
+                                {% if payment_info.card_last4 %}
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-700">Card</span>
+                                    <span class="text-sm text-gray-900">{{ payment_info.card_brand }} ****{{ payment_info.card_last4 }}</span>
+                                </div>
+                                {% endif %}
                             {% endif %}
                         </div>
                     </div>
@@ -166,10 +357,636 @@
                     </div>
                     <div class="px-4 py-5 sm:p-6">
                         <p class="text-sm text-gray-500 mb-4">If you have any questions about your order, please contact our customer service.</p>
-                        <a href="{% url 'home:contact' %}" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <a href="" class="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             Contact Support
                         </a>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Function to get cookie value by name
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // M-Pesa Payment Handler
+    const mpesaPayBtn = document.getElementById('mpesa-pay-btn');
+    const mpesaPhoneInput = document.getElementById('mpesa-phone');
+    
+    // Track the current payment request
+    let currentPaymentRequest = null;
+    
+    mpesaPayBtn.addEventListener('click', async function() {
+        const phoneNumber = mpesaPhoneInput.value.trim();
+        
+        if (!phoneNumber) {
+            showAlert('Please enter your phone number', 'error');
+            return;
+        }
+        
+        // Validate phone number format
+        const phoneRegex = /^(07|254)[0-9]{8,9}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            showAlert('Please enter a valid phone number (07XXXXXXXX or 254XXXXXXXXX)', 'error');
+            return;
+        }
+        
+        // Get CSRF token
+        const csrfToken = getCookie('csrftoken');
+        if (!csrfToken) {
+            console.error('CSRF token not found');
+            showAlert('Security error. Please refresh the page and try again.', 'error');
+            return;
+        }
+        
+        // Disable button and show loading
+        mpesaPayBtn.disabled = true;
+        mpesaPayBtn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+        `;
+        
+        // Show processing modal
+        showPaymentProcessingModal();
+        
+        try {
+            console.log('Sending M-Pesa payment request...');
+            
+            // Make M-Pesa payment request
+            const response = await fetch('/api/process-mpesa-payment/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    phone_number: phoneNumber,
+                    order_id: {{ order.id }}
+                }),
+                credentials: 'same-origin'
+            });
+            
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Payment error response:', errorData);
+                throw new Error(errorData.error || `Server responded with status ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Payment response data:', data);
+            
+            if (data.success) {
+                // Store the current payment request ID for status checking
+                currentPaymentRequest = data.checkout_request_id || data.request_id;
+                console.log('Payment request started, checkout ID:', currentPaymentRequest);
+                
+                // Start polling for payment status
+                startPaymentStatusPolling();
+            } else {
+                throw new Error(data.error || data.message || 'Payment initiation failed');
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            showPaymentFailureMessage(error.message || 'An error occurred. Please try again.');
+            resetMpesaButton();
+        }
+    });
+    
+    // Helper function to reset the M-Pesa button state
+    function resetMpesaButton() {
+        mpesaPayBtn.disabled = false;
+        mpesaPayBtn.innerHTML = `
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            </svg>
+            Pay with M-Pesa - KSh {{ order.total|intcomma }}
+        `;
+    }
+    
+    // Track the polling interval and timeout
+    let paymentStatusInterval = null;
+    let pollingTimeout = null;
+    let pollingAttempts = 0;
+    const maxPollingAttempts = 60; // 5 minutes (60 * 5 seconds)
+    
+    // Function to start polling for payment status
+    function startPaymentStatusPolling() {
+        console.log('Starting payment status polling...');
+        
+        // Clear any existing interval and timeout
+        if (paymentStatusInterval) clearInterval(paymentStatusInterval);
+        if (pollingTimeout) clearTimeout(pollingTimeout);
+        
+        // Reset counters
+        pollingAttempts = 0;
+        
+        // Show processing modal with spinner
+        showPaymentProcessingModal('Waiting for payment confirmation. Please complete the payment on your phone...');
+        
+        // Initial poll immediately
+        pollPaymentStatus();
+        
+        // Then poll every 3 seconds
+        paymentStatusInterval = setInterval(pollPaymentStatus, 3000);
+        
+        // Set timeout to stop polling after 5 minutes (300 seconds)
+        pollingTimeout = setTimeout(() => {
+            console.log('Payment polling timeout reached');
+            if (paymentStatusInterval) {
+                clearInterval(paymentStatusInterval);
+                paymentStatusInterval = null;
+            }
+            
+            // Show timeout message but keep the order in pending state
+            showPaymentFailure('Payment is taking longer than expected. Please check your phone for M-Pesa notification. The page will automatically update when payment is received.');
+            
+            // Don't reset the button, keep it in processing state
+            // resetMpesaButton();
+        }, 300000); // 5 minutes timeout
+    }
+    
+    // Function to poll for payment status
+    async function pollPaymentStatus() {
+        if (!currentPaymentRequest) {
+            console.log('No current payment request, stopping polling');
+            if (paymentStatusInterval) clearInterval(paymentStatusInterval);
+            return;
+        }
+        
+        pollingAttempts++;
+        const timeElapsed = pollingAttempts * 3; // 3 seconds per attempt
+        console.log(`Polling payment status (attempt ${pollingAttempts}, ${timeElapsed}s elapsed)...`);
+        
+        try {
+            const response = await fetch(`/api/check-payment-status/{{ order.id }}/`);
+            const data = await response.json();
+            
+            console.log('Payment status response:', data);
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to check payment status');
+            }
+            
+            // Determine payment status based on order and payment status
+            const paymentStatus = data.payment_status || data.order_status || 'pending';
+            const isPaid = (data.order_status === 'paid' || paymentStatus === 'success' || paymentStatus === 'completed');
+            
+            // If payment is explicitly failed/cancelled and not in the grace period
+            const isFailed = (data.order_status === 'failed' || data.order_status === 'cancelled' || 
+                            paymentStatus === 'failed' || paymentStatus === 'cancelled') && 
+                            !(data.payment_info && data.payment_info.is_recent);
+            
+            // Always show pending for the first 5 minutes, regardless of status
+            const isRecent = data.payment_info && data.payment_info.age_seconds < 300; // 5 minutes
+            const isPending = !isPaid && !isFailed && (paymentStatus === 'pending' || isRecent);
+            
+            console.log(`Payment status - Paid: ${isPaid}, Failed: ${isFailed}, Pending: ${isPending}, Status: ${paymentStatus}`);
+            
+            if (isPaid) {
+                console.log('Payment successful, stopping polling');
+                clearInterval(paymentStatusInterval);
+                paymentStatusInterval = null;
+                if (pollingTimeout) clearTimeout(pollingTimeout);
+                
+                showPaymentSuccess('Payment successful! Your order is being processed.');
+                
+                // Reload after 2 seconds to show updated status
+                setTimeout(() => window.location.reload(), 2000);
+                
+            } else if (isFailed) {
+                // Only mark as failed if it's not in the grace period
+                if (!isRecent) {
+                    console.log('Payment failed, stopping polling');
+                    clearInterval(paymentStatusInterval);
+                    paymentStatusInterval = null;
+                    if (pollingTimeout) clearTimeout(pollingTimeout);
+                    
+                    let errorMessage = 'Payment was not successful. Please try again.';
+                    if (data.error) {
+                        if (data.error.is_user_cancelled) {
+                            errorMessage = 'Payment was cancelled. Please try again if you wish to complete the payment.';
+                        } else if (data.error.is_timeout) {
+                            errorMessage = 'Payment timed out. Please check your phone and try again.';
+                        } else if (data.error.is_insufficient_funds) {
+                            errorMessage = 'Insufficient funds. Please ensure you have enough balance and try again.';
+                        } else if (data.error.description) {
+                            errorMessage = data.error.description;
+                        }
+                    }
+                    
+                    showPaymentFailure(errorMessage);
+                    resetMpesaButton();
+                } else {
+                    // Still in grace period, keep polling
+                    console.log(`Payment marked as failed but still in grace period (${data.payment_info.age_seconds}s old), continuing to poll...`);
+                    updateProcessingMessage(`Processing your payment... (${Math.floor(timeElapsed / 60)}m ${timeElapsed % 60}s)`);
+                }
+                
+            } else if (isPending) {
+                // Still pending, update the status message
+                console.log(`Payment still pending, current status: ${paymentStatus}`);
+                const minutes = Math.floor(timeElapsed / 60);
+                const seconds = timeElapsed % 60;
+                
+                let statusMessage = 'Waiting for payment confirmation...';
+                if (paymentStatus === 'pending' && data.payment_info && data.payment_info.is_recent) {
+                    statusMessage = 'Processing your payment...';
+                }
+                updateProcessingMessage(`${statusMessage} (${minutes}m ${seconds}s)`);
+                
+                // If we have a message from the server, show it
+                if (data.message) {
+                    console.log(`Server message: ${data.message}`);
+                }
+            }
+        } catch (error) {
+            console.error('Error checking payment status:', error);
+            // Don't stop polling on error, just log it and continue
+        }
+    }
+    
+    // Show alert message in modal
+    function showAlert(message, type = 'info', duration = 5000) {
+        const modal = document.getElementById('payment-processing-modal');
+        const modalContent = modal.querySelector('#modal-content');
+        
+        // Set modal content based on type
+        const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+        const title = type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Info';
+        const bgColor = type === 'error' ? 'bg-red-100' : type === 'success' ? 'bg-green-100' : 'bg-blue-100';
+        const textColor = type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-blue-600';
+        
+        modalContent.innerHTML = `
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center w-16 h-16 rounded-full ${bgColor} mb-4">
+                    <span class="text-2xl">${icon}</span>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">${title}</h3>
+                <div class="mt-2 px-4 py-3">
+                    <p class="text-sm text-gray-600">${message}</p>
+                </div>
+                <div class="px-4 py-3">
+                    <button onclick="hidePaymentProcessingModal()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        OK
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Show the modal
+        modal.classList.remove('hidden');
+        
+        // Auto-hide after duration if not an error
+        if (type !== 'error' && duration > 0) {
+            setTimeout(() => {
+                if (!modal.classList.contains('hidden')) {
+                    hidePaymentProcessingModal();
+                }
+            }, duration);
+        }
+    }
+    
+    // Card Payment Handler
+    const cardPayBtn = document.getElementById('card-pay-btn');
+    const cardNumberInput = document.getElementById('card-number');
+    const expiryDateInput = document.getElementById('expiry-date');
+    const cvvInput = document.getElementById('cvv');
+    const cardholderNameInput = document.getElementById('cardholder-name');
+    
+    cardPayBtn.addEventListener('click', function() {
+        const cardNumber = cardNumberInput.value.trim();
+        const expiryDate = expiryDateInput.value.trim();
+        const cvv = cvvInput.value.trim();
+        const cardholderName = cardholderNameInput.value.trim();
+        
+        // Basic validation
+        if (!cardNumber || !expiryDate || !cvv || !cardholderName) {
+            showAlert('Please fill in all card details', 'error');
+            return;
+        }
+        
+        // Validate card number (basic Luhn algorithm check)
+        if (!isValidCardNumber(cardNumber)) {
+            showAlert('Please enter a valid card number', 'error');
+            return;
+        }
+        
+        // Validate expiry date
+        if (!isValidExpiryDate(expiryDate)) {
+            showAlert('Please enter a valid expiry date (MM/YY)', 'error');
+            return;
+        }
+        
+        // Validate CVV
+        if (!/^\d{3,4}$/.test(cvv)) {
+            showAlert('Please enter a valid CVV', 'error');
+            return;
+        }
+        
+        // Disable button and show loading
+        cardPayBtn.disabled = true;
+        cardPayBtn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+        `;
+        
+        // Make card payment request
+        fetch('/api/process-card-payment/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                card_number: cardNumber,
+                expiry_date: expiryDate,
+                cvv: cvv,
+                cardholder_name: cardholderName,
+                order_id: {{ order.id }}
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showPaymentSuccessMessage('Card payment processed successfully!');
+                // Optionally redirect to confirmation page
+                if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                }
+            } else {
+                showAlert('Payment failed: ' + (data.error || 'Unknown error'), 'error');
+                // Re-enable button
+                cardPayBtn.disabled = false;
+                cardPayBtn.innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    Pay with Card - KSh {{ order.total|intcomma }}
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('An error occurred. Please try again.', 'error');
+            // Re-enable button
+            cardPayBtn.disabled = false;
+            cardPayBtn.innerHTML = `
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                Pay with Card - KSh {{ order.total|intcomma }}
+            `;
+        });
+    });
+    
+    // Helper functions for card validation
+    function isValidCardNumber(cardNumber) {
+        // Remove spaces and non-digits
+        const cleaned = cardNumber.replace(/\D/g, '');
+        // Check if it's 13-19 digits
+        if (!/^\d{13,19}$/.test(cleaned)) {
+            return false;
+        }
+        // Luhn algorithm
+        let sum = 0;
+        let isEven = false;
+        for (let i = cleaned.length - 1; i >= 0; i--) {
+            let digit = parseInt(cleaned[i]);
+            if (isEven) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+            sum += digit;
+            isEven = !isEven;
+        }
+        return sum % 10 === 0;
+    }
+    
+    function isValidExpiryDate(expiryDate) {
+        const regex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+        if (!regex.test(expiryDate)) {
+            return false;
+        }
+        const [month, year] = expiryDate.split('/');
+        const now = new Date();
+        const currentYear = now.getFullYear() % 100;
+        const currentMonth = now.getMonth() + 1;
+        const expYear = parseInt(year);
+        const expMonth = parseInt(month);
+        
+        if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+            return false;
+        }
+        return true;
+    }
+    
+    // Format card number input
+    cardNumberInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        let formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+        e.target.value = formattedValue;
+    });
+    
+    // Format expiry date input
+    expiryDateInput.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length >= 2) {
+            value = value.substring(0, 2) + '/' + value.substring(2, 4);
+        }
+        e.target.value = value;
+    });
+    
+    // Check payment status periodically if order is not paid
+    function checkPaymentStatus() {
+        const orderStatus = '{{ order.status }}';
+        if (orderStatus !== 'paid' && orderStatus !== 'cancelled') {
+            fetch(`/api/check-payment-status/{{ order.id }}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.order_status === 'paid' || data.order_status === 'cancelled' || data.order_status === 'failed' || data.payment_status === 'failed') {
+                        // Hide the processing modal
+                        hidePaymentProcessingModal();
+                        
+                        // Show success/failure message
+                        if (data.order_status === 'paid') {
+                            showPaymentSuccessMessage();
+                        } else if (data.order_status === 'cancelled' || data.order_status === 'failed' || data.payment_status === 'failed') {
+                            showPaymentFailureMessage('Your payment was cancelled or failed. Please try again or contact support.');
+                        }
+                        
+                        // Refresh the page to show updated status after a short delay
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    }
+                })
+                .catch(error => {
+                    console.log('Payment status check failed:', error);
+                });
+        }
+    }
+    
+    // Update the processing message without closing the modal
+    function updateProcessingMessage(message) {
+        const messageElement = document.getElementById('processing-message');
+        if (messageElement) {
+            messageElement.textContent = message;
+        }
+    }
+    
+    // Show payment success message
+    function showPaymentSuccess(message) {
+        const modal = document.getElementById('payment-processing-modal');
+        const modalContent = document.getElementById('modal-content');
+        
+        if (modal && modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                        <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Payment Successful!</h3>
+                    <div class="mt-2 px-4 py-3">
+                        <p class="text-sm text-gray-600">
+                            ${message || 'Your payment has been processed successfully.'}
+                        </p>
+                    </div>
+                    <div class="px-4 py-3">
+                        <p class="text-xs text-gray-500">
+                            The page will refresh automatically...
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Show payment failure message
+    function showPaymentFailure(message) {
+        const modal = document.getElementById('payment-processing-modal');
+        const modalContent = document.getElementById('modal-content');
+        
+        if (modal && modalContent) {
+            modalContent.innerHTML = `
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-red-100 mb-4">
+                        <svg class="h-8 w-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Payment Issue</h3>
+                    <div class="mt-2 px-4 py-3">
+                        <p class="text-sm text-gray-600 mb-2">
+                            ${message || 'There was an issue with your payment.'}
+                        </p>
+                        <p class="text-xs text-gray-500 mb-4">
+                            The page will automatically check for updates. Please keep this window open.
+                        </p>
+                        <div class="flex justify-center space-x-4">
+                            <button onclick="window.location.reload()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                Refresh Now
+                            </button>
+                            <button onclick="startPaymentStatusPolling()" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md shadow-sm hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                                Check Again
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Check payment status every 5 seconds
+    setInterval(checkPaymentStatus, 5000);
+    
+    // Payment processing modal functions
+    function showPaymentProcessingModal() {
+        const modal = document.getElementById('payment-processing-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+    
+    function hidePaymentProcessingModal() {
+        const modal = document.getElementById('payment-processing-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+    
+    // Close modal when clicking outside or on close button
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('payment-processing-modal');
+        const closeBtn = document.getElementById('close-payment-modal');
+        
+        if (event.target === modal) {
+            hidePaymentProcessingModal();
+        }
+        if (event.target === closeBtn) {
+            hidePaymentProcessingModal();
+        }
+    });
+});
+</script>
+
+<!-- Payment Processing Modal -->
+<div id="payment-processing-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div id="modal-content">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                    <svg class="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Processing Payment</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500 mb-4">
+                        M-Pesa payment request sent to your phone. Please check your phone and enter your M-Pesa PIN to complete the payment.
+                    </p>
+                    <div class="flex items-center justify-center space-x-2 text-sm text-gray-600">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                        </div>
+                        <span>Waiting for payment confirmation...</span>
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-payment-modal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Cancel Payment
+                    </button>
                 </div>
             </div>
         </div>
