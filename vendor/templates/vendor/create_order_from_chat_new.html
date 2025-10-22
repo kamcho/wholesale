@@ -5,60 +5,76 @@
 {% block title %}{{ title }} | Vendor Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i> {{ title }}</h4>
-                        <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="btn btn-sm btn-light">
-                            <i class="fas fa-arrow-left me-1"></i> Back to Chat
-                        </a>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-2 mb-4 border-b border-gray-700">
+    <div>
+        <h1 class="h3 font-weight-bold text-gray-100">
+            <i class="fas fa-shopping-cart text-indigo-500 mr-2"></i>{{ title }}
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'vendor:dashboard' %}" class="text-gray-400 hover:text-white">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'vendor:orders' %}" class="text-gray-400 hover:text-white">Orders</a></li>
+                <li class="breadcrumb-item active text-indigo-400" aria-current="page">Create from Chat</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-lg border border-gray-600/50 transition-colors duration-200 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Chat
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0 bg-gradient-to-br from-gray-800 to-gray-900 mb-6">
+            <div class="card-header bg-gradient-to-r from-indigo-900/80 to-indigo-800/80 border-b border-indigo-700/50 px-6 py-4">
+                <h5 class="text-lg font-bold text-white flex items-center">
+                    <i class="fas fa-info-circle mr-2 text-indigo-300"></i>
+                    Order Details
+                </h5>
+            </div>
+            <div class="card-body p-6">
+                <!-- Order Context -->
+                <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+                    <div class="flex items-center">
+                        <i class="fas fa-info-circle text-blue-400 mr-3 text-xl"></i>
+                        <div>
+                            <h5 class="text-blue-200 font-semibold mb-1">Order Context</h5>
+                            <p class="text-gray-300 mb-0">
+                                This order is being created from a conversation about: 
+                                <span class="text-blue-300 font-semibold">{{ chat.product.name|default:"General Inquiry" }}</span>
+                            </p>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="card-body">
-                    <!-- Order Context -->
-                    <div class="alert alert-info">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-info-circle me-2 fs-4"></i>
-                            <div>
-                                <h5 class="alert-heading mb-1">Order Context</h5>
-                                <p class="mb-0">
-                                    This order is being created from a conversation about: 
-                                    <strong>{{ chat.product.name|default:"General Inquiry" }}</strong>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Customer Information -->
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="fas fa-user me-2"></i>Customer Information</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label text-muted">Name</label>
-                                    <p class="mb-0 fw-semibold">{{ chat.buyer.get_full_name|default:chat.buyer.email }}</p>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label text-muted">Email</label>
-                                    <p class="mb-0">{{ chat.buyer.email }}</p>
-                                </div>
+                <!-- Customer Information -->
+                <div class="bg-gray-800/50 rounded-lg border border-gray-700 mb-6">
+                    <div class="px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900">
+                        <h5 class="text-lg font-bold text-white flex items-center">
+                            <i class="fas fa-user mr-2 text-indigo-300"></i>Customer Information
+                        </h5>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Name</label>
+                                <p class="text-gray-200 font-semibold">{{ chat.buyer.get_full_name|default:chat.buyer.email }}</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Email</label>
+                                <p class="text-gray-200">{{ chat.buyer.email }}</p>
                             </div>
                             {% if chat.buyer.phone_number %}
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="form-label text-muted">Phone</label>
-                                    <p class="mb-0">{{ chat.buyer.phone_number|default:"Not provided" }}</p>
-                                </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-400 mb-1">Phone</label>
+                                <p class="text-gray-200">{{ chat.buyer.phone_number|default:"Not provided" }}</p>
                             </div>
                             {% endif %}
                         </div>
                     </div>
+                </div>
 
                     <!-- Order Form -->
                     <form method="post" id="orderForm" class="needs-validation" novalidate>
@@ -72,140 +88,150 @@
                         {% endif %}
                         <input type="hidden" name="product" value="{{ chat.product.id }}">
                         
-                        {% if form.non_field_errors %}
-                            <div class="alert alert-danger">
-                                {% for error in form.non_field_errors %}
-                                    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
-                                {% endfor %}
+                {% if form.non_field_errors %}
+                    <div class="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-6">
+                        {% for error in form.non_field_errors %}
+                            <div class="flex items-center text-red-300">
+                                <i class="fas fa-exclamation-circle mr-2"></i>{{ error }}
                             </div>
-                        {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
 
-                        <!-- Product & Variations -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Order Items</h5>
-                                <span class="badge bg-primary">{{ form.variations.count }} variations available</span>
+                <!-- Product & Variations -->
+                <div class="bg-gray-800/50 rounded-lg border border-gray-700 mb-6">
+                    <div class="px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900 flex justify-between items-center">
+                        <h5 class="text-lg font-bold text-white flex items-center">
+                            <i class="fas fa-boxes mr-2 text-indigo-300"></i>Order Items
+                        </h5>
+                        <span class="px-3 py-1 bg-indigo-600/20 text-indigo-300 text-sm font-medium rounded-full border border-indigo-500/30">
+                            {{ form.variations.count }} variations available
+                        </span>
+                    </div>
+                    <div class="p-6">
+                {% if form.variations %}
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-700/50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-12">Add</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Variation</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Quantity</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Custom Price</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800/30 divide-y divide-gray-700">
+                {% for variation in variations %}
+                    <tr class="variation-row hover:bg-gray-700/30 transition-colors duration-200" data-variation-id="{{ variation.id }}">
+                        <td class="px-4 py-4 whitespace-nowrap">
+                            <input type="checkbox" 
+                                   name="variation_{{ variation.id }}" 
+                                   id="id_variation_{{ variation.id }}" 
+                                   class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded variation-checkbox" 
+                                   data-variation-id="{{ variation.id }}">
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap">
+                            <label for="id_variation_{{ variation.id }}" class="text-gray-200 font-medium cursor-pointer">
+                                {{ variation.name|default:"Default" }}
+                            </label>
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap price-cell">
+                            <span class="text-gray-200 font-semibold default-price">KSh {{ variation.price|floatformat:2 }}</span>
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap" style="width: 150px;">
+                            <div class="flex items-center">
+                                <button type="button" class="p-1 text-gray-400 hover:text-gray-200 hover:bg-gray-600 rounded decrease-qty" data-variation-id="{{ variation.id }}">
+                                    <i class="fas fa-minus text-sm"></i>
+                                </button>
+                                <input type="number" 
+                                       name="quantity_{{ variation.id }}"
+                                       id="id_quantity_{{ variation.id }}"
+                                       class="mx-2 w-16 text-center bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 variation-quantity"
+                                       min="1"
+                                       value="1"
+                                       data-variation-id="{{ variation.id }}"
+                                       disabled>
+                                <button type="button" class="p-1 text-gray-400 hover:text-gray-200 hover:bg-gray-600 rounded increase-qty" data-variation-id="{{ variation.id }}">
+                                    <i class="fas fa-plus text-sm"></i>
+                                </button>
                             </div>
-                            <div class="card-body">
-                                {% if form.variations %}
-                                    <div class="table-responsive">
-                                        <table class="table table-hover">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th width="5%">Add</th>
-                                                    <th>Variation</th>
-                                                    <th>Price</th>
-                                                    <th>Quantity</th>
-                                                    <th>Custom Price</th>
-                                                    <th>Subtotal</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for variation in variations %}
-                                                    <tr class="variation-row" data-variation-id="{{ variation.id }}">
-                                                        <td>
-                                                            <input type="checkbox" 
-                                                                   name="variation_{{ variation.id }}" 
-                                                                   id="id_variation_{{ variation.id }}" 
-                                                                   class="form-check-input variation-checkbox" 
-                                                                   data-variation-id="{{ variation.id }}">
-                                                        </td>
-                                                        <td>
-                                                            <label for="id_variation_{{ variation.id }}" class="form-check-label">
-                                                                {{ variation.name|default:"Default" }}
-                                                            </label>
-                                                        </td>
-                                                        <td class="price-cell">
-                                                            <span class="default-price">KSh {{ variation.price|floatformat:2 }}</span>
-                                                        </td>
-                                                        <td style="width: 150px;">
-                                                            <div class="input-group">
-                                                                <button type="button" class="btn btn-outline-secondary btn-sm decrease-qty" data-variation-id="{{ variation.id }}">
-                                                                    <i class="fas fa-minus"></i>
-                                                                </button>
-                                                                <input type="number" 
-                                                                       name="quantity_{{ variation.id }}"
-                                                                       id="id_quantity_{{ variation.id }}"
-                                                                       class="form-control text-center variation-quantity"
-                                                                       min="1"
-                                                                       value="1"
-                                                                       data-variation-id="{{ variation.id }}"
-                                                                       disabled>
-                                                                <button type="button" class="btn btn-outline-secondary btn-sm increase-qty" data-variation-id="{{ variation.id }}">
-                                                                    <i class="fas fa-plus"></i>
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                        <td style="width: 200px;">
-                                                            <div class="d-flex align-items-center">
-                                                                <div class="form-check form-switch me-2">
-                                                                    <input type="checkbox" 
-                                                                           name="use_custom_price_{{ variation.id }}"
-                                                                           id="id_use_custom_price_{{ variation.id }}"
-                                                                           class="form-check-input custom-price-toggle"
-                                                                           data-variation-id="{{ variation.id }}">
-                                                                    <label class="form-check-label" for="id_use_custom_price_{{ variation.id }}"></label>
-                                                                </div>
-                                                                <div class="custom-price-input" style="display: none;" data-variation-id="{{ variation.id }}">
-                                                                    <div class="input-group input-group-sm">
-                                                                        <span class="input-group-text">KSh</span>
-                                                                        <input type="number"
-                                                                               name="custom_price_{{ variation.id }}"
-                                                                               id="id_custom_price_{{ variation.id }}"
-                                                                               class="form-control custom-price"
-                                                                               step="0.01"
-                                                                               min="0.01"
-                                                                               data-variation-id="{{ variation.id }}"
-                                                                               disabled>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td class="subtotal-cell" data-variation-id="{{ variation.id }}">
-                                                            KSh 0.00
-                                                        </td>
-                                                    </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                            <tfoot>
-                                                <tr class="table-light">
-                                                    <td colspan="5" class="text-end fw-bold">Total:</td>
-                                                    <td class="fw-bold" id="order-total">KSh 0.00</td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap" style="width: 200px;">
+                            <div class="flex items-center">
+                                <div class="flex items-center mr-3">
+                                    <input type="checkbox" 
+                                           name="use_custom_price_{{ variation.id }}"
+                                           id="id_use_custom_price_{{ variation.id }}"
+                                           class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded custom-price-toggle"
+                                           data-variation-id="{{ variation.id }}">
+                                    <label for="id_use_custom_price_{{ variation.id }}" class="ml-2 text-sm text-gray-300">Custom</label>
+                                </div>
+                                <div class="custom-price-input" style="display: none;" data-variation-id="{{ variation.id }}">
+                                    <div class="flex items-center">
+                                        <span class="text-gray-400 text-sm mr-1">KSh</span>
+                                        <input type="number"
+                                               name="custom_price_{{ variation.id }}"
+                                               id="id_custom_price_{{ variation.id }}"
+                                               class="w-20 bg-gray-700 border border-gray-600 text-gray-200 rounded px-2 py-1 text-sm custom-price"
+                                               step="0.01"
+                                               min="0.01"
+                                               data-variation-id="{{ variation.id }}"
+                                               disabled>
                                     </div>
-                                {% else %}
-                                    <div class="alert alert-warning">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        No variations available for this product.
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Order Notes -->
-                        <div class="card mb-4">
-                            <div class="card-header bg-light">
-                                <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Order Notes</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-group mb-0">
-                                    {{ form.note }}
-                                    <div class="form-text">Add any special instructions or notes about this order.</div>
                                 </div>
                             </div>
-                        </div>
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap subtotal-cell text-gray-200 font-semibold" data-variation-id="{{ variation.id }}">
+                            KSh 0.00
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-gray-700/50">
+                <tr>
+                    <td colspan="5" class="px-4 py-3 text-right text-gray-300 font-semibold">Total:</td>
+                    <td class="px-4 py-3 text-gray-200 font-bold" id="order-total">KSh 0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+{% else %}
+    <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4">
+        <div class="flex items-center text-yellow-300">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            No variations available for this product.
+        </div>
+    </div>
+{% endif %}
+                    </div>
+                </div>
 
-                        <!-- Form Actions -->
-                        <div class="d-flex justify-content-between mt-4">
-                            <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-2"></i> Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-check-circle me-2"></i> Create Order
-                            </button>
+                <!-- Order Notes -->
+                <div class="bg-gray-800/50 rounded-lg border border-gray-700 mb-6">
+                    <div class="px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900">
+                        <h5 class="text-lg font-bold text-white flex items-center">
+                            <i class="fas fa-sticky-note mr-2 text-indigo-300"></i>Order Notes
+                        </h5>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-2">
+                            {{ form.note }}
+                            <p class="text-sm text-gray-400">Add any special instructions or notes about this order.</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-between items-center mt-6">
+                    <a href="{% url 'home:buyer_seller_chat' chat_id=chat.id %}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-lg border border-gray-600/50 transition-colors duration-200 flex items-center">
+                        <i class="fas fa-times mr-2"></i> Cancel
+                    </a>
+                    <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg border border-indigo-500/30 transition-colors duration-200 flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i> Create Order
+                    </button>
+                </div>
                     </form>
                 </div>
             </div>
@@ -326,8 +352,25 @@ $(document).ready(function() {
 </script>
 
 <style>
+/* Dark theme form styling */
+textarea {
+    background-color: rgba(31, 41, 55, 0.5) !important;
+    border: 1px solid #374151 !important;
+    color: #f3f4f6 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.75rem 1rem !important;
+    width: 100% !important;
+    transition: all 0.2s;
+}
+
+textarea:focus {
+    border-color: #818cf8 !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3) !important;
+    outline: none !important;
+}
+
 .variation-row:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(55, 65, 81, 0.3);
 }
 
 .variation-row td {
@@ -344,6 +387,25 @@ $(document).ready(function() {
 
 .custom-price-input {
     width: 120px;
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
 }
 </style>
 {% endblock %}

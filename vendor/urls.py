@@ -42,5 +42,14 @@ urlpatterns = [
     
     # Promise fee
     path('promise-fees/<int:pk>/delete/', views.delete_promise_fee, name='delete_promise_fee'),
+    
+    # Toggle product active status
+    path('products/<int:pk>/toggle-active/', views.toggle_product_active, name='toggle_product_active'),
+    
+    # Toggle variation active status
+    path('variations/<int:pk>/toggle-active/', views.toggle_variation_active, name='toggle_variation_active'),
+    
+    # Archive variation
+    path('variations/<int:pk>/archive/', views.archive_variation, name='archive_variation'),
 ]
 

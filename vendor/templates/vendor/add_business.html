@@ -1,13 +1,26 @@
 {% extends 'vendor/base.html' %}
 
-{% block title %}Add Business - Vendor Panel{% endblock %}
+{% block title %}{% if existing_business %}Business Already Exists{% else %}Add Business{% endif %} - Vendor Panel{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">
-        <i class="fas fa-plus-circle me-2"></i>Add New Business
+        <i class="fas fa-{% if existing_business %}store{% else %}plus-circle{% endfor %} me-2"></i>
+        {% if existing_business %}Your Business{% else %}Add New Business{% endif %}
     </h1>
 </div>
+
+{% if existing_business %}
+<div class="alert alert-info">
+    <div class="d-flex align-items-center">
+        <i class="fas fa-info-circle me-3 fs-4"></i>
+        <div>
+            <h5 class="alert-heading">You already have a business</h5>
+            <p class="mb-0">You can only have one business per account. You can edit your existing business details below or contact support if you need to make changes to your business account.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="row">
     <div class="col-lg-8">

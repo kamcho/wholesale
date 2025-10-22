@@ -5,271 +5,395 @@
 
 {% block extra_css %}
 <style>
-  .attribute-card {
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
+  :root {
+    --primary-color: #818cf8;
+    --primary-hover: #6366f1;
+    --bg-dark: #111827;
+    --bg-darker: #0f172a;
+    --text-light: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-dark: #1e293b;
+    --input-bg: #1e293b;
+    --input-border: #334155;
   }
-  .attribute-card:hover {
-    border-color: var(--bs-primary);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+
+  body {
+    @apply bg-gray-900 text-gray-100;
   }
-  .attribute-card.active {
-    border-color: var(--bs-primary);
-    background-color: rgba(13, 110, 253, 0.05);
+
+  /* Form Elements */
+  .form-input {
+    @apply w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 
+           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200;
   }
-  .nav-tabs .nav-link {
-    color: #6c757d;
-    font-weight: 500;
+  
+  .form-label {
+    @apply block text-sm font-medium text-gray-200 mb-1;
   }
-  .nav-tabs .nav-link.active {
-    color: #0d6efd;
-    font-weight: 600;
+  
+  .input-group {
+    @apply relative flex items-stretch w-full;
   }
-  .form-section {
-    display: none;
+  
+  .input-icon {
+    @apply absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400;
   }
-  .form-section.active {
-    display: block;
-    animation: fadeIn 0.3s ease-in-out;
+  
+  /* Buttons */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center justify-center;
   }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+  
+  .btn-primary {
+    @apply bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2;
+  }
+  
+  .btn-outline {
+    @apply border border-gray-600 text-gray-300 hover:bg-gray-800 focus:ring-2 focus:ring-indigo-500;
+  }
+  
+  /* Tabs */
+  .tab-button {
+    @apply flex-1 py-3 px-4 text-center font-medium text-white hover:text-indigo-300 border-b-2 
+           border-transparent hover:border-indigo-400 transition-all duration-200;
+  }
+  
+  .tab-button.active {
+    @apply text-white border-indigo-400;
+  }
+  
+  /* Error Messages */
+  .error-message {
+    @apply text-sm text-red-400 mt-1 flex items-center;
+  }
+  
+  .error-message i {
+    @apply mr-1;
+  }
+  
+  /* Select Dropdown */
+  select {
+    @apply w-full px-4 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white 
+           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200;
+  }
+  
+  select option {
+    @apply bg-gray-800 text-white;
+  }
+  
+  /* Custom Dark Theme Overrides */
+  .bg-white {
+    @apply bg-gray-800;
+  }
+  
+  .text-gray-900 {
+    @apply text-gray-100;
+  }
+  
+  .text-gray-700 {
+    @apply text-gray-300;
+  }
+  
+  .border-gray-200 {
+    @apply border-gray-700;
+  }
+  
+  .bg-indigo-50 {
+    @apply bg-gray-800;
+  }
+  
+  .text-gray-600 {
+    @apply text-gray-400;
+  }
+  
+  .bg-indigo-100 {
+    @apply bg-gray-700;
+  }
+  
+  .text-indigo-600 {
+    @apply text-indigo-400;
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4">
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
-    <div>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="{% url 'vendor:product_list' %}">Products</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'vendor:product_detail' product.id %}">{{ product.name|truncatechars:20 }}</a></li>
-          <li class="breadcrumb-item"><a href="{% url 'vendor:variation_detail' variation.id %}">Variation: {{ variation.name|truncatechars:20 }}</a></li>
-          <li class="breadcrumb-item active" aria-current="page">Add Attribute</li>
-        </ol>
-      </nav>
-      <h1 class="h2 mb-0">
-        <i class="fas fa-tag text-primary me-2"></i>Add Product Attribute
-      </h1>
-    </div>
-    <div class="btn-toolbar mb-2 mb-md-0">
-      <a href="{% url 'vendor:variation_detail' variation.id %}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left me-2"></i>Back to Variation
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <nav class="flex" aria-label="Breadcrumb">
+          <ol class="flex items-center space-x-2 text-sm">
+            <li>
+              <a href="{% url 'vendor:product_list' %}" class="text-indigo-400 hover:text-indigo-300">Products</a>
+            </li>
+            <li class="text-gray-400">/</li>
+            <li>
+              <a href="{% url 'vendor:product_detail' product.id %}" class="text-indigo-400 hover:text-indigo-300">{{ product.name|truncatechars:20 }}</a>
+            </li>
+            <li class="text-gray-400">/</li>
+            <li>
+              <a href="{% url 'vendor:variation_detail' variation.id %}" class="text-indigo-400 hover:text-indigo-300">{{ variation.name|truncatechars:20 }}</a>
+            </li>
+            <li class="text-gray-400">/</li>
+            <li class="text-gray-600 font-medium">Add Attribute</li>
+          </ol>
+        </nav>
+        <h1 class="text-2xl font-bold text-white mt-2">Add Product Attribute</h1>
+      </div>
+      <a href="{% url 'vendor:variation_detail' variation.id %}" class="btn btn-outline">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Variation
       </a>
     </div>
   </div>
 
-  <div class="row">
-    <div class="col-lg-8 mx-auto">
-      <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light py-3">
-          <h5 class="mb-0">
-            <i class="fas fa-tags text-primary me-2"></i>Add Attribute to "{{ variation.name }}"
-          </h5>
+  <!-- Main Content -->
+  <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700">
+    <!-- Product Info Banner -->
+    <div class="bg-gray-700 p-4 border-b border-gray-600">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <div class="h-10 w-10 rounded-lg bg-indigo-900/50 flex items-center justify-center">
+            <i class="fas fa-info-circle text-indigo-600"></i>
+          </div>
         </div>
-        <div class="card-body">
-          <!-- Product Info Alert -->
-          <div class="alert alert-light border mb-4">
-            <div class="d-flex align-items-center">
-              <div class="flex-shrink-0">
-                <i class="fas fa-info-circle text-primary fs-4 me-3"></i>
-              </div>
-              <div>
-                <h6 class="mb-1">Product Information</h6>
-                <div class="text-muted small">
-                  <span class="d-inline-block me-3"><strong>Product:</strong> {{ product.name }}</span>
-                  <span class="d-inline-block"><strong>Variation:</strong> {{ variation.name }}</span>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-gray-100">Product Information</h3>
+          <div class="mt-1 text-sm text-gray-300">
+            <p><span class="font-medium">Product:</span> {{ product.name }}</p>
+            <p><span class="font-medium">Variation:</span> {{ variation.name }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form method="post" id="attributeForm" class="p-6">
+      {% csrf_token %}
+      <input type="hidden" name="form_type" id="formType" value="new">
+
+      {% if form.non_field_errors %}
+      <div class="bg-red-900/30 rounded-lg border border-red-800">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-circle text-red-500"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-red-800">There were errors with your submission</h3>
+            <div class="mt-2 text-sm text-red-700">
+              <ul class="list-disc pl-5 space-y-1">
+                {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Tab Navigation -->
+      <div class="border-b border-gray-700 mb-6">
+        <nav class="-mb-px flex space-x-8">
+          <button type="button" 
+                  class="tab-button active" 
+                  data-tab="new-attribute"
+                  data-form-type="new">
+            <i class="fas fa-plus-circle mr-2" style="color: #6366f1;"></i>Create New Attribute
+          </button>
+          <button type="button" 
+                  class="tab-button" 
+                  data-tab="existing-attribute"
+                  data-form-type="existing">
+            <i class="fas fa-list mr-2"></i>Use Existing Attribute
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab Content -->
+      <div>
+        <!-- New Attribute Form -->
+        <div id="new-attribute" class="tab-content active">
+          <div class="space-y-6">
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 mb-4" style="color:white;">
+                <i class="fas fa-magic text-indigo-500 mr-2"></i>Create New Attribute
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="{{ form.new_attribute_name.id_for_label }}" class="form-label">
+                    <i class="fas fa-tag text-gray-400 mr-1"></i> Attribute Name
+                  </label>
+                  <div class="mt-1 relative rounded-md shadow-sm">
+                    <div class="input-icon">
+                      <i class="fas fa-font"></i>
+                    </div>
+                    <input type="text" 
+                           name="{{ form.new_attribute_name.name }}" 
+                           id="{{ form.new_attribute_name.id_for_label }}"
+                           class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 pl-10 text-white placeholder-gray-400"
+                           placeholder="Enter attribute name"
+                           value="{{ form.new_attribute_name.value|default:'' }}">
+                  </div>
+                  {% if form.new_attribute_name.errors %}
+                    {% for error in form.new_attribute_name.errors %}
+                      <p class="error-message"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                    {% endfor %}
+                  {% endif %}
+                  <p class="text-sm text-gray-400">{{ form.new_attribute_name.help_text }}</p>
+                </div>
+                
+                <div>
+                  <label for="{{ form.new_attribute_value.id_for_label }}" class="form-label text-gray-400">
+                    <i class="fas fa-palette text-gray-400 mr-1"></i> Attribute Value
+                  </label>
+                  <div class="mt-1 relative rounded-md shadow-sm">
+                    <div class="input-icon">
+                      <i class="fas fa-tag"></i>
+                    </div>
+                    <input type="text" 
+                           name="{{ form.new_attribute_value.name }}" 
+                           id="{{ form.new_attribute_value.id_for_label }}"
+                           class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 pl-10 text-white placeholder-gray-400"
+                           placeholder="Enter attribute value"
+                           value="{{ form.new_attribute_value.value|default:'' }}">
+                  </div>
+                  {% if form.new_attribute_value.errors %}
+                    {% for error in form.new_attribute_value.errors %}
+                      <p class="error-message"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                    {% endfor %}
+                  {% endif %}
+                  <p class="text-sm text-gray-400">{{ form.new_attribute_value.help_text }}</p>
+                </div>
+                
+                <div class="md:col-span-2">
+                  <label for="{{ form.new_attribute_description.id_for_label }}" class="form-label text-gray-400">
+                    <i class="fas fa-align-left text-gray-400 mr-1"></i> Description (Optional)
+                  </label>
+                  <div class="mt-1">
+                    <textarea name="{{ form.new_attribute_description.name }}" 
+                              id="{{ form.new_attribute_description.id_for_label }}"
+                              class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-white placeholder-gray-400"
+                              rows="3"
+                              placeholder="Enter description (optional)">{{ form.new_attribute_description.value|default:'' }}</textarea>
+                  </div>
+                  {% if form.new_attribute_description.errors %}
+                    {% for error in form.new_attribute_description.errors %}
+                      <p class="error-message"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                    {% endfor %}
+                  {% endif %}
+                  <p class="text-sm text-gray-400">{{ form.new_attribute_description.help_text }}</p>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
-          <form method="post" id="attributeForm">
-            {% csrf_token %}
-            <input type="hidden" name="form_type" id="formType" value="new">
-
-            {% if form.non_field_errors %}
-            <div class="alert alert-danger" role="alert">
-              <i class="fas fa-exclamation-circle me-2"></i>
-              {% for error in form.non_field_errors %}
-                <div>{{ error }}</div>
-              {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- Tab Navigation -->
-            <ul class="nav nav-tabs nav-fill mb-4" id="attributeTabs" role="tablist">
-              <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="new-tab" data-bs-toggle="tab" data-bs-target="#new-attribute" type="button" role="tab" data-form-type="new">
-                  <i class="fas fa-plus-circle me-2"></i>Create New Attribute
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="existing-tab" data-bs-toggle="tab" data-bs-target="#existing-attribute" type="button" role="tab" data-form-type="existing">
-                  <i class="fas fa-list me-2"></i>Use Existing Attribute
-                </button>
-              </li>
-            </ul>
-
-            <!-- Tab Content -->
-            <div class="tab-content">
-              <!-- New Attribute Form -->
-              <div class="tab-pane fade show active" id="new-attribute" role="tabpanel" aria-labelledby="new-tab">
-                <div class="card border-0">
-                  <div class="card-body p-4">
-                    <h5 class="mb-4"><i class="fas fa-magic me-2 text-primary"></i>Create a New Attribute</h5>
-                    <div class="row g-3">
-                      <div class="col-md-6">
-                        <label for="{{ form.new_attribute_name.id_for_label }}" class="form-label">
-                          <i class="fas fa-tag me-1 text-muted"></i> Attribute Name
-                        </label>
-                        <div class="input-group">
-                          <span class="input-group-text"><i class="fas fa-font"></i></span>
-                          {{ form.new_attribute_name }}
-                        </div>
-                        {% if form.new_attribute_name.errors %}
-                          <div class="invalid-feedback d-block">
-                            {% for error in form.new_attribute_name.errors %}
-                              <div><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</div>
-                            {% endfor %}
-                          </div>
-                        {% endif %}
-                        <div class="form-text text-muted mt-1">
-                          <small>e.g., Color, Size, Material, Pattern</small>
-                        </div>
-                      </div>
-                      <div class="col-md-6">
-                        <label for="{{ form.new_attribute_value.id_for_label }}" class="form-label">
-                          <i class="fas fa-tag me-1 text-muted"></i> Attribute Value
-                        </label>
-                        <div class="input-group">
-                          <span class="input-group-text"><i class="fas fa-palette"></i></span>
-                          {{ form.new_attribute_value }}
-                        </div>
-                        {% if form.new_attribute_value.errors %}
-                          <div class="invalid-feedback d-block">
-                            {% for error in form.new_attribute_value.errors %}
-                              <div><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</div>
-                            {% endfor %}
-                          </div>
-                        {% endif %}
-                        <div class="form-text text-muted mt-1">
-                          <small>e.g., Red, Large, Cotton, Striped</small>
-                        </div>
-                      </div>
-                      <div class="col-12">
-                        <label for="{{ form.new_attribute_description.id_for_label }}" class="form-label">
-                          <i class="fas fa-align-left me-1 text-muted"></i> Description (Optional)
-                        </label>
-                        {{ form.new_attribute_description }}
-                        {% if form.new_attribute_description.errors %}
-                          <div class="invalid-feedback d-block">
-                            {% for error in form.new_attribute_description.errors %}
-                              <div><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</div>
-                            {% endfor %}
-                          </div>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        <!-- Existing Attribute Form -->
+        <div id="existing-attribute" class="tab-content hidden">
+          <div class="space-y-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">
+              <i class="fas fa-list-ul text-indigo-500 mr-2"></i>Select Existing Attribute
+            </h3>
+            <div>
+              <label for="{{ form.existing_value.id_for_label }}" class="form-label text-gray-400">
+                <i class="fas fa-tags text-gray-400 mr-1"></i> Choose Attribute
+              </label>
+              <div class="mt-1">
+                <select name="{{ form.existing_value.name }}" 
+                        id="{{ form.existing_value.id_for_label }}"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-white">
+                    {% for value, label in form.existing_value.field.choices %}
+                        <option value="{{ value }}" {% if form.existing_value.value == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
               </div>
-
-              <!-- Existing Attribute Form -->
-              <div class="tab-pane fade" id="existing-attribute" role="tabpanel" aria-labelledby="existing-tab">
-                <div class="card border-0">
-                  <div class="card-body p-4">
-                    <h5 class="mb-4"><i class="fas fa-list-ul me-2 text-primary"></i>Select Existing Attribute</h5>
-                    <div class="mb-3">
-                      <label for="{{ form.existing_value.id_for_label }}" class="form-label">
-                        <i class="fas fa-tags me-1 text-muted"></i> Choose Attribute Value
-                      </label>
-                      <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
-                        {{ form.existing_value }}
-                      </div>
-                      {% if form.existing_value.errors %}
-                        <div class="invalid-feedback d-block">
-                          {% for error in form.existing_value.errors %}
-                            <div><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</div>
-                          {% endfor %}
-                        </div>
-                      {% endif %}
-                      <div class="form-text text-muted mt-1">
-                        <small>Select an existing attribute value from the dropdown</small>
-                      </div>
-                    </div>
-                    
-                    <div class="alert alert-info mt-4">
-                      <i class="fas fa-lightbulb me-2"></i>
-                      <strong>Tip:</strong> Can't find what you're looking for? 
-                      <a href="#" class="alert-link" onclick="document.getElementById('new-tab').click(); return false;">
-                        Create a new attribute
-                      </a>
-                      instead.
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {% if form.existing_value.errors %}
+                {% for error in form.existing_value.errors %}
+                  <p class="error-message"><i class="fas fa-exclamation-circle"></i> {{ error }}</p>
+                {% endfor %}
+              {% endif %}
+              <p class="text-sm text-gray-400">{{ form.existing_value.help_text }}</p>
             </div>
-
-            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-              <a href="{% url 'vendor:variation_detail' variation.id %}" class="btn btn-outline-secondary">
-                <i class="fas fa-times me-2"></i>Cancel
-              </a>
-              <button type="submit" class="btn btn-primary px-4">
-                <i class="fas fa-save me-2"></i>Save Attribute
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
-    </div>
+
+      <!-- Form Actions -->
+      <div class="mt-8 pt-6 border-t border-gray-700 flex items-center justify-between">
+        <a href="{% url 'vendor:variation_detail' variation.id %}" class="btn btn-outline">
+          <i class="fas fa-times mr-2"></i>Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save mr-2"></i>Save Attribute
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Handle tab switching
-    const tabs = document.querySelectorAll('[data-bs-toggle="tab"]');
-    tabs.forEach(tab => {
-      tab.addEventListener('shown.bs.tab', function (e) {
-        const formType = e.target.getAttribute('data-form-type');
-        document.getElementById('formType').value = formType;
-      });
-    });
+document.addEventListener('DOMContentLoaded', function() {
+  // Tab switching functionality
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  const formTypeInput = document.getElementById('formType');
 
-    // Form submission handling
-    const form = document.getElementById('attributeForm');
-    if (form) {
-      form.addEventListener('submit', function(e) {
-        const formType = document.getElementById('formType').value;
-        
-        // Validate based on active tab
-        if (formType === 'new') {
-          const nameField = document.getElementById('{{ form.new_attribute_name.id_for_label }}');
-          const valueField = document.getElementById('{{ form.new_attribute_value.id_for_label }}');
-          
-          if (!nameField.value.trim() || !valueField.value.trim()) {
-            e.preventDefault();
-            alert('Please fill in all required fields for the new attribute.');
-            return false;
-          }
+  tabButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      e.preventDefault();
+      const tabId = button.getAttribute('data-tab');
+      const formType = button.getAttribute('data-form-type');
+      
+      // Update active tab
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      
+      // Show selected tab content
+      tabContents.forEach(content => {
+        content.classList.add('hidden');
+        if (content.id === tabId) {
+          content.classList.remove('hidden');
+          content.classList.add('active');
         } else {
-          const existingValue = document.getElementById('{{ form.existing_value.id_for_label }}');
-          if (!existingValue.value) {
-            e.preventDefault();
-            alert('Please select an existing attribute value.');
-            return false;
-          }
+          content.classList.remove('active');
         }
       });
-    }
+      
+      // Update form type
+      if (formTypeInput) {
+        formTypeInput.value = formType;
+      }
+    });
   });
+
+  // Form submission handling
+  const form = document.getElementById('attributeForm');
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const formType = document.getElementById('formType').value;
+      
+      // Validate based on active tab
+      if (formType === 'new') {
+        const nameField = document.getElementById('{{ form.new_attribute_name.id_for_label }}');
+        const valueField = document.getElementById('{{ form.new_attribute_value.id_for_label }}');
+        
+        if (!nameField.value.trim() || !valueField.value.trim()) {
+          e.preventDefault();
+          alert('Please fill in all required fields for the new attribute.');
+          return false;
+        }
+      } else {
+        const existingValue = document.getElementById('{{ form.existing_value.id_for_label }}');
+        if (!existingValue.value) {
+          e.preventDefault();
+          alert('Please select an existing attribute value.');
+          return false;
+        }
+      }
+    });
+  }
+});
 </script>
 {% endblock %}

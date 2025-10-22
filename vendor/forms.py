@@ -2,6 +2,7 @@ import json
 from django import forms
 from django.contrib.auth import get_user_model
 from django.forms import inlineformset_factory, formset_factory, BaseFormSet
+from django.core.exceptions import ValidationError
 from home.models import Product, ProductCategory, Business, ProductImage, ProductCategoryFilter, ProductVariation, ProductAttributeAssignment, ProductAttributeValue, PriceTier, PromiseFee, ProductKB, IRate, Order, OrderItem, BuyerSellerChat
 
 User = get_user_model()
@@ -72,8 +73,10 @@ class ProductImageForm(forms.ModelForm):
     
     class Meta:
         model = ProductImage
-        fields = ['image', 'video', 'caption', 'is_default']
+        fields = ['product', 'variation', 'image', 'video', 'caption', 'is_default']
         widgets = {
+            'product': forms.HiddenInput(),
+            'variation': forms.HiddenInput(),
             'image': forms.FileInput(attrs={
                 'class': 'form-control image-upload',
                 'accept': 'image/*',
@@ -94,10 +97,93 @@ class ProductImageForm(forms.ModelForm):
         }
         
     def __init__(self, *args, **kwargs):
+        self.product = kwargs.pop('product', None)
         super().__init__(*args, **kwargs)
+        
+        # media_type is purely UI hint; not required
+        self.fields['media_type'].required = False
+
+        # Ensure product/variation fields exist but are not user-editable
+        if 'product' in self.fields:
+            self.fields['product'].required = False
+        if 'variation' in self.fields:
+            self.fields['variation'].required = False
+
+        if self.product:
+            # Set initial product id so Django can attach errors to this field safely
+            self.fields['product'].initial = getattr(self.product, 'pk', self.product)
+            # Make sure variation stays empty in this context
+            self.fields['variation'].initial = None
+            # Also set on instance before validation happens
+            self.instance.product = self.product
+            self.instance.variation = None
+
         # Set initial media type based on which field has a value
         if self.instance and self.instance.video:
             self.fields['media_type'].initial = 'video'
+        
+        # Update widget attributes with Tailwind classes
+        self.fields['image'].widget.attrs.update({
+            'class': 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100',
+            'accept': 'image/*',
+            'id': 'id_image'
+        })
+        
+        self.fields['caption'].widget.attrs.update({
+            'class': 'form-control block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm',
+            'placeholder': 'Enter image caption (optional)'
+        })
+        
+        self.fields['is_default'].widget.attrs.update({
+            'class': 'h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded'
+        })
+        
+        # Hide the video field since we're only using images for now
+        self.fields['video'].widget = forms.HiddenInput()
+        self.fields['media_type'].widget = forms.HiddenInput()
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Ensure instance has the correct link before model validation runs
+        if hasattr(self, 'product') and self.product:
+            # Force cleaned_data to have correct associations (overrides empty POST hidden inputs)
+            cleaned_data['product'] = self.product
+            cleaned_data['variation'] = None
+            self.instance.product = self.product
+            self.instance.variation = None
+            return cleaned_data
+        
+        # If no product is set, raise a validation error
+        raise forms.ValidationError("Product is required for this image.")
+    
+    def save(self, commit=True):
+        # Set the product before saving
+        instance = super().save(commit=False)
+        if hasattr(self, 'product') and self.product:
+            instance.product = self.product
+            instance.variation = None  # Explicitly set variation to None
+        
+        if commit:
+            # Call the model's clean method manually to validate constraints
+            try:
+                instance.clean()
+                instance.save()
+            except ValidationError as e:
+                # Convert model validation errors to form errors
+                if hasattr(e, 'error_dict'):
+                    for field, errors in e.error_dict.items():
+                        if field in ['product', 'variation']:
+                            # These are model constraint errors, not form field errors
+                            self.add_error(None, errors[0])
+                        else:
+                            self.add_error(field, errors)
+                else:
+                    self.add_error(None, e.message)
+                raise
+            self.save_m2m()
+            
+        return instance
 
 
 class ProductVariationImageForm(forms.ModelForm):

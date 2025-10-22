@@ -317,6 +317,8 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     origin = CountryField(blank_label='(Select country)', null=True, blank=True)
+    is_active = models.BooleanField(default=True, help_text="Whether this product is active and visible to customers")
+    is_archived = models.BooleanField(default=False, help_text="Whether this product has been archived (soft delete)")
     # price = models.DecimalField(max_digits=10, decimal_places=2)  # Unit price when MOQ is met
     # price_single = models.DecimalField(max_digits=10, decimal_places=2, default=0)  # Unit price for single/below MOQ
 
@@ -415,12 +417,28 @@ class ProductVariation(models.Model):
     moq = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True, help_text="Whether this variation is visible to customers")
+    is_archived = models.BooleanField(default=False, help_text="Whether this variation has been archived (soft delete)")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     closes_on = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        
+    def clean(self):
+        super().clean()
+        if self.is_archived and self.is_active:
+            raise ValidationError('An archived variation cannot be active.')
     
     def __str__(self):
-        return f"{self.product.name} - {self.name}"
+        status = []
+        if not self.is_active:
+            status.append("inactive")
+        if self.is_archived:
+            status.append("archived")
+        status_str = f" ({', '.join(status)})" if status else ""
+        return f"{self.product.name} - {self.name}{status_str}"
 class AdditionalFees(models.Model):
     variation = models.ManyToManyField(ProductVariation, related_name='additional_fees')
     name = models.CharField(max_length=100, default='Basic')

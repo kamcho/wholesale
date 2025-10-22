@@ -1,28 +1,44 @@
 {% extends 'vendor/base.html' %}
 
-{% block title %}Add Product Variation - Vendor Panel{% endblock %}
+{% block title %}Add Product Variation - {{ product.name }}{% endblock %}
 
 {% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-4 pb-2 mb-4 border-b border-gray-700">
+    <div>
+        <h1 class="h3 font-weight-bold text-gray-100">
+            <i class="fas fa-plus-circle text-indigo-500 mr-2"></i>Add Variation
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'vendor:dashboard' %}" class="text-gray-400 hover:text-white">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'vendor:product_list' %}" class="text-gray-400 hover:text-white">Products</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'vendor:product_detail' product.id %}" class="text-gray-400 hover:text-white">{{ product.name|truncatechars:20 }}</a></li>
+                <li class="breadcrumb-item active text-indigo-400" aria-current="page">Add Variation</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'vendor:product_detail' product.id %}" class="px-4 py-2 text-sm font-medium text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-lg border border-gray-600/50 transition-colors duration-200 flex items-center">
+            <i class="fas fa-arrow-left mr-2"></i> Back to Product
+        </a>
+    </div>
+</div>
+
 {% if messages %}
-<div class="container mt-3">
+<div class="mb-4">
     {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <div class="px-4 py-3 rounded-lg {% if message.tags == 'error' %}bg-red-900/30 text-red-200 border border-red-800/50{% else %}bg-indigo-900/30 text-indigo-200 border border-indigo-800/50{% endif %} flex items-center justify-between">
+        <div class="flex items-center">
+            <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %} mr-2"></i>
+            {{ message }}
+        </div>
+        <button type="button" class="text-gray-400 hover:text-white" data-dismiss="alert" aria-label="Close">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
     {% endfor %}
 </div>
 {% endif %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-plus-circle me-2"></i>Add Product Variation
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'vendor:product_detail' product.id %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to Product
-        </a>
-    </div>
-</div>
 
 <div class="row">
     <div class="col-lg-8">

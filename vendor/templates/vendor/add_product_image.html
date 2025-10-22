@@ -3,111 +3,420 @@
 {% block title %}Add Image - {{ product.name }} - Vendor Panel{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-image me-2"></i>Add Product Image
-    </h1>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-b border-gray-700">
+    <div>
+        <h1 class="h3 font-weight-bold text-gray-100">
+            <i class="fas fa-image text-indigo-600 mr-2"></i>Add Product Image
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="{% url 'vendor:dashboard' %}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'vendor:product_list' %}">Products</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'vendor:product_detail' product.id %}">{{ product.name|truncatechars:20 }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Add Image</li>
+            </ol>
+        </nav>
+    </div>
     <div class="btn-toolbar mb-2 mb-md-0">
         <a href="{% url 'vendor:product_detail' product.id %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to Product
+            <i class="fas fa-arrow-left mr-2"></i>Back to Product
         </a>
     </div>
 </div>
 
 <div class="row">
     <div class="col-lg-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">Upload Image</h5>
+        <div class="card shadow-sm border-0 bg-gradient-to-br from-gray-800 to-gray-900 mb-6">
+            <div class="card-header bg-gradient-to-r from-indigo-900/80 to-indigo-800/80 border-b border-indigo-700/50 px-6 py-4">
+                <h5 class="text-lg font-bold text-white flex items-center">
+                    <i class="fas fa-cloud-upload-alt mr-2"></i>
+                    Upload New Image
+                </h5>
             </div>
-            <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
+            <div class="card-body p-6">
+                <form method="post" enctype="multipart/form-data" id="image-upload-form">
                     {% csrf_token %}
                     
-                    <div class="mb-3">
-                        <label for="{{ form.image.id_for_label }}" class="form-label">Image *</label>
-                        {{ form.image }}
+                    <!-- Drag and Drop Zone -->
+                    <div class="mb-6">
+                        <div id="drop-zone" class="border-2 border-dashed border-indigo-500/30 rounded-xl p-8 text-center hover:border-indigo-400/50 transition-colors duration-200 cursor-pointer bg-gray-800/50">
+                            <div id="upload-icon" class="mx-auto w-16 h-16 text-indigo-400 mb-4">
+                                <i class="fas fa-cloud-upload-alt text-5xl"></i>
+                            </div>
+                            <h5 class="text-lg font-semibold text-gray-200 mb-2">Drag & drop your image here</h5>
+                            <p class="text-sm text-gray-400 mb-4">or click to browse files</p>
+                            <input type="file" name="image" id="id_image" class="hidden" accept="image/*">
+                            <button type="button" id="browse-btn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition-colors duration-200 flex items-center mx-auto">
+                                <i class="fas fa-folder-open mr-2"></i> Select Image
+                            </button>
+                            <p class="text-xs text-gray-500 mt-3">Supports JPG, PNG, GIF up to 10MB</p>
+                        </div>
+                        <div id="file-info" class="mt-3 text-sm text-indigo-300 hidden"></div>
+                        <div id="image-preview" class="mt-6 hidden">
+                            <p class="text-sm font-medium text-gray-300 mb-2">Preview:</p>
+                            <img id="preview" src="#" alt="Preview" class="max-h-80 mx-auto rounded-lg shadow-lg border border-gray-700/50">
+                        </div>
                         {% if form.image.errors %}
-                            <div class="text-danger small mt-1">
+                            <div class="mt-3 text-red-400 text-sm bg-red-900/30 px-4 py-2 rounded-lg">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
                                 {% for error in form.image.errors %}
-                                    <div>{{ error }}</div>
+                                    <span>{{ error }}</span>
                                 {% endfor %}
                             </div>
                         {% endif %}
-                        <div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 10MB</div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.caption.id_for_label }}" class="form-label">Caption</label>
+                    <!-- Caption Field -->
+                    <div class="mb-6">
+                        <label for="{{ form.caption.id_for_label }}" class="block text-sm font-medium text-gray-300 mb-2">
+                            Caption <span class="text-gray-500">(Optional)</span>
+                        </label>
                         {{ form.caption }}
                         {% if form.caption.errors %}
-                            <div class="text-danger small mt-1">
+                            <div class="mt-2 text-red-400 text-sm">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
                                 {% for error in form.caption.errors %}
-                                    <div>{{ error }}</div>
+                                    <span>{{ error }}</span>
                                 {% endfor %}
                             </div>
                         {% endif %}
                     </div>
                     
-                    <div class="mb-3">
-                        <div class="form-check">
-                            {{ form.is_default }}
-                            <label class="form-check-label" for="{{ form.is_default.id_for_label }}">
-                                Set as default image
+                    <!-- Default Image Toggle -->
+                    <div class="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                        <div class="flex items-center">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                {{ form.is_default }}
+                                <span class="sr-only">Set as default</span>
+                                <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                            </label>
+                            <label for="{{ form.is_default.id_for_label }}" class="ml-3 text-sm font-medium text-gray-300">
+                                Set as default product image
                             </label>
                         </div>
                         {% if form.is_default.errors %}
-                            <div class="text-danger small mt-1">
+                            <div class="mt-2 text-red-400 text-sm">
+                                <i class="fas fa-exclamation-circle mr-1"></i>
                                 {% for error in form.is_default.errors %}
-                                    <div>{{ error }}</div>
+                                    <span>{{ error }}</span>
                                 {% endfor %}
                             </div>
                         {% endif %}
-                        <div class="form-text">Only one image can be set as default</div>
+                        <p class="mt-2 text-xs text-gray-400">Only one image can be set as default. This will be shown as the main product image.</p>
                     </div>
                     
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-upload me-2"></i>Upload Image
-                        </button>
-                        <a href="{% url 'vendor:product_detail' product.id %}" class="btn btn-secondary">
-                            <i class="fas fa-times me-2"></i>Cancel
+                    <!-- Form Actions -->
+                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-700/50">
+                        <a href="{% url 'vendor:product_detail' product.id %}" class="px-4 py-2.5 text-sm font-medium text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-lg border border-gray-600/50 transition-colors duration-200 flex items-center">
+                            <i class="fas fa-times mr-2"></i> Cancel
                         </a>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg border border-indigo-500/30 transition-colors duration-200 flex items-center" id="submit-btn" disabled>
+                            <i class="fas fa-upload mr-2"></i> Upload Image
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
     
+    <!-- Product Info Sidebar -->
     <div class="col-lg-4">
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title mb-0">Product Info</h6>
+        <!-- Product Card -->
+        <div class="card shadow-sm border-0 bg-gradient-to-br from-gray-800 to-gray-900 mb-6 overflow-hidden">
+            <!-- Card Header with Gradient -->
+            <div class="bg-gradient-to-r from-indigo-900/80 to-indigo-800/80 px-5 py-4 border-b border-indigo-700/50">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <i class="fas fa-box-open mr-2 text-indigo-300"></i>
+                        Product Details
+                    </h3>
+                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-600/30 text-indigo-100">
+                        ID: {{ product.id }}
+                    </span>
+                </div>
             </div>
-            <div class="card-body">
-                <h6>{{ product.name }}</h6>
-                <p class="text-muted small">{{ product.description|truncatechars:100 }}</p>
-                <p class="fw-bold text-primary">${{ product.price }}</p>
-                
-                <hr>
-                
-                <h6 class="small text-muted">Current Images ({{ product.images.count }})</h6>
-                {% if product.images.exists %}
-                    <div class="row">
-                        {% for image in product.images.all %}
-                        <div class="col-6 mb-2">
-                            <img src="{{ image.image.url }}" 
-                                 class="img-fluid rounded" 
-                                 alt="{{ image.caption|default:product.name }}">
-                            {% if image.is_default %}
-                                <small class="text-primary d-block">Default</small>
+            
+            <!-- Product Image and Basic Info -->
+            <div class="p-5">
+                <div class="flex items-start space-x-4 mb-5">
+                    {% with product.images.first as main_image %}
+                        {% if main_image %}
+                            <div class="relative flex-shrink-0">
+                                <img src="{{ main_image.image.url }}" 
+                                     class="w-20 h-20 object-cover rounded-lg border-2 border-indigo-500/30 shadow-md"
+                                     alt="{{ product.name }}">
+                                {% if main_image.is_default %}
+                                    <span class="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full border border-indigo-300/30">
+                                        <i class="fas fa-star mr-0.5"></i> Main
+                                    </span>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="w-20 h-20 bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg border-2 border-dashed border-gray-600/50 flex items-center justify-center text-gray-500">
+                                <i class="fas fa-image text-2xl"></i>
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-base font-bold text-white truncate mb-1" title="{{ product.name }}">
+                            {{ product.name }}
+                        </h4>
+                        <div class="flex items-center mb-1">
+                            <span class="text-lg font-bold text-indigo-400">${{ product.price }}</span>
+                            {% if product.compare_at_price and product.compare_at_price > product.price %}
+                                <span class="ml-2 text-sm text-gray-400 line-through">${{ product.compare_at_price }}</span>
+                                <span class="ml-2 text-xs bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">
+                                    {{ product.discount_percentage|floatformat:0 }}% OFF
+                                </span>
                             {% endif %}
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-0.5 text-xs rounded-full 
+                                {% if product.is_active %}bg-green-900/30 text-green-400 border border-green-500/30
+                                {% else %}bg-gray-700 text-gray-400 border border-gray-600/50{% endif %}">
+                                {{ product.get_status_display }}
+                            </span>
+                            <span class="text-xs text-gray-400">
+                                <i class="far fa-eye mr-1"></i> {{ product.view_count|default:0 }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Meta Grid -->
+                <div class="grid grid-cols-2 gap-3 text-sm">
+                    <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+                        <div class="text-xs font-medium text-gray-400 mb-1">SKU</div>
+                        <div class="font-mono text-gray-200 truncate" title="{{ product.sku|default:'Not set' }}">
+                            {{ product.sku|default:"—" }}
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+                        <div class="text-xs font-medium text-gray-400 mb-1">Category</div>
+                        <div class="text-gray-200">
+                            {% if product.categories.exists %}
+                                {{ product.categories.first.name }}
+                            {% else %}
+                                <span class="text-gray-500">—</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+                        <div class="text-xs font-medium text-gray-400 mb-1">Condition</div>
+                        <div class="text-gray-200 flex items-center">
+                            <i class="fas fa-tag text-indigo-400 mr-1.5 text-xs"></i>
+                            {{ product.get_condition_display|default:"—" }}
+                        </div>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-lg border border-gray-700/50">
+                        <div class="text-xs font-medium text-gray-400 mb-1">Stock</div>
+                        <div class="text-gray-200">
+                            {% if product.inventory_quantity > 5 %}
+                                <span class="text-green-400 font-medium">{{ product.inventory_quantity }} in stock</span>
+                            {% elif product.inventory_quantity > 0 %}
+                                <span class="text-yellow-400 font-medium">Only {{ product.inventory_quantity }} left</span>
+                            {% else %}
+                                <span class="text-red-400 font-medium">Out of stock</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="mt-5 pt-4 border-t border-gray-700/50">
+                    <div class="flex space-x-2">
+                        <a href="{% url 'vendor:product_detail' product.id %}" 
+                           class="flex-1 text-center px-3 py-2 text-sm font-medium text-indigo-100 bg-indigo-600/50 hover:bg-indigo-600 rounded-lg transition-colors border border-indigo-500/30">
+                            <i class="fas fa-edit mr-1.5"></i> Edit Product
+                        </a>
+                        <a href="{% url 'vendor:product_detail' product.id %}" 
+                           class="flex-1 text-center px-3 py-2 text-sm font-medium text-gray-300 bg-gray-700/50 hover:bg-gray-700 rounded-lg transition-colors border border-gray-600/30">
+                            <i class="fas fa-external-link-alt mr-1.5"></i> View
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Images Card -->
+        <div class="card shadow-sm border-0 bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
+            <div class="bg-gradient-to-r from-gray-800 to-gray-900 px-5 py-4 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center">
+                        <i class="fas fa-images mr-2 text-indigo-300"></i>
+                        Current Images
+                    </h3>
+                    <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-600/30 text-indigo-100">
+                        {{ product.images.count }} {{ product.images.count|pluralize:"image,images" }}
+                    </span>
+                </div>
+            </div>
+            <div class="p-4">
+                {% if product.images.exists %}
+                    <div class="grid grid-cols-3 gap-3">
+                        {% for image in product.images.all %}
+                        <div class="relative group aspect-square">
+                            <div class="w-full h-full bg-gray-800 rounded-md overflow-hidden border border-gray-700/50 group-hover:border-indigo-500/50 transition-colors">
+                                <img src="{{ image.image.url }}" 
+                                     alt="{{ image.caption|default:product.name }}" 
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                            </div>
+                            {% if image.is_default %}
+                                <span class="absolute top-1 right-1 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full border border-indigo-300/30">
+                                    <i class="fas fa-star"></i>
+                                </span>
+                            {% endif %}
+                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center space-x-1">
+                                <a href="{{ image.image.url }}" 
+                                   target="_blank" 
+                                   class="p-1.5 text-white hover:bg-white/20 rounded-full transition-colors"
+                                   data-bs-toggle="tooltip" 
+                                   title="View full size">
+                                    <i class="fas fa-expand text-xs"></i>
+                                </a>
+                                <a href="#" 
+                                   class="p-1.5 text-white hover:bg-white/20 rounded-full transition-colors"
+                                   data-bs-toggle="tooltip" 
+                                   title="Set as default">
+                                    <i class="fas fa-star text-xs"></i>
+                                </a>
+                                <a href="#" 
+                                   class="p-1.5 text-white hover:bg-red-500/80 rounded-full transition-colors"
+                                   data-bs-toggle="tooltip" 
+                                   title="Delete image">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </a>
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-muted small">No images yet</p>
+                    <div class="text-center py-6">
+                        <div class="mx-auto w-12 h-12 bg-gray-800/50 rounded-full flex items-center justify-center text-gray-500 mb-3 border-2 border-dashed border-gray-700/50">
+                            <i class="fas fa-images text-xl"></i>
+                        </div>
+                        <p class="text-sm text-gray-400">No images uploaded yet</p>
+                        <p class="text-xs text-gray-500 mt-1">Upload your first image to get started</p>
+                    </div>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #drop-zone.drag-over {
+        border-color: #818cf8;
+        background-color: #f8f9fa;
+    }
+    #drop-zone.has-image {
+        padding: 0;
+        border: none;
+    }
+    #drop-zone.has-image #upload-icon,
+    #drop-zone.has-image p,
+    #drop-zone.has-image button {
+        display: none;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('id_image');
+    const browseBtn = document.getElementById('browse-btn');
+    const fileInfo = document.getElementById('file-info');
+    const imagePreview = document.getElementById('image-preview');
+    const previewImg = document.getElementById('preview');
+    const form = document.getElementById('image-upload-form');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    // Highlight drop zone when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    // Handle dropped files
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    // Open file browser when button is clicked
+    browseBtn.addEventListener('click', () => fileInput.click());
+    
+    // Handle file selection via file input
+    fileInput.addEventListener('change', handleFiles);
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    function highlight() {
+        dropZone.classList.add('border-indigo-500', 'bg-indigo-50');
+    }
+    
+    function unhighlight() {
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
+    }
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles({ target: { files } });
+    }
+    
+    function handleFiles(e) {
+        const files = e.target.files;
+        if (files.length > 0) {
+            const file = files[0];
+            
+            // Update file info
+            fileInfo.textContent = `Selected: ${file.name} (${formatFileSize(file.size)})`;
+            fileInfo.classList.remove('hidden');
+            
+            // Show preview if it's an image
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.classList.remove('hidden');
+                    dropZone.classList.add('has-image');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewImg.src = '#';
+                imagePreview.classList.add('hidden');
+            }
+            
+            // Enable submit button
+            submitBtn.disabled = false;
+        }
+    }
+    
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
             </div>
         </div>
     </div>

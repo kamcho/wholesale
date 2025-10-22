@@ -72,11 +72,25 @@ def vendor_dashboard(request):
 @login_required
 def product_list(request):
     """List all products for the current vendor"""
+    from django.db.models import Min, Max, Prefetch
+    from home.models import Product, ProductVariation, Business
+    
     search_form = ProductSearchForm(request.GET)
     user_businesses = Business.objects.filter(owner=request.user)
+    
+    # Only show non-archived products and their non-archived variations
     products = Product.objects.filter(
-        Q(business__in=user_businesses) | Q(user=request.user)
+        (Q(business__in=user_businesses) | Q(user=request.user)) &
+        Q(is_archived=False)
+    ).prefetch_related('images', 'categories').prefetch_related(
+        Prefetch(
+            'variations',
+            queryset=ProductVariation.objects.filter(is_archived=False),
+            to_attr='active_variations'
+        )
     )
+    
+    # No need to set variations attribute as we'll use active_variations in the template
     
     if search_form.is_valid():
         search = search_form.cleaned_data.get('search')
@@ -93,6 +107,18 @@ def product_list(request):
             products = products.filter(categories=category)
         
         # no price filtering
+    
+    # Add price information to each product
+    for product in products:
+        if product.variations.exists():
+            prices = product.variations.values_list('price', flat=True)
+            product.min_price = min(prices)
+            product.max_price = max(prices)
+            product.has_pricing = True
+        else:
+            product.min_price = None
+            product.max_price = None
+            product.has_pricing = False
     
     # Pagination
     paginator = Paginator(products, 12)
@@ -130,7 +156,9 @@ def add_product(request):
 @login_required
 def product_detail(request, pk):
     """View product details"""
-    product = get_object_or_404(Product, id=pk)
+    # Only get non-archived products
+    product = get_object_or_404(Product, id=pk, is_archived=False)
+    
     # Ensure the product belongs to a business owned by the current user OR was created by the current user
     if product.business and product.business.owner == request.user:
         pass  # Allowed via business ownership
@@ -140,8 +168,9 @@ def product_detail(request, pk):
         messages.error(request, 'You do not have permission to view this product.')
         return redirect('vendor:product_list')
     
+    # Get non-archived images and variations
     images = ProductImage.objects.filter(product=product)
-    variations = ProductVariation.objects.filter(product=product)
+    variations = ProductVariation.objects.filter(product=product, is_archived=False)
     
     
     # Get or create ProductServicing for this product
@@ -267,7 +296,9 @@ def product_detail(request, pk):
 @login_required
 def edit_product(request, pk):
     """Edit an existing product"""
-    product = get_object_or_404(Product, id=pk)
+    # Only allow editing non-archived products
+    product = get_object_or_404(Product, id=pk, is_archived=False)
+    
     # Ensure the product belongs to a business owned by the current user OR was created by the current user
     if product.business and product.business.owner == request.user:
         pass  # Allowed via business ownership
@@ -435,15 +466,49 @@ def order_request_update_status(request, pk):
 
 
 @login_required
+def toggle_product_active(request, pk):
+    """Toggle the active status of a product"""
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    from home.models import Product
+    
+    try:
+        product = get_object_or_404(Product, id=pk, is_archived=False)
+        
+        # Check if the user has permission to modify this product
+        has_permission = False
+        if hasattr(product, 'business') and product.business and product.business.owner == request.user:
+            has_permission = True
+        elif hasattr(product, 'user') and product.user == request.user:
+            has_permission = True
+        
+        if not has_permission:
+            messages.error(request, 'You do not have permission to modify this product.')
+            return redirect('vendor:product_list')
+        
+        # Toggle the active status
+        product.is_active = not product.is_active
+        product.save()
+        
+        status = 'activated' if product.is_active else 'deactivated'
+        messages.success(request, f'Product has been {status} successfully.')
+        
+        return redirect('vendor:product_detail', pk=pk)
+        
+    except Exception as e:
+        messages.error(request, f'Error updating product status: {str(e)}')
+        return redirect('vendor:product_detail', pk=pk)
+
+@login_required
 def delete_product(request, pk):
-    """Delete a product"""
+    """Archive a product instead of deleting it"""
     from django.shortcuts import get_object_or_404, redirect
     from django.contrib import messages
     from home.models import Product
     
     product = get_object_or_404(Product, id=pk)
     
-    # Check if the user has permission to delete this product
+    # Check if the user has permission to archive this product
     has_permission = False
     if hasattr(product, 'business') and product.business and product.business.owner == request.user:
         has_permission = True
@@ -451,15 +516,82 @@ def delete_product(request, pk):
         has_permission = True
     
     if not has_permission:
-        messages.error(request, 'You do not have permission to delete this product.')
+        messages.error(request, 'You do not have permission to archive this product.')
         return redirect('vendor:product_list')
     
-    # Delete the product
+    # Archive the product
     product_name = product.name
-    product.delete()
+    product.is_archived = True
+    product.save()
     
-    messages.success(request, f'Product "{product_name}" has been deleted successfully.')
+    messages.success(request, f'Product "{product_name}" has been archived successfully.')
     return redirect('vendor:product_list')
+
+
+@login_required
+def toggle_variation_active(request, pk):
+    """Toggle the active status of a product variation"""
+    from django.shortcuts import get_object_or_404, redirect
+    from django.contrib import messages
+    from home.models import ProductVariation
+    
+    try:
+        variation = get_object_or_404(ProductVariation, id=pk, is_archived=False)
+        
+        # Check if the user has permission to modify this variation
+        has_permission = False
+        if hasattr(variation.product, 'business') and variation.product.business and variation.product.business.owner == request.user:
+            has_permission = True
+        elif hasattr(variation.product, 'user') and variation.product.user == request.user:
+            has_permission = True
+        
+        if not has_permission:
+            messages.error(request, 'You do not have permission to modify this variation.')
+            return redirect('vendor:variation_detail', pk=pk)
+        
+        # Toggle the active status
+        variation.is_active = not variation.is_active
+        variation.save()
+        
+        status = 'activated' if variation.is_active else 'deactivated'
+        messages.success(request, f'Variation has been {status} successfully.')
+        
+        return redirect('vendor:variation_detail', pk=pk)
+        
+    except Exception as e:
+        messages.error(request, f'Error updating variation status: {str(e)}')
+        return redirect('vendor:variation_detail', pk=pk)
+
+@login_required
+def archive_variation(request, pk):
+    """Archive a product variation"""
+    from django.http import JsonResponse
+    from home.models import ProductVariation
+    
+    try:
+        variation = ProductVariation.objects.get(id=pk, is_archived=False)
+        
+        # Check if the user has permission to archive this variation
+        has_permission = False
+        if hasattr(variation.product, 'business') and variation.product.business and variation.product.business.owner == request.user:
+            has_permission = True
+        elif hasattr(variation.product, 'user') and variation.product.user == request.user:
+            has_permission = True
+        
+        if not has_permission:
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        
+        # Archive the variation
+        variation.is_archived = True
+        variation.is_active = False  # Ensure archived items are not active
+        variation.save()
+        
+        return JsonResponse({'success': True})
+        
+    except ProductVariation.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Variation not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @login_required
@@ -567,6 +699,7 @@ def create_order_from_chat(request, chat_id):
 def add_product_image(request, pk):
     """Add an image to a product"""
     product = get_object_or_404(Product, id=pk)
+    
     # Ensure the product belongs to a business owned by the current user OR was created by the current user
     if product.business and product.business.owner == request.user:
         pass  # Allowed via business ownership
@@ -577,25 +710,27 @@ def add_product_image(request, pk):
         return redirect('vendor:product_list')
     
     if request.method == 'POST':
-        form = ProductImageForm(request.POST, request.FILES)
+        form = ProductImageForm(request.POST, request.FILES, product=product)
+        
         if form.is_valid():
-            image = form.save(commit=False)
-            image.product = product
-            
-            # Set the image field from the form before validation
-            if 'image' in request.FILES:
-                image.image = request.FILES['image']
-            
-            image.save()
-            
-            # If this is set as default, unset other default images
-            if image.is_default:
-                ProductImage.objects.filter(product=product).exclude(id=image.id).update(is_default=False)
-            
-            messages.success(request, 'Image added successfully!')
-            return redirect('vendor:product_detail', pk=product.id)
+            try:
+                # The form's save method will handle setting the product
+                image = form.save()
+                
+                # If this is set as default, unset other default images
+                if image.is_default:
+                    ProductImage.objects.filter(product=product).exclude(id=image.id).update(is_default=False)
+                
+                messages.success(request, 'Image added successfully!')
+                return redirect('vendor:product_detail', pk=product.id)
+                
+            except Exception as e:
+                messages.error(request, f'Error saving image: {str(e)}')
+        else:
+            # Log form errors for debugging
+            logger.error(f'Form errors: {form.errors}')
     else:
-        form = ProductImageForm()
+        form = ProductImageForm(product=product)
     
     context = {
         'product': product,
@@ -619,7 +754,13 @@ def business_list(request):
 
 @login_required
 def add_business(request):
-    """Add a new business"""
+    """Add a new business - only one business per user is allowed"""
+    # Check if user already has a business
+    existing_business = Business.objects.filter(owner=request.user).first()
+    if existing_business:
+        messages.info(request, 'You already have a business. You can only have one business per account.')
+        return redirect('vendor:edit_business', pk=existing_business.id)
+    
     if request.method == 'POST':
         form = BusinessForm(request.POST)
         
@@ -635,6 +776,7 @@ def add_business(request):
     
     context = {
         'form': form,
+        'existing_business': existing_business,
     }
     
     return render(request, 'vendor/add_business.html', context)
@@ -818,8 +960,15 @@ def add_variation_image(request, pk):
 @login_required
 def variation_detail(request, pk):
     """View a single product variation and its images."""
-    variation = get_object_or_404(ProductVariation, id=pk)
+    # Only get non-archived variations and products
+    variation = get_object_or_404(
+        ProductVariation,
+        id=pk,
+        is_archived=False,
+        product__is_archived=False
+    )
     product = variation.product
+    
     # Ensure ownership
     if product.business and product.business.owner == request.user:
         pass  # Allowed via business ownership
@@ -1244,6 +1393,7 @@ def variation_detail(request, pk):
         'images': images,
         'price_tier_formset': price_tier_formset,
         'i_rate_formset': i_rate_formset,
+        'i_rates': variation.i_rates.order_by('lower_range'),  # Add this line for template
         'promise_fee_form': promise_fee_form,
         'promise_fees': promise_fees,
         'kb_form': kb_form,
@@ -1382,21 +1532,80 @@ def get_categories(request):
 
 @login_required
 def orders(request):
-    """List order items for products that belong to the vendor's businesses."""
+    """List orders for products that belong to the vendor's businesses."""
     user_businesses = Business.objects.filter(owner=request.user)
+    
+    # Get all orders that have items from this vendor
+    orders = Order.objects.filter(
+        items__variation__product__business__in=user_businesses
+    ).distinct().order_by('-created_at')
+    
+    # Apply filters
+    status = request.GET.get('status')
+    date_range = request.GET.get('date_range')
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
+    search = request.GET.get('search', '').strip()
+    
+    if status:
+        orders = orders.filter(status=status)
+    
+    if date_range:
+        start_date, end_date = date_range.split(' - ')
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+        orders = orders.filter(created_at__date__range=[start_date, end_date])
+    
+    if min_price:
+        orders = orders.filter(total_amount__gte=float(min_price))
+    
+    if max_price:
+        orders = orders.filter(total_amount__lte=float(max_price))
+    
+    if search:
+        orders = orders.filter(
+            Q(id__icontains=search) |
+            Q(items__variation__product__name__icontains=search) |
+            Q(user__email__icontains=search)
+        ).distinct()
+    
+    # Get order items for the filtered orders
     order_items = OrderItem.objects.filter(
-        Q(variation__product__business__in=user_businesses) | 
-        Q(variation__product__user=request.user)
-    ).select_related('order', 'variation__product').order_by('-order__created_at')
+        order__in=orders,
+        variation__product__business__in=user_businesses
+    ).select_related('order', 'variation__product', 'variation')
+    
+    # Group order items by order
+    order_dict = {}
+    for item in order_items:
+        if item.order_id not in order_dict:
+            order_dict[item.order_id] = {
+                'order': item.order,
+                'items': [],
+                'total_items': 0,
+                'total_amount': 0
+            }
+        order_dict[item.order_id]['items'].append(item)
+        order_dict[item.order_id]['total_items'] += item.quantity
+        order_dict[item.order_id]['total_amount'] += float(item.subtotal())  # Call subtotal() to get the value
+    
+    # Convert to list for pagination
+    orders_with_items = list(order_dict.values())
+    
+    # Get status choices for the filter
+    status_choices = Order.STATUS_CHOICES
+    selected_statuses = request.GET.getlist('status')
     
     # Pagination
-    paginator = Paginator(order_items, 10)  # Show 10 orders per page
+    paginator = Paginator(orders_with_items, 10)  # Show 10 orders per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     return render(request, 'vendor/orders.html', {
         'page_obj': page_obj,
-        'order_count': order_items.count(),
+        'order_count': len(orders_with_items),
+        'status_choices': status_choices,
+        'selected_statuses': selected_statuses,
     })
 
 

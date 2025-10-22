@@ -111,6 +111,7 @@
             padding: 2rem;
             width: 100%;
             transition: all 0.3s ease-in-out;
+            max-width: none;
         }
 
         /* Desktop styles */
@@ -123,6 +124,7 @@
             .main-content {
                 margin-left: 280px;
                 width: calc(100% - 280px);
+                max-width: none;
             }
             
             .sidebar-toggle {
@@ -422,7 +424,7 @@
             </nav>
             
             <!-- Main content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+            <main class="main-content">
                 <!-- Messages -->
                 {% if messages %}
                     {% for message in messages %}
