@@ -56,6 +56,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'arhythmically-unciliated-danna.ngrok-free.dev',
+    'bibletrivia.pythonanywhere.com',
     '.ngrok-free.dev',  # Allow all ngrok subdomains
 ]
 
