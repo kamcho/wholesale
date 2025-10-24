@@ -3,6 +3,17 @@ from decimal import Decimal
 
 register = template.Library()
 
+# Status to color mapping
+STATUS_COLORS = {
+    'pending': 'warning',
+    'processing': 'info',
+    'shipped': 'primary',
+    'delivered': 'success',
+    'completed': 'success',
+    'cancelled': 'danger',
+    'refunded': 'secondary',
+}
+
 @register.filter(name='sum_fees')
 def sum_fees(fees):
     """Sum all fee amounts in the given queryset or list of fees."""
@@ -47,3 +58,17 @@ def calculate_order_total(order, additional_fees):
     
     # Ensure total is not negative and properly rounded
     return max(total.quantize(Decimal('0.01')), Decimal('0.00'))
+
+@register.filter(name='status_bg_color')
+def status_bg_color(status):
+    """Get the background color class for a status."""
+    return STATUS_COLORS.get(status.lower(), 'secondary')
+
+@register.filter(name='status_text_color')
+def status_text_color(status):
+    """Get the text color class for a status."""
+    # For light backgrounds, use dark text
+    if status.lower() in ['pending']:
+        return 'dark'
+    # For dark backgrounds, use light text
+    return 'light'

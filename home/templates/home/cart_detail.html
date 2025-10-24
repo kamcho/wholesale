@@ -1,56 +1,107 @@
 {% extends 'users/base.html' %}
 {% load static %}
 
-{% block title %}Your Cart - WholeSaleHub{% endblock %}
+{% block title %}Your Shopping Cart - WholeSaleHub{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900">Your Cart</h1>
-            <p class="text-sm text-gray-500">Review your items and update quantities.</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 sm:mb-10">
+        <div class="mb-4 sm:mb-0">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mb-2">Your Shopping Cart</h1>
+            <p class="text-base text-gray-600">Review your items and proceed to checkout</p>
         </div>
-        <form method="post" action="{% url 'home:clear_cart' %}">
+        {% if items %}
+        <form method="post" action="{% url 'home:clear_cart' %}" class="w-full sm:w-auto">
             {% csrf_token %}
-            <button class="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 shadow-sm">Clear Cart</button>
+            <button type="submit" class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100 transition-all duration-200 hover:shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Clear Cart
+            </button>
         </form>
+        {% endif %}
     </div>
 
     {% if items %}
-    <div class="grid lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 space-y-4">
+    <div class="grid lg:grid-cols-3 gap-6 lg:gap-8">
+        <!-- Cart Items -->
+        <div class="lg:col-span-2 space-y-5">
             {% for item in items %}
-            <div class="bg-white rounded-xl shadow-sm p-4 flex gap-4 border border-gray-100" data-unit-price="{{ item.unit_price }}">
-                <div class="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+            <div class="bg-white rounded-xl shadow-sm p-5 sm:p-6 flex flex-col sm:flex-row gap-4 sm:gap-6 border border-gray-100 hover:shadow-md transition-shadow duration-200" data-unit-price="{{ item.unit_price }}">
+                <!-- Product Image -->
+                <div class="w-full sm:w-28 h-40 sm:h-32 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {% if item.variation.product.images.first %}
-                        <img src="{{ item.variation.product.images.first.image.url }}" class="w-full h-full object-cover" alt="{{ item.variation.product.name }}">
+                        <img src="{{ item.variation.product.images.first.image.url }}" 
+                             class="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
+                             alt="{{ item.variation.product.name }}">
                     {% else %}
-                        <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <div class="p-4 text-gray-300">
+                            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
                     {% endif %}
                 </div>
-                <div class="flex-1">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <h3 class="font-semibold text-gray-900">{{ item.variation.product.name }}</h3>
-                            {% if item.variation %}
-                            <div class="text-sm text-gray-500">{{ item.variation.name }}</div>
-                            {% endif %}
-                        </div>
-                        <div class="text-right">
-                            <div class="text-blue-600 font-semibold">Ksh<span class="unit-price">{{ item.unit_price }}</span></div>
-                            <div class="text-sm text-gray-500">Subtotal: Ksh<span id="subtotal-{{ item.id }}">{{ item.subtotal }}</span></div>
+                
+                <!-- Product Details -->
+                <div class="flex-1 flex flex-col">
+                    <div class="flex-1">
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                            <div>
+                                <h3 class="font-semibold text-gray-800 text-lg">{{ item.variation.product.name }}</h3>
+                                {% if item.variation %}
+                                <div class="text-sm text-emerald-600 font-medium mt-1">{{ item.variation.name }}</div>
+                                {% endif %}
+                                <div class="mt-2 text-amber-600 font-semibold">
+                                    Ksh<span class="unit-price">{{ item.unit_price|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">Subtotal: <span class="font-medium text-gray-800">Ksh<span id="subtotal-{{ item.id }}">{{ item.subtotal|floatformat:2 }}</span></span></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="mt-3 flex items-center justify-between">
-                        <form method="post" action="{% url 'home:update_cart_item' item.id %}" class="flex items-center gap-2">
+                    
+                    <!-- Quantity Controls -->
+                    <div class="mt-4 pt-4 border-t border-gray-100">
+                        <form method="post" action="{% url 'home:update_cart_item' item.id %}" class="flex items-center justify-between flex-wrap gap-3">
                             {% csrf_token %}
-                            <label class="text-sm text-gray-600">Qty</label>
-                            <input data-item-id="{{ item.id }}" type="number" name="quantity" min="{{ item.variation.product.moq }}" value="{{ item.quantity }}" class="w-24 border border-gray-300 rounded px-2 py-1 qty-input">
-                            <button class="px-3 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-sm shadow-sm">Update</button>
-                        </form>
-                        <form method="post" action="{% url 'home:remove_cart_item' item.id %}">
-                            {% csrf_token %}
-                            <button class="text-red-600 hover:text-red-700 text-sm">Remove</button>
+                            <div class="flex items-center gap-3">
+                                <label class="text-sm font-medium text-gray-700">Quantity:</label>
+                                <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                                    <button type="button" onclick="this.parentNode.querySelector('input[type=number]').stepDown(); this.form.submit()" class="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                        </svg>
+                                    </button>
+                                    <input data-item-id="{{ item.id }}" 
+                                           type="number" 
+                                           name="quantity" 
+                                           min="{{ item.variation.product.moq }}" 
+                                           value="{{ item.quantity }}" 
+                                           class="w-16 text-center border-0 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent qty-input"
+                                           onchange="this.form.submit()">
+                                    <button type="button" onclick="this.parentNode.querySelector('input[type=number]').stepUp(); this.form.submit()" class="px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button type="submit" class="hidden">Update</button>
+                                <form method="post" action="{% url 'home:remove_cart_item' item.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-sm font-medium text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        <span>Remove</span>
+                                    </button>
+                                </form>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -58,25 +109,64 @@
             {% endfor %}
         </div>
 
+        <!-- Order Summary -->
         <aside class="bg-white rounded-xl shadow-sm p-6 h-max border border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
-            <div class="flex items-center justify-between mb-2">
-                <span class="text-gray-600">Items</span>
-                <span class="font-semibold">{{ items|length }}</span>
+            <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-4 border-b border-gray-100">Order Summary</h2>
+            
+            <div class="space-y-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-600">Subtotal ({{ items|length }} {% if items|length == 1 %}item{% else %}items{% endif %})</span>
+                    <span class="font-medium text-gray-800">Ksh<span id="cart-subtotal">{{ total|floatformat:2 }}</span></span>
+                </div>
+                <div class="flex items-center justify-between text-sm text-gray-500">
+                    <span>Shipping</span>
+                    <span>Calculated at checkout</span>
+                </div>
+                <div class="flex items-center justify-between text-sm text-gray-500">
+                    <span>Tax</span>
+                    <span>Calculated at checkout</span>
+                </div>
             </div>
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-gray-600">Total</span>
-                <span class="text-xl font-bold text-blue-600">Ksh<span id="cart-total">{{ total }}</span></span>
+            
+            <div class="py-4 border-t border-b border-gray-100 mb-6">
+                <div class="flex items-center justify-between">
+                    <span class="font-semibold text-gray-800">Total</span>
+                    <span class="text-xl font-bold text-emerald-600">Ksh<span id="cart-total">{{ total|floatformat:2 }}</span></span>
+                </div>
             </div>
-            <a href="{% url 'home:checkout' %}" class="block w-full bg-blue-600 text-white py-3 px-4 text-center rounded-lg font-semibold hover:bg-blue-700">Proceed to Checkout</a>
+            
+            <a href="{% url 'home:checkout' %}" class="block w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 px-4 text-center rounded-lg font-semibold text-base transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                Proceed to Checkout
+            </a>
+            
+            <div class="mt-4 text-center">
+                <a href="{% url 'home:product_list' %}" class="inline-flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Continue Shopping
+                </a>
+            </div>
         </aside>
     </div>
     {% else %}
-    <div class="text-center py-16">
-        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/></svg>
-        <h2 class="text-xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
-        <p class="text-gray-600 mb-6">Browse products and add items to your cart.</p>
-        <a href="{% url 'home:product_list' %}" class="inline-block bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700">Continue Shopping</a>
+    <!-- Empty Cart State -->
+    <div class="text-center py-16 px-4 sm:px-6">
+        <div class="max-w-md mx-auto">
+            <div class="w-24 h-24 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m5-9v9m4-9v9m4-9l2 9"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-3">Your cart is empty</h2>
+            <p class="text-gray-600 mb-8">Looks like you haven't added any items to your cart yet.</p>
+            <a href="{% url 'home:product_list' %}" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors duration-200">
+                <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                Start Shopping
+            </a>
+        </div>
     </div>
     {% endif %}
 </div>
@@ -85,33 +175,136 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  function recalcTotals() {
-    var total = 0;
-    document.querySelectorAll('[id^="subtotal-"]').forEach(function(s){
-      var val = parseFloat(s.textContent) || 0;
-      total += val;
-    });
-    var totalEl = document.getElementById('cart-total');
-    if (totalEl) totalEl.textContent = total.toFixed(2);
-  }
+    // Format all currency values on page load
+    function formatCurrencyValues() {
+        document.querySelectorAll('.unit-price, [id^="subtotal-"], #cart-total, #cart-subtotal').forEach(function(el) {
+            if (el.textContent.trim() !== '') {
+                let value = parseFloat(el.textContent.replace(/[^0-9.-]+/g,""));
+                if (!isNaN(value)) {
+                    // Format with 2 decimal places and add thousand separators
+                    el.textContent = value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                }
+            }
+        });
+    }
 
-  document.querySelectorAll('.qty-input').forEach(function(input){
-    input.addEventListener('input', function(){
-      var container = input.closest('[data-unit-price]');
-      if (!container) return;
-      var unit = parseFloat(container.getAttribute('data-unit-price')) || 0;
-      var qty = parseInt(input.value, 10) || 0;
-      var itemId = input.getAttribute('data-item-id');
-      var subtotalEl = document.getElementById('subtotal-' + itemId);
-      if (subtotalEl) {
-        var subtotal = unit * qty;
-        subtotalEl.textContent = subtotal.toFixed(2);
-        recalcTotals();
-      }
+    // Recalculate all totals
+    function recalcTotals() {
+        let subtotal = 0;
+        
+        // Calculate subtotal from all items
+        document.querySelectorAll('[id^="subtotal-"]').forEach(function(el) {
+            let value = parseFloat(el.textContent.replace(/[^0-9.-]+/g,"")) || 0;
+            subtotal += value;
+        });
+        
+        // Update subtotal display
+        const subtotalEl = document.getElementById('cart-subtotal');
+        if (subtotalEl) {
+            subtotalEl.textContent = subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        // Update total display (same as subtotal in this case, before shipping/tax)
+        const totalEl = document.getElementById('cart-total');
+        if (totalEl) {
+            totalEl.textContent = subtotal.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+    }
+
+    // Handle quantity changes
+    document.querySelectorAll('.qty-input').forEach(function(input) {
+        input.addEventListener('change', function() {
+            const container = input.closest('[data-unit-price]');
+            if (!container) return;
+            
+            const unitPrice = parseFloat(container.getAttribute('data-unit-price')) || 0;
+            let quantity = parseInt(input.value, 10) || 1;
+            
+            // Ensure quantity doesn't go below minimum order quantity
+            const minQty = parseInt(input.getAttribute('min')) || 1;
+            if (quantity < minQty) {
+                quantity = minQty;
+                input.value = quantity;
+            }
+            
+            const itemId = input.getAttribute('data-item-id');
+            const subtotalEl = document.getElementById('subtotal-' + itemId);
+            
+            if (subtotalEl) {
+                const subtotal = unitPrice * quantity;
+                subtotalEl.textContent = subtotal.toFixed(2);
+                recalcTotals();
+            }
+        });
     });
-  });
+    
+    // Initialize formatting
+    formatCurrencyValues();
+    
+    // Add animation to cart items when they're loaded
+    const cartItems = document.querySelectorAll('[data-unit-price]');
+    cartItems.forEach((item, index) => {
+        item.style.opacity = '0';
+        item.style.transform = 'translateY(10px)';
+        item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        
+        // Stagger the animations
+        setTimeout(() => {
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, 100 * index);
+    });
 });
 </script>
+
+<style>
+/* Custom scrollbar for quantity input */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Smooth hover transitions */
+button, a, input[type="submit"] {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Focus styles for better accessibility */
+button:focus, a:focus, input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+    border-color: #10B981;
+}
+
+/* Loading state for buttons */
+button.is-loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+}
+
+button.is-loading:after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: auto;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: button-loading-spinner 1s ease infinite;
+}
+
+@keyframes button-loading-spinner {
+    from { transform: rotate(0turn); }
+    to { transform: rotate(1turn); }
+}
+</style>
 {% endblock %}
 
 

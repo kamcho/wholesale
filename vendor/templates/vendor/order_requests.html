@@ -3,12 +3,34 @@
 
 {% block extra_css %}
 <style>
-    /* Modern table styling */
+    /* Dark theme base */
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+    
+    /* Card styling */
+    .card {
+        background-color: #1e1e1e;
+        border: 1px solid #2d2d2d;
+        color: #e0e0e0;
+    }
+    
+    .card-header {
+        background-color: #1a1a1a;
+        border-bottom: 1px solid #2d2d2d;
+    }
+    
+    /* Table styling */
     .table {
         --bs-table-bg: transparent;
         --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
         --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+        --bs-table-color: #e0e0e0;
+        --bs-table-striped-color: #e0e0e0;
+        --bs-table-hover-color: #ffffff;
         margin-bottom: 0;
+        color: #e0e0e0;
     }
     
     .table > :not(caption) > * > * {
@@ -16,6 +38,7 @@
         background-color: transparent;
         box-shadow: none;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: #e0e0e0;
     }
     
     .table > thead > tr > th {
@@ -50,6 +73,11 @@
         background-color: rgba(255, 255, 255, 0.02);
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         padding: 1.25rem 1.5rem;
+    }
+    
+    /* Clickable rows */
+    .clickable-row:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
     }
     
     /* Status badges */
@@ -91,42 +119,80 @@
     
     /* Stats cards */
     .stat-card {
-        border-radius: 10px;
+        border-radius: 12px;
         overflow: hidden;
-        transition: all 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.2);
     }
     
     .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     
     .stat-card .card-body {
         padding: 1.5rem;
+        position: relative;
+        z-index: 1;
     }
     
-    .stat-card .stat-value {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin: 0.5rem 0 0.25rem;
-    }
-    
-    .stat-card .stat-label {
-        font-size: 0.8125rem;
-        color: #94a3b8;
+    .stat-label {
+        font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        opacity: 0.9;
     }
     
-    .stat-card .stat-icon {
+    .stat-value {
         font-size: 1.75rem;
-        opacity: 0.2;
-        position: absolute;
-        right: 1.5rem;
-        top: 50%;
-        transform: translateY(-50%);
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 0.5rem;
+        color: white;
     }
+    
+    .stat-icon-holder {
+        position: absolute;
+        right: 1.25rem;
+        top: 1.5rem;
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.15);
+        font-size: 1.75rem;
+        color: white;
+    }
+    
+    .stat-trend {
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Color utilities */
+    .text-indigo-100 { color: #e0e7ff; }
+    .text-amber-100 { color: #fef3c7; }
+    .text-emerald-100 { color: #d1fae5; }
+    .text-red-100 { color: #fee2e2; }
 </style>
 {% endblock %}
 
@@ -165,58 +231,82 @@
     </div>
 
     <!-- Stats Cards -->
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
+        <!-- Total Requests -->
         <div class="col-md-6 col-xl-3">
-            <div class="stat-card bg-dark">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <div class="text-muted stat-label">Total Requests</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="stat-label text-indigo-100">Total Requests</div>
                             <div class="stat-value">{{ stats.total_requests|default:0 }}</div>
+                            <div class="stat-trend text-indigo-100">
+                                <i class="fas fa-chart-line me-1"></i> All time
+                            </div>
                         </div>
-                        <i class="fas fa-clipboard-list stat-icon"></i>
+                        <div class="stat-icon-holder">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
+        <!-- Pending -->
         <div class="col-md-6 col-xl-3">
-            <div class="stat-card bg-dark">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <div class="text-muted stat-label">Pending</div>
-                            <div class="stat-value text-warning">{{ stats.pending_requests|default:0 }}</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="stat-label text-amber-100">Pending</div>
+                            <div class="stat-value">{{ stats.pending_requests|default:0 }}</div>
+                            <div class="stat-trend text-amber-100">
+                                <i class="fas fa-clock me-1"></i> Awaiting action
+                            </div>
                         </div>
-                        <i class="fas fa-clock stat-icon"></i>
+                        <div class="stat-icon-holder">
+                            <i class="fas fa-clock"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
+        <!-- Accepted -->
         <div class="col-md-6 col-xl-3">
-            <div class="stat-card bg-dark">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <div class="text-muted stat-label">Accepted</div>
-                            <div class="stat-value text-success">{{ stats.accepted_requests|default:0 }}</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="stat-label text-emerald-100">Accepted</div>
+                            <div class="stat-value">{{ stats.accepted_requests|default:0 }}</div>
+                            <div class="stat-trend text-emerald-100">
+                                <i class="fas fa-arrow-up me-1"></i> Completed
+                            </div>
                         </div>
-                        <i class="fas fa-check-circle stat-icon"></i>
+                        <div class="stat-icon-holder">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
+        <!-- Rejected -->
         <div class="col-md-6 col-xl-3">
-            <div class="stat-card bg-dark">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <div>
-                            <div class="text-muted stat-label">Rejected</div>
-                            <div class="stat-value text-danger">{{ stats.rejected_requests|default:0 }}</div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                            <div class="stat-label text-red-100">Rejected</div>
+                            <div class="stat-value">{{ stats.rejected_requests|default:0 }}</div>
+                            <div class="stat-trend text-red-100">
+                                <i class="fas fa-arrow-down me-1"></i> Not approved
+                            </div>
                         </div>
-                        <i class="fas fa-times-circle stat-icon"></i>
+                        <div class="stat-icon-holder">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -247,12 +337,11 @@
                             <th>TOTAL</th>
                             <th>STATUS</th>
                             <th>DATE</th>
-                            <th class="text-end pe-4">ACTIONS</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for order_request in page_obj %}
-                        <tr class="align-middle">
+                        <tr class="align-middle clickable-row" data-href="{% url 'vendor:vendor_order_request_detail' order_request.id %}" style="cursor: pointer;">
                             <td class="ps-4">
                                 <div class="fw-medium">#{{ order_request.id|stringformat:"06d" }}</div>
                                 <small class="text-muted">{{ order_request.created_at|timesince }} ago</small>
@@ -281,7 +370,7 @@
                                 </div>
                             </td>
                             <td>{{ order_request.item_count }} items</td>
-                            <td class="fw-medium">KSh {{ order_request.total_amount|default:0|intcomma }}</td>
+                            <td class="fw-medium">KSh {{ order_request.order_total|default:0|intcomma }}</td>
                             <td>
                                 <span class="badge 
                                     {% if order_request.status == 'pending' %}bg-warning
@@ -291,28 +380,6 @@
                                 </span>
                             </td>
                             <td class="text-muted">{{ order_request.created_at|date:"M d, Y" }}</td>
-                            <td class="text-end pe-4">
-                                <div class="d-flex justify-content-end gap-2">
-                                    <a href="{% url 'vendor:vendor_order_request_detail' order_request.id %}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye me-1"></i> View
-                                    </a>
-                                    {% if order_request.status == 'pending' %}
-                                    <div class="btn-group">
-                                        <button type="button" class="btn btn-sm btn-outline-success accept-request" 
-                                                data-request-id="{{ order_request.id }}" 
-                                                data-bs-toggle="tooltip" title="Accept">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-danger reject-request" 
-                                                data-request-id="{{ order_request.id }}"
-                                                data-bs-toggle="tooltip" title="Reject">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -405,6 +472,15 @@
 
 {% block extra_js %}
 <script>
+    // Make table rows clickable
+    document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('.clickable-row');
+        rows.forEach(row => {
+            row.addEventListener('click', function() {
+                window.location.href = this.dataset.href;
+            });
+        });
+    });
 $(document).ready(function() {
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));

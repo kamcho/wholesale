@@ -1,0 +1,160 @@
+/* Vendor-specific styles */
+
+/* Base layout */
+.min-h-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.min-h-screen > .flex {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+/* Sidebar styles */
+.sidebar {
+    position: relative;
+    width: 100%;
+    padding: 1rem;
+    background: #1e293b;
+    z-index: 1000;
+    order: 2; /* Will be displayed after main content in flex container */
+    display: none; /* Hidden by default on mobile */
+    transform: none;
+}
+
+.sidebar.show {
+    transform: translateX(0);
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    display: none;
+}
+
+/* Main content area */
+.main-content {
+    margin-left: 0;
+    width: 100%;
+    transition: margin 0.3s ease-in-out;
+    padding: 1rem;
+}
+
+/* Show sidebar toggle on mobile */
+.sidebar-toggle {
+    display: block;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1100;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* Hide sidebar by default on all screens */
+.sidebar {
+    display: none;
+}
+
+/* Hide right sidebar (quick actions and business card) on screens below 1300px */
+@media (max-width: 1299.98px) {
+    .col-lg-4 {
+        display: none;
+    }
+    
+    .col-lg-8 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
+
+.sidebar.show {
+    transform: translateX(0);
+    display: block;
+}
+
+/* Show sidebar toggle button on screens below 1300px */
+.sidebar-toggle {
+    display: flex;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1060;
+}
+
+/* Show sidebar only on screens 1300px and above */
+@media (min-width: 1300px) {
+    .min-h-screen .flex {
+        display: flex;
+        flex-direction: row;
+    }
+    
+    .sidebar {
+        display: block !important;
+        position: sticky;
+        top: 0;
+        left: 0;
+        width: 250px;
+        min-height: 100vh;
+        height: auto;
+        z-index: 1000;
+        background: #1e293b;
+        overflow-y: auto;
+    }
+    
+    .main-content {
+        flex: 1;
+        width: auto;
+        margin-left: 0;
+        padding: 2rem;
+    }
+    
+    .sidebar-toggle {
+        display: none !important;
+    }
+    
+    .sidebar-overlay {
+        display: none !important;
+    }
+}
+
+/* Hide action column on screens smaller than 1700px */
+@media (max-width: 1699.98px) {
+    /* Target the actions column header */
+    th:last-child,
+    /* Target the actions column cells */
+    td:last-child {
+        display: none;
+    }
+    
+    /* Adjust the table layout */
+    .min-w-full.align-middle {
+        width: 100%;
+    }
+}
+
+/* Hide business column on screens smaller than 1550px */
+@media (max-width: 1549.98px) {
+    /* Target the business column header (6th column) */
+    th:nth-child(6),
+    /* Target the business column cells (6th column) */
+    td:nth-child(6) {
+        display: none;
+    }
+}

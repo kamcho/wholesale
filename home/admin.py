@@ -11,8 +11,8 @@ from .models import (
     ProductVariation,
     PriceTier,
     ProductOrder,
-    ProductAttribute,
-    ProductAttributeValue,RawPayment,OrderAdditionalFees,
+    ProductAttribute,BuyerSellerMessage,
+    ProductAttributeValue,RawPayment,OrderAdditionalFees,PaymentRequest,
     ProductAttributeAssignment,PromiseFee,ProductKB, ServiceCategory,Agent, AgentImage, AgentReview, AgentAIKnowledgeBase, ExchangeRate, Order, OrderRequest,OrderRequestItem,AdditionalFees)
 admin.site.register(Order)
 admin.site.register(OrderRequest)
@@ -23,6 +23,8 @@ admin.site.register(Agent)
 admin.site.register(ExchangeRate)
 admin.site.register(AdditionalFees)
 admin.site.register(RawPayment)
+admin.site.register(BuyerSellerMessage)
+admin.site.register(PaymentRequest)
 class ProductVariationInline(admin.TabularInline):
     model = ProductVariation
     extra = 1

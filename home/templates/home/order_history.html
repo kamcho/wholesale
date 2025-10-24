@@ -6,8 +6,20 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col items-center">
-            <h1 class="text-3xl font-bold text-gray-900 mb-8 text-center">My Orders & Requests</h1>
+        <div class="flex flex-col items-center mb-12">
+            <div class="text-center mb-2">
+                <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+                    <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                    </svg>
+                </span>
+                <h1 class="text-4xl font-extrabold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    Order History
+                </h1>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Track and manage all your orders and requests in one place
+                </p>
+            </div>
             
             <!-- Tabs -->
             <div class="w-full max-w-5xl mb-8">
@@ -28,56 +40,106 @@
             <!-- Orders Tab Content -->
             <div id="orders-content" class="tab-content w-full max-w-5xl">
                 {% if orders %}
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         {% for order in orders %}
-                            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                                <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gray-50">
-                                    <div>
-                                        <h3 class="text-lg leading-6 font-medium text-gray-900">
-                                            Order #{{ order.id }}
-                                        </h3>
-                                        <p class="mt-1 max-w-2xl text-sm text-gray-500">
-                                            Placed on {{ order.created_at|date:"F j, Y" }}
-                                        </p>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <span class="px-3 py-1 text-sm font-medium rounded-full 
-                                            {% if order.status == 'completed' %}
-                                                bg-green-100 text-green-800
-                                            {% elif order.status == 'cancelled' %}
-                                                bg-red-100 text-red-800
-                                            {% else %}
-                                                bg-yellow-100 text-yellow-800
-                                            {% endif %}">
-                                            {{ order.get_status_display }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="border-t border-gray-200">
-                                    <dl>
-                                        {% for item in order.items.all %}
-                                            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                                                <dt class="text-sm font-medium text-gray-500">
-                                                    {{ item.variation.product.name }}
-                                                    {% if item.variation.name %}
-                                                        ({{ item.variation.name }})
-                                                    {% endif %}
-                                                </dt>
-                                                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                                    {{ item.quantity }} × KSh {{ item.price|intcomma }}
-                                                    <span class="text-gray-500">(KSh {{ item.get_total|intcomma }})</span>
-                                                </dd>
-                                            </div>
-                                        {% endfor %}
-                                        <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                                            <dt class="text-lg font-medium text-gray-900">Total</dt>
-                                            <dd class="mt-1 text-lg font-medium text-gray-900 sm:mt-0 sm:col-span-2">
-                                                KSh {{ order.total|intcomma }}
-                                            </dd>
+                            <div class="bg-white overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100">
+                                <!-- Order Header -->
+                                <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-white">
+                                    <div class="flex items-center space-x-4">
+                                        <div class="p-2 bg-blue-100 rounded-lg">
+                                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                            </svg>
                                         </div>
-                                    </dl>
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                                Order #{{ order.id }}
+                                                <span class="ml-3 px-2.5 py-0.5 text-xs font-medium rounded-full 
+                                                    {% if order.status == 'completed' %}
+                                                        bg-green-100 text-green-800
+                                                    {% elif order.status == 'cancelled' %}
+                                                        bg-red-100 text-red-800
+                                                    {% else %}
+                                                        bg-yellow-100 text-yellow-800
+                                                    {% endif %}">
+                                                    {{ order.get_status_display }}
+                                                </span>
+                                            </h3>
+                                            <p class="text-sm text-gray-500 mt-1">
+                                                <svg class="inline-block w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                                {{ order.created_at|date:"F j, Y" }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm text-gray-500">Total Amount</p>
+                                        <p class="text-lg font-bold text-gray-900">KSh {{ order.get_total_cost|intcomma }}</p>
+                                    </div>
                                 </div>
-                                <div class="px-4 py-4 bg-gray-50 text-right sm:px-6">
+                                
+                                <!-- Order Items -->
+                                <div class="divide-y divide-gray-100">
+                                    {% for item in order.items.all %}
+                                    <div class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
+                                        <div class="flex items-start">
+                                            {% if item.variation.product.images.exists %}
+                                            <div class="flex-shrink-0 h-16 w-16 rounded-md overflow-hidden border border-gray-200">
+                                                <img src="{{ item.variation.product.images.first.image.url }}" alt="{{ item.variation.product.name }}" class="h-full w-full object-cover">
+                                            </div>
+                                            {% endif %}
+                                            <div class="ml-4 flex-1 min-w-0">
+                                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                                    <div class="flex-1 min-w-0">
+                                                        <h4 class="text-sm font-medium text-gray-900 truncate">
+                                                            {{ item.variation.product.name }}
+                                                        </h4>
+                                                        {% if item.variation.name %}
+                                                        <p class="mt-0.5 text-sm text-gray-500">
+                                                            {{ item.variation.name }}
+                                                        </p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="mt-2 sm:mt-0 sm:ml-4 sm:text-right">
+                                                        <p class="text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                            {{ item.quantity }} × KSh {{ item.price|intcomma }}
+                                                        </p>
+                                                        <p class="text-sm font-semibold text-gray-900 mt-1">
+                                                            KSh {{ item.subtotal|intcomma }}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    
+                                    <!-- Order Footer -->
+                                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex space-x-3">
+                                                <a href="#" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                    <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                                    </svg>
+                                                    View Invoice
+                                                </a>
+                                                <a href="#" class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                                    <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                    Download PDF
+                                                </a>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-sm text-gray-500">Order Total</p>
+                                                <p class="text-lg font-bold text-gray-900">KSh {{ order.get_total_cost|intcomma }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 text-right">
                                     <a href="{% url 'home:order_detail' order.id %}" 
                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                                         View Order Details
@@ -107,78 +169,135 @@
             <!-- Order Requests Tab Content -->
             <div id="requests-content" class="tab-content w-full max-w-5xl hidden">
                 {% if order_requests %}
-                    <div class="space-y-6">
+                    <div class="space-y-4">
                         {% for request in order_requests %}
-                            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-                                <div class="px-4 py-5 sm:px-6 flex justify-between items-center bg-gray-50">
+                        <div class="bg-white overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 border border-gray-100">
+                            <!-- Request Header -->
+                            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-blue-50 to-white">
+                                <div class="flex items-center space-x-4">
+                                    <div class="p-2 bg-blue-100 rounded-lg">
+                                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                        </svg>
+                                    </div>
                                     <div>
-                                        <h3 class="text-lg leading-6 font-medium text-gray-900">
+                                        <h3 class="text-lg font-semibold text-gray-900">
                                             Request #{{ request.id }}
+                                            <span class="ml-2 px-2.5 py-0.5 text-xs font-medium rounded-full 
+                                                {% if request.status == 'accepted' %}
+                                                    bg-green-100 text-green-800
+                                                {% elif request.status == 'declined' %}
+                                                    bg-red-100 text-red-800
+                                                {% elif request.status == 'countered' %}
+                                                    bg-blue-100 text-blue-800
+                                                {% else %}
+                                                    bg-yellow-100 text-yellow-800
+                                                {% endif %}">
+                                                {{ request.get_status_display }}
+                                            </span>
                                         </h3>
-                                        <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                                        <p class="text-sm text-gray-500 mt-1">
+                                            <svg class="inline-block w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                            </svg>
                                             Submitted on {{ request.created_at|date:"F j, Y" }}
                                         </p>
                                     </div>
-                                    <div class="flex items-center">
-                                        <span class="px-3 py-1 text-sm font-medium rounded-full 
-                                            {% if request.status == 'accepted' %}
-                                                bg-green-100 text-green-800
-                                            {% elif request.status == 'declined' %}
-                                                bg-red-100 text-red-800
-                                            {% elif request.status == 'countered' %}
-                                                bg-blue-100 text-blue-800
-                                            {% else %}
-                                                bg-yellow-100 text-yellow-800
-                                            {% endif %}">
-                                            {{ request.get_status_display }}
-                                        </span>
+                                </div>
+                            </div>
+                            
+                            <!-- Request Items -->
+                            <div class="divide-y divide-gray-100">
+                                {% for item in request.items.all %}
+                                <div class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150">
+                                    <div class="flex items-start">
+                                        {% if item.variation.product.images.exists %}
+                                        <div class="flex-shrink-0 h-16 w-16 rounded-md overflow-hidden border border-gray-200">
+                                            <img src="{{ item.variation.product.images.first.image.url }}" alt="{{ item.variation.product.name }}" class="h-full w-full object-cover">
+                                        </div>
+                                        {% endif %}
+                                        <div class="ml-4 flex-1 min-w-0">
+                                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                                <div class="flex-1 min-w-0">
+                                                    <h4 class="text-sm font-medium text-gray-900 truncate">
+                                                        {{ item.variation.product.name }}
+                                                    </h4>
+                                                    {% if item.variation.name %}
+                                                    <p class="mt-0.5 text-sm text-gray-500">
+                                                        {{ item.variation.name }}
+                                                    </p>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="mt-2 sm:mt-0 sm:ml-4 sm:text-right">
+                                                    <p class="text-sm font-medium text-gray-900">
+                                                        {{ item.quantity }} × KSh {{ item.negotiated_price|default:item.variation.price|intcomma }}
+                                                        {% if item.deposit_percentage %}
+                                                            <span class="text-xs text-gray-500 block sm:inline">({{ item.deposit_percentage }}% deposit)</span>
+                                                        {% endif %}
+                                                    </p>
+                                                    <p class="text-sm font-semibold text-gray-900 mt-1">
+                                                        KSh {{ item.get_total|intcomma }}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="border-t border-gray-200">
-                                    <dl>
-                                        {% for item in request.items.all %}
-                                            <div class="{% cycle 'bg-white' 'bg-gray-50' %} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                                                <dt class="text-sm font-medium text-gray-500">
-                                                    {{ item.variation.product.name }}
-                                                    {% if item.variation.name %}
-                                                        ({{ item.variation.name }})
-                                                    {% endif %}
-                                                </dt>
-                                                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                                    {{ item.quantity }} × KSh {{ item.negotiated_price|default:item.variation.price|intcomma }}
-                                                    {% if item.deposit_percentage %}
-                                                        <span class="text-gray-500">({{ item.deposit_percentage }}% deposit)</span>
-                                                    {% endif %}
-                                                </dd>
-                                            </div>
-                                        {% endfor %}
-                                        {% if request.message %}
-                                            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                                                <dt class="text-sm font-medium text-gray-500">Your Message</dt>
-                                                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                                                    {{ request.message }}
-                                                </dd>
-                                            </div>
-                                        {% endif %}
-                                    </dl>
+                                {% endfor %}
+                                
+                                {% if request.message %}
+                                <div class="px-6 py-4 bg-blue-50 border-t border-blue-100">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h4 class="text-sm font-medium text-blue-800">Your Message</h4>
+                                            <p class="mt-1 text-sm text-blue-700">{{ request.message }}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="px-4 py-4 bg-gray-50 text-right sm:px-6">
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Request Footer -->
+                            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
+                                <div class="flex space-x-3">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {{ request.items.count }} item{{ request.items.count|pluralize }}
+                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        Total: KSh {{ request.get_total_cost|intcomma }}
+                                    </span>
+                                </div>
+                                <div class="flex space-x-2">
                                     <a href="{% url 'home:order_request_detail' request.id %}" 
                                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                        View Request Details
+                                        View Details
+                                        <svg class="ml-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                        </svg>
                                     </a>
                                 </div>
                             </div>
+                        </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <div class="text-center py-12">
+                    <div class="text-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-300">
                         <div class="flex flex-col items-center">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <svg class="mx-auto h-16 w-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                             </svg>
-                            <h3 class="mt-2 text-lg font-medium text-gray-900">No order requests</h3>
+                            <h3 class="mt-3 text-lg font-medium text-gray-900">No order requests</h3>
                             <p class="mt-1 text-sm text-gray-500">You haven't submitted any order requests yet.</p>
+                            <div class="mt-6">
+                                <a href="{% url 'home:product_list' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    Browse Products
+                                </a>
+                            </div>
                         </div>
                     </div>
                 {% endif %}

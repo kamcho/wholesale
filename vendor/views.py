@@ -1,6 +1,7 @@
 import logging
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import Http404
+from django.http import Http404, JsonResponse
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 from django.contrib.auth.decorators import login_required
@@ -78,14 +79,22 @@ def product_list(request):
     search_form = ProductSearchForm(request.GET)
     user_businesses = Business.objects.filter(owner=request.user)
     
-    # Only show non-archived products and their non-archived variations
+    # Only show non-archived products and their non-archived variations with price tiers
     products = Product.objects.filter(
         (Q(business__in=user_businesses) | Q(user=request.user)) &
         Q(is_archived=False)
-    ).prefetch_related('images', 'categories').prefetch_related(
+    ).prefetch_related(
+        'images',
+        'categories',
         Prefetch(
             'variations',
-            queryset=ProductVariation.objects.filter(is_archived=False),
+            queryset=ProductVariation.objects.filter(is_archived=False).prefetch_related(
+                Prefetch(
+                    'price_tiers',
+                    queryset=PriceTier.objects.all(),
+                    to_attr='price_tiers_list'
+                )
+            ),
             to_attr='active_variations'
         )
     )
@@ -110,10 +119,23 @@ def product_list(request):
     
     # Add price information to each product
     for product in products:
-        if product.variations.exists():
-            prices = product.variations.values_list('price', flat=True)
+        prices = []
+        
+        if hasattr(product, 'active_variations') and product.active_variations:
+            for variation in product.active_variations:
+                # Get direct price from variation if it exists
+                if variation.price is not None:
+                    prices.append(variation.price)
+                
+                # Get prices from price tiers if they exist
+                if hasattr(variation, 'price_tiers_list') and variation.price_tiers_list:
+                    tier_prices = [tier.price for tier in variation.price_tiers_list if tier.price is not None]
+                    prices.extend(tier_prices)
+        
+        # Set price range if we found any prices
+        if prices:
             product.min_price = min(prices)
-            product.max_price = max(prices)
+            product.max_price = max(prices) if len(prices) > 1 else product.min_price
             product.has_pricing = True
         else:
             product.min_price = None
@@ -325,144 +347,111 @@ def edit_product(request, pk):
     
     return render(request, 'vendor/edit_product.html', context)
 
-
 @login_required
 def order_request_update_status(request, pk):
     """Update the status of an order request via AJAX"""
     from django.http import JsonResponse
-    from django.views.decorators.csrf import csrf_exempt
     import json
+    from django.db import transaction
+    from decimal import Decimal
     
     if request.method != 'POST' or not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
     
     try:
-        # Check content type and parse data accordingly
-        content_type = request.content_type
-        if 'application/json' in content_type:
-            data = json.loads(request.body) if request.body else {}
-            new_status = data.get('status')
-        else:
-            # Form data - use request.POST directly for getlist support
-            data = request.POST
-            new_status = data.get('status')
+        data = json.loads(request.body) if request.body else {}
+        new_status = data.get('status')
         
         if not new_status:
             return JsonResponse({'success': False, 'error': 'Status is required'}, status=400)
         
-        # Validate status
-        valid_statuses = ['pending', 'accepted', 'rejected', 'processing', 'shipped', 'delivered', 'cancelled']
-        if new_status not in valid_statuses:
-            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+        order_request = get_object_or_404(OrderRequest, pk=pk)
+        
+        if order_request.status == new_status:
+            return JsonResponse({
+                'success': True, 
+                'message': f'Order request is already {order_request.get_status_display()}'
+            })
+        # First, check if we can proceed with the update
+        if new_status == 'accepted' and hasattr(order_request, 'order') and order_request.order:
+            return JsonResponse({
+                'success': False,
+                'error': 'An order already exists for this request'
+            }, status=400)
             
-        # Get the order request and verify ownership
-        order_request = get_object_or_404(
-            OrderRequest.objects.filter(
-                id=pk,
-                items__variation__product__user=request.user
-            ).distinct()
-        )
+        # Get items before starting the transaction
+        items = list(order_request.items.all())
+        if new_status == 'accepted' and not items:
+            return JsonResponse({
+                'success': False,
+                'error': 'No items found in the order request'
+            }, status=400)
         
-        # Update the status
-        order_request.status = new_status
-        order_request.save()
-        
-        # If accepting the request, create an order and handle additional fees
+        # Calculate total before the transaction
         if new_status == 'accepted':
-            from home.models import Order, OrderItem, OrderAdditionalFees
-            from decimal import Decimal, DecimalException
-            
-            # Create a new order
-            order = Order.objects.create(
-                user=order_request.user,
-                created_by=request.user,
-                status='pending',
-                total=0  # Will be calculated below
+            from home.models import Order, OrderItem
+            total_amount = sum(
+                Decimal(str(item.unit_price)) * item.quantity 
+                for item in items
             )
+        
+        # Perform the update in a single transaction
+        with transaction.atomic():
+            # Update the order request status
+            order_request.status = new_status
+            order_request.save(update_fields=['status', 'updated_at'])
             
-            # Add order items from the request
-            total_amount = Decimal('0')
-            for item in order_request.items.filter(variation__product__user=request.user):
-                order_item = OrderItem.objects.create(
-                    order=order,
-                    variation=item.variation,
-                    quantity=item.quantity,
-                    price=item.unit_price
+            if new_status == 'accepted':
+                # Create the order
+                order = Order.objects.create(
+                    user=order_request.user,
+                    created_by=request.user,
+                    status='pending',
+                    total=total_amount,
+                    order_request=order_request
                 )
-                total_amount += order_item.subtotal()
-            
-            # Handle additional fees if provided
-            if data.get('add_additional_fees') == 'on':
-                # Handle both QueryDict and regular dict
-                if hasattr(data, 'getlist'):
-                    fee_types = data.getlist('fee_types[]')
-                    fee_amounts = data.getlist('fee_amounts[]')
-                    fee_descriptions = data.getlist('fee_descriptions[]')
-                    # Get all fee_pay_now values, defaulting to 'false' if not present
-                    fee_pay_now = data.getlist('fee_pay_now[]', []) or ['false'] * len(fee_types)
-                else:
-                    # For JSON data, these would be lists already
-                    fee_types = data.get('fee_types[]', [])
-                    fee_amounts = data.get('fee_amounts[]', [])
-                    fee_descriptions = data.get('fee_descriptions[]', [])
-                    # Default to all fees being paid now if not specified
-                    fee_pay_now = data.get('fee_pay_now[]', ['true'] * len(fee_types))
                 
-                for i, fee_type in enumerate(fee_types):
-                    if fee_type and i < len(fee_amounts) and fee_amounts[i]:
-                        try:
-                            amount = Decimal(fee_amounts[i])
-                            description = fee_descriptions[i] if i < len(fee_descriptions) else ''
-                            # Check if the current index exists in fee_pay_now, default to True if not
-                            pay_now = str(fee_pay_now[i]).lower() == 'true' if i < len(fee_pay_now) else True
-                            
-                            OrderAdditionalFees.objects.create(
-                                order=order,
-                                fee_type=fee_type,
-                                description=description,
-                                amount=amount,
-                                pay_now=pay_now
-                            )
-                            
-                            if pay_now:
-                                total_amount += amount
-                                
-                        except (ValueError, DecimalException) as e:
-                            logger.warning(f"Invalid additional fee data: {e}")
-                            continue
-            
-            # Update order total
-            order.total = total_amount
-            order.save()
-            
-            # Log the order creation
-            logger.info(f"Order {order.id} created from order request {order_request.id} with total {total_amount}")
-        
-        # Log the status update
-        logger.info(f"Order request {order_request.id} status updated to {new_status} by user {request.user.id}")
-        
-        response_data = {
+                # Create order items
+                order_items = [
+                    OrderItem(
+                        order=order,
+                        variation=item.variation,
+                        quantity=item.quantity,
+                        price=item.unit_price
+                    ) for item in items
+                ]
+                OrderItem.objects.bulk_create(order_items)
+                
+                logger.info(f"Created order {order.id} from order request {order_request.id}")
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Order request accepted and order created successfully',
+                    'order_id': order.id,
+                    'order_url': reverse('vendor:order_detail', kwargs={'order_id': order.id})
+                })
+                
+                logger.info(f"Order {order.id} created from order request {order_request.id}")
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Order request accepted and order created successfully',
+                    'order_id': order.id,
+                    'order_url': reverse('vendor:order_detail', kwargs={'order_id': order.id})
+                })
+        return JsonResponse({
             'success': True,
-            'status': order_request.get_status_display(),
-            'status_class': 'success' if new_status == 'accepted' else 'danger' if new_status == 'rejected' else 'warning',
             'message': f'Order request status updated to {order_request.get_status_display()}'
-        }
-        
-        # If order was created, include the order ID
-        if new_status == 'accepted' and 'order' in locals():
-            response_data['order_id'] = order.id
-        
-        return JsonResponse(response_data)
+        })
         
     except Exception as e:
-        from django.conf import settings
-        error_msg = str(e)
-        logger.error(f"Error updating order request status: {error_msg}", exc_info=True)
+        logger.error(f"Error updating order request status: {str(e)}", exc_info=True)
         return JsonResponse({
-            'success': False, 
-            'error': 'An error occurred while updating the order status',
-            'debug': error_msg if settings.DEBUG else None
+            'success': False,
+            'error': 'An error occurred while updating the order status'
         }, status=500)
+
+
 
 
 @login_required
@@ -1635,7 +1624,7 @@ def order_requests(request):
     ).distinct().annotate(
         item_count=Count('items'),
         total_quantity=Sum('items__quantity'),
-        total_amount=Sum(F('items__unit_price') * F('items__quantity'))
+        order_total=Sum(F('items__unit_price') * F('items__quantity'))
     ).order_by('-created_at')
     
     # Pagination
@@ -1660,6 +1649,10 @@ def order_requests(request):
 @login_required
 def order_request_detail(request, pk):
     """View details of a specific order request"""
+    from django.db import transaction
+    from decimal import Decimal
+    from home.models import Order, OrderItem, OrderAdditionalFees
+    
     try:
         logger.info(f"Fetching order request {pk} for user {request.user.id}")
         
@@ -1684,14 +1677,64 @@ def order_request_detail(request, pk):
             logger.warning(f"No items found for order request {pk} that belong to user {request.user.id}")
             raise Http404("No items found in this order request.")
         
-        # Calculate totals
+        # Handle Accept Request form submission
+        if request.method == 'POST' and 'accept_request' in request.POST:
+            try:
+                with transaction.atomic():
+                    # Check if order already exists
+                    if hasattr(order_request, 'order') and order_request.order:
+                        messages.error(request, 'An order already exists for this request.')
+                        return redirect('vendor:order_request_detail', pk=pk)
+                    
+                    # Create the order
+                    order = Order.objects.create(
+                        user=order_request.user,
+                        created_by=request.user,
+                        status='pending',
+                        total=Decimal('0'),
+                        order_request=order_request
+                    )
+                    
+                    # Create order items
+                    order_items = []
+                    total_amount = Decimal('0')
+                    
+                    for item in items:
+                        order_item = OrderItem.objects.create(
+                            order=order,
+                            variation=item.variation,
+                            quantity=item.quantity,
+                            price=item.unit_price
+                        )
+                        order_items.append(order_item)
+                        total_amount += order_item.subtotal()
+                    
+                    # Update order total
+                    order.total = total_amount
+                    order.save(update_fields=['total'])
+                    
+                    # Update order request status
+                    order_request.status = 'accepted'
+                    order_request.save(update_fields=['status', 'updated_at'])
+                    
+                    logger.info(f"Order {order.id} created from order request {order_request.id}")
+                    messages.success(request, 'Order request accepted and order created successfully!')
+                    return redirect('vendor:order_detail', order_id=order.id)
+                    
+            except Exception as e:
+                logger.error(f"Error creating order: {str(e)}", exc_info=True)
+                messages.error(request, 'An error occurred while creating the order. Please try again.')
+                return redirect('vendor:order_request_detail', pk=pk)
+        
+        # Calculate totals for display
         total_quantity = items.aggregate(Sum('quantity'))['quantity__sum'] or 0
         total_amount = sum(item.unit_price * item.quantity for item in items)
-        
-        # Calculate total deposit amount
         total_deposit = sum(item.deposit_amount for item in items)
         
-        logger.info(f"Rendering order request {pk} with {items.count()} items")
+        # Get additional fees if any (for accepted order requests)
+        additional_fees = []
+        if order_request.status == 'accepted' and hasattr(order_request, 'order') and order_request.order:
+            additional_fees = OrderAdditionalFees.objects.filter(order=order_request.order)
         
         return render(request, 'vendor/order_request_detail.html', {
             'order_request': order_request,
@@ -1699,6 +1742,7 @@ def order_request_detail(request, pk):
             'total_quantity': total_quantity,
             'total_amount': total_amount,
             'total_deposit': total_deposit,
+            'additional_fees': additional_fees,
         })
         
     except Http404:

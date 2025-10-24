@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .order_views import order_detail
+from . import order_views
 
 app_name = 'vendor'
 
@@ -28,7 +28,11 @@ urlpatterns = [
     
     # Orders
     path('orders/', views.orders, name='orders'),
-    path('orders/<int:order_id>/', order_detail, name='order_detail'),
+    path('orders/<int:order_id>/', order_views.order_detail, name='order_detail'),
+    path('orders/<int:order_id>/update-status/', order_views.update_order_status, name='update_order_status'),
+    path('orders/<int:order_id>/add-fee/', order_views.add_order_fee, name='add_order_fee'),
+    path('orders/<int:order_id>/update-payment-split/', order_views.update_payment_split, name='update_payment_split'),
+    path('order-fees/<int:fee_id>/delete/', order_views.delete_order_fee, name='delete_order_fee'),
     path('orders/chat/<int:chat_id>/create/', views.create_order_from_chat, name='create_order_from_chat'),
     path('order-requests/', views.order_requests, name='order_requests'),
     path('order-requests/vendor/<int:pk>/', views.order_request_detail, name='vendor_order_request_detail'),

@@ -1352,7 +1352,7 @@ window.addEventListener('click', function(event) {
 
   {% if request.user.is_authenticated %}
   {% if request.user != product.business.owner %}
-  <a href="{% url 'home:start_chat_with_product' product.business.owner.id product.id %}"
+  <a href="{% url 'home:start_chat' product.business.owner.id %}?product_id={{ product.id }}"
      class="fab-action fab-action--seller bg-blue-600 hover:bg-blue-700 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
      aria-label="Chat with Seller">
     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

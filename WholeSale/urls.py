@@ -29,6 +29,21 @@ urlpatterns = [
     path('agents/', include('agents.urls')),
 ]
 
+# Serve static and media files in development
 if settings.DEBUG:
+    from django.contrib.staticfiles.urls import staticfiles_urlpatterns
+    
+    # Serve static files
+    urlpatterns += staticfiles_urlpatterns()
+    
+    # Serve media files
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    
+    # Add debug toolbar if installed
+    try:
+        import debug_toolbar
+        urlpatterns = [
+            path('__debug__/', include(debug_toolbar.urls)),
+        ] + urlpatterns
+    except ImportError:
+        pass

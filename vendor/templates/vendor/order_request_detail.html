@@ -1,68 +1,96 @@
 {% extends 'vendor/base.html' %}
 {% load humanize %}
+{% load math_operations %}
+{% load order_filters %}
 
 {% block title %}Order Request #{{ order_request.id }} - Vendor Panel{% endblock %}
 
 {% block extra_css %}
 <style>
+    /* Dark theme base */
+    :root {
+        --bs-body-bg: #121212;
+        --bs-body-color: #e0e0e0;
+        --bs-border-color: #2d2d2d;
+        --bs-secondary-color: #a0a0a0;
+    }
+    
+    body {
+        background-color: var(--bs-body-bg);
+        color: var(--bs-body-color);
+    }
+    
     /* Modern gradient backgrounds */
     .gradient-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     }
     
     .gradient-success {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
     }
     
     .gradient-warning {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
     }
     
     .gradient-danger {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     }
     
     .gradient-info {
-        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
     }
     
     /* Card styling */
     .modern-card {
-        border: none;
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: 1px solid #374151; /* border-gray-700 */
+        border-radius: 0.75rem; /* rounded-xl */
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         transition: all 0.3s ease;
         overflow: hidden;
+        background-color: #1f2937; /* bg-gray-800 */
     }
     
     .modern-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    .modern-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        border-color: #4f46e5;
     }
     
     .card-header-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        padding: 1.5rem;
-        color: white;
+        background: linear-gradient(to right, #1f2937, #111827);
+        border-bottom: 1px solid #374151;
+        padding: 1rem 1.5rem;
+        color: #f9fafb;
+    }
+    
+    .card-header-modern h5 {
+        font-weight: 600;
+        font-size: 1.125rem;
+        margin: 0;
     }
     
     .card-header-success {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
     }
     
     .card-header-warning {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
     }
     
     .card-header-danger {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     }
     
     /* Status badges */
     .status-badge {
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
+        padding: 0.5rem 1.25rem;
+        border-radius: 8px;
         font-weight: 600;
         font-size: 0.875rem;
         text-transform: uppercase;
@@ -70,27 +98,57 @@
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+    }
+    
+    .status-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .bg-primary-soft {
+        background-color: rgba(79, 70, 229, 0.15);
+    }
+    
+    .bg-info-soft {
+        background-color: rgba(14, 165, 233, 0.15);
+    }
+    
+    .bg-warning-soft {
+        background-color: rgba(245, 158, 11, 0.15);
     }
     
     .status-pending {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-        color: #333;
+        background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+        color: white;
     }
     
     .status-accepted {
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
         color: white;
     }
     
     .status-rejected {
-        background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
         color: white;
     }
     
     /* Action buttons */
     .action-btn {
         padding: 0.75rem 1.5rem;
-        border-radius: 50px;
+        border-radius: 8px;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -98,6 +156,7 @@
         border: none;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .action-btn::before {
@@ -193,9 +252,12 @@
     
     .summary-item:last-child {
         border-bottom: none;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 1.1rem;
-        color: var(--bs-body-color, #495057);
+        color: var(--bs-body-color);
+        background-color: rgba(79, 70, 229, 0.1);
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
     }
     
     /* Customer info */
@@ -280,11 +342,127 @@
     @keyframes spin {
         to { transform: rotate(360deg); }
     }
+    
+    /* Dark theme table */
+    .table {
+        --bs-table-bg: transparent;
+        --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+        --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+        --bs-table-color: #e0e0e0;
+        --bs-table-striped-color: #e0e0e0;
+        --bs-table-hover-color: #ffffff;
+        color: var(--bs-table-color);
+        border-color: var(--bs-border-color);
+    }
+    
+    .table > :not(caption) > * > * {
+        padding: 1rem;
+        border-bottom-color: var(--bs-border-color);
+    }
+    
+    .table th {
+        color: #94a3b8;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+    
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    
+    .table tbody tr:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    /* Dark theme modal */
+    .modal-content {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+        border: 1px solid #2d2d2d;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #2d2d2d;
+        background-color: #1a1a1a;
+        border-radius: 12px 12px 0 0;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .modal-title {
+        color: #ffffff;
+        font-weight: 600;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #2d2d2d;
+        background-color: #1a1a1a;
+        border-radius: 0 0 12px 12px;
+        padding: 1rem 1.5rem;
+    }
+    
+    /* Form controls */
+    .form-control, .form-select, .form-check-input {
+        background-color: #2d2d2d;
+        border-color: #3d3d3d;
+        color: #e0e0e0;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background-color: #333;
+        border-color: #4f46e5;
+        color: #ffffff;
+        box-shadow: 0 0 0 0.25rem rgba(79, 70, 229, 0.25);
+    }
+    
+    .form-label {
+        color: #a0a0a0;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-text {
+        color: #6b7280;
+    }
+    
+    /* Buttons */
+    .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+    
+    .btn-secondary {
+        background-color: #374151;
+        border-color: #374151;
+        color: #ffffff;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #4b5563;
+        border-color: #4b5563;
+        color: #ffffff;
+    }
+    
+    .btn-success {
+        background-color: #10b981;
+        border-color: #10b981;
+    }
+    
+    .btn-success:hover {
+        background-color: #0d9f6e;
+        border-color: #0d9f6e;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-4 py-4" style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000);">
+<div class="container-fluid px-4 py-4">
     <!-- Header Section -->
     <div class="row mb-4">
         <div class="col-12">
@@ -312,7 +490,7 @@
                         <i class="fas fa-arrow-left me-2"></i> Back to List
                     </a>
                     {% if order_request.status == 'pending' %}
-                    <button type="button" class="action-btn btn-accept" id="acceptRequest" data-bs-toggle="modal" data-bs-target="#acceptRequestModal">
+                    <button type="button" class="action-btn btn-accept" id="acceptRequest">
                         <i class="fas fa-check me-2"></i> Accept Request
                     </button>
                     <button type="button" class="action-btn btn-reject" id="rejectRequest">
@@ -331,36 +509,48 @@
             <div class="modern-card mb-4 fade-in-up-delay-1">
                 <div class="card-header-modern {% if order_request.status == 'accepted' %}card-header-success{% elif order_request.status == 'rejected' %}card-header-danger{% else %}card-header-warning{% endif %}">
                     <div class="d-flex justify-content-between align-items-center">
+                        {% if order_request.status == 'pending' %}
+                        <form method="post" action="{% url 'vendor:vendor_order_request_detail' pk=order_request.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" name="accept_request" class="btn btn-success btn-sm">
+                                <i class="fas fa-check-circle me-1"></i> Accept Request
+                            </button>
+                        </form>
+                        {% endif %}
                         <div>
-                            <h5 class="mb-1">
+                            <h5 class="mb-1 text-white">
                                 <i class="fas fa-info-circle me-2"></i>
                                 Request Status
                             </h5>
-                            <p class="mb-0 opacity-75">Current status of this order request</p>
+                            <p class="mb-0 text-white-50">Current status of this order request</p>
                         </div>
                         <div class="text-end">
-                            <span class="status-badge status-{{ order_request.status }}">
-                                <i class="fas {% if order_request.status == 'pending' %}fa-clock{% elif order_request.status == 'accepted' %}fa-check-circle{% else %}fa-times-circle{% endif %}"></i>
-                                {{ order_request.get_status_display }}
+                            <span class="status-badge status-{{ order_request.status }} d-inline-flex align-items-center">
+                                <i class="fas {% if order_request.status == 'pending' %}fa-clock{% elif order_request.status == 'accepted' %}fa-check-circle{% else %}fa-times-circle{% endif %} me-2"></i>
+                                <span>{{ order_request.get_status_display }}</span>
                             </span>
                         </div>
                     </div>
                 </div>
-                <div class="card-body p-4">
-                    <div class="row text-center">
+                <div class="card-body p-6 bg-gray-800">
+                    <div class="row text-center g-3">
                         <div class="col-md-4">
-                            <div class="p-3">
-                                <i class="fas fa-calendar-alt fa-2x text-primary mb-2"></i>
-                                <h6 class="text-muted mb-1">Requested On</h6>
-                                <p class="mb-0 fw-bold">{{ order_request.created_at|date:"M d, Y" }}</p>
-                                <small class="text-muted">{{ order_request.created_at|time:"g:i A" }}</small>
+                            <div class="p-4 h-full flex flex-col items-center rounded-lg bg-gray-700/50 hover:bg-gray-700 transition-colors duration-200">
+                                <div class="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center mb-3">
+                                    <i class="fas fa-calendar-alt text-indigo-400 text-xl"></i>
+                                </div>
+                                <h6 class="text-gray-300 text-sm font-medium mb-1">Requested On</h6>
+                                <p class="text-white font-semibold mb-0.5">{{ order_request.created_at|date:"M d, Y" }}</p>
+                                <small class="text-gray-400 text-xs">{{ order_request.created_at|time:"g:i A" }}</small>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="p-3">
-                                <i class="fas fa-edit fa-2x text-info mb-2"></i>
-                                <h6 class="text-muted mb-1">Last Updated</h6>
-                                <p class="mb-0 fw-bold">{{ order_request.updated_at|date:"M d, Y" }}</p>
+                            <div class="p-3 h-100 d-flex flex-column align-items-center">
+                                <div class="icon-circle bg-info-soft mb-3">
+                                    <i class="fas fa-edit text-info"></i>
+                                </div>
+                                <h6 class="text-muted mb-2">Last Updated</h6>
+                                <p class="mb-1 fw-bold text-white">{{ order_request.updated_at|date:"M d, Y" }}</p>
                                 <small class="text-muted">{{ order_request.updated_at|time:"g:i A" }}</small>
                             </div>
                         </div>
@@ -383,62 +573,76 @@
                         <i class="fas fa-list-ul me-2"></i>Requested Items
                     </h5>
                 </div>
-                <div class="card-body p-4">
-                    {% for item in items %}
-                    <div class="product-card">
-                        <div class="row align-items-center">
-                            <div class="col-md-2">
-                                {% if item.variation.images.first %}
-                                <img src="{{ item.variation.images.first.image.url }}" 
-                                     alt="{{ item.variation.product.name }}" 
-                                     class="product-image">
-                                {% else %}
-                                <div class="product-image d-flex align-items-center justify-content-center" style="background-color: var(--bs-light, #f8f9fa);">
-                                    <i class="fas fa-image" style="color: var(--bs-secondary-color, #6c757d);"></i>
+                <div class="p-0">
+                    <div class="divide-y divide-gray-700">
+                        {% for item in items %}
+                        <div class="p-4 hover:bg-gray-700/50 transition-colors duration-200">
+                            <div class="flex items-start space-x-4">
+                                <!-- Product Image -->
+                                <div class="flex-shrink-0">
+                                    {% if item.variation.images.first %}
+                                    <img src="{{ item.variation.images.first.image.url }}" 
+                                         alt="{{ item.variation.product.name }}"
+                                         class="w-20 h-20 rounded-lg object-cover border border-gray-700">
+                                    {% else %}
+                                    <div class="w-20 h-20 rounded-lg bg-gray-700 flex items-center justify-center">
+                                        <i class="fas fa-image text-gray-500 text-xl"></i>
+                                    </div>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="mb-1 fw-bold">{{ item.variation.product.name }}</h6>
-                                <p class="mb-1 small" style="color: var(--bs-secondary-color, #6c757d);">
-                                    {% for attr in item.variation.attributes.all %}
-                                        <span class="badge me-1" style="background-color: var(--bs-light, #f8f9fa); color: var(--bs-dark, #000);">
+                                
+                                <!-- Product Info -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <h4 class="text-base font-medium text-white truncate">
+                                            {{ item.variation.product.name }}
+                                        </h4>
+                                        <span class="text-sm font-medium text-gray-300">
+                                            KSh {{ item.unit_price|intcomma }}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Variation Attributes -->
+                                    <div class="mt-1 flex flex-wrap gap-1.5">
+                                        {% for attr in item.variation.attributes.all %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-700 text-gray-300 border border-gray-600">
                                             {{ attr.attribute.name }}: {{ attr.value.value }}
                                         </span>
-                                    {% endfor %}
-                                </p>
-                                <small style="color: var(--bs-secondary-color, #6c757d);">
-                                    <i class="fas fa-tag me-1"></i>
-                                    Unit Price: KSh {{ item.unit_price|intcomma }}
-                                </small>
-                                {% if item.deposit_percentage > 0 %}
-                                <div class="mt-2">
-                                    <span class="badge bg-info text-white">
-                                        <i class="fas fa-percentage me-1"></i>
-                                        Deposit: {{ item.deposit_percentage|floatformat:0 }}%
-                                    </span>
-                                    <small class="ms-2" style="color: var(--bs-secondary-color, #6c757d);">
-                                        (KSh {{ item.deposit_amount|intcomma }})
-                                    </small>
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-2 text-center">
-                                <div class="p-2 rounded" style="background-color: var(--bs-light, #f8f9fa);">
-                                    <i class="fas fa-shopping-cart text-primary mb-1"></i>
-                                    <div class="fw-bold" style="color: var(--bs-body-color, #000);">{{ item.quantity }}</div>
-                                    <small style="color: var(--bs-secondary-color, #6c757d);">Qty</small>
-                                </div>
-                            </div>
-                            <div class="col-md-2 text-end">
-                                <div class="p-2 bg-primary text-white rounded">
-                                    <div class="fw-bold">KSh {{ item.subtotal|intcomma }}</div>
-                                    <small>Total</small>
+                                        {% endfor %}
+                                    </div>
+                                    
+                                    <!-- Quantity and Total -->
+                                    <div class="mt-2 flex items-center justify-between">
+                                        <div class="flex items-center space-x-4">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
+                                                <i class="fas fa-boxes mr-1.5"></i>
+                                                {{ item.quantity }} × {{ item.unit_price|intcomma }}
+                                            </span>
+                                            
+                                            {% if item.deposit_percentage > 0 %}
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-900/30 text-blue-300 border border-blue-800/50">
+                                                <i class="fas fa-percentage mr-1.5"></i>
+                                                {{ item.deposit_percentage|floatformat:0 }}% Deposit (KSh {{ item.deposit_amount|intcomma }})
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="text-right">
+                                            <div class="text-base font-semibold text-white">
+                                                KSh {{ item.subtotal|intcomma }}
+                                            </div>
+                                            {% if item.deposit_percentage > 0 %}
+                                            <div class="text-xs text-gray-400">
+                                                Balance: KSh {{ item.balance|intcomma }}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -446,113 +650,368 @@
         <!-- Sidebar -->
         <div class="col-lg-4">
             <!-- Order Summary -->
-            <div class="modern-card mb-4 fade-in-up-delay-3">
-                <div class="card-header-modern card-header-success">
-                    <h5 class="mb-0">
-                        <i class="fas fa-receipt me-2"></i>Order Summary
-                    </h5>
+            <div class="modern-card mb-6 fade-in-up-delay-3 overflow-hidden">
+                <div class="card-header-modern bg-gradient-to-r from-indigo-900 to-blue-900">
+                    <div class="flex items-center justify-between">
+                        <h5 class="text-lg font-semibold text-white flex items-center">
+                            <i class="fas fa-receipt mr-2"></i>Order Summary
+                        </h5>
+                        <span class="bg-blue-600/20 text-blue-200 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            #{{ order_request.id }}
+                        </span>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <div class="summary-card">
-                        <div class="summary-item">
-                            <span class="text-muted">
-                                <i class="fas fa-boxes me-2"></i>Items
-                            </span>
-                            <span class="fw-bold">{{ items|length }}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="text-muted">
-                                <i class="fas fa-shopping-cart me-2"></i>Total Quantity
-                            </span>
-                            <span class="fw-bold">{{ total_quantity }}</span>
-                        </div>
-                        <div class="summary-item">
-                            <span class="text-muted">
-                                <i class="fas fa-clock me-2"></i>Status
-                            </span>
-                            <span class="status-badge status-{{ order_request.status }}">
+                <div class="p-6 bg-gray-800">
+                    <div class="space-y-4">
+                        <!-- Order Status -->
+                        <div class="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="p-2 rounded-full bg-indigo-500/10 mr-3">
+                                    <i class="fas 
+                                        {% if order_request.status == 'accepted' %}fa-check-circle
+                                        {% elif order_request.status == 'rejected' %}fa-times-circle
+                                        {% else %}fa-clock{% endif %} text-indigo-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-300">Order Status</p>
+                                    <p class="text-sm font-semibold text-white">{{ order_request.get_status_display }}</p>
+                                </div>
+                            </div>
+                            <span class="px-3 py-1 text-xs font-medium rounded-full 
+                                {% if order_request.status == 'accepted' %}bg-green-500/10 text-green-400
+                                {% elif order_request.status == 'rejected' %}bg-red-500/10 text-red-400
+                                {% else %}bg-yellow-500/10 text-yellow-400{% endif %}">
                                 {{ order_request.get_status_display }}
                             </span>
                         </div>
-                        <div class="summary-item">
-                            <span class="text-muted">
-                                <i class="fas fa-calendar me-2"></i>Request Date
-                            </span>
-                            <span class="fw-bold">{{ order_request.created_at|date:"M d, Y" }}</span>
+                        
+                        <!-- Order Details -->
+                        <div class="bg-gray-800 rounded-lg border border-gray-700 divide-y divide-gray-700">
+                            <!-- Items -->
+                            <div class="px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-boxes text-blue-400 mr-2"></i>
+                                    <span class="text-sm text-gray-300">Items</span>
+                                </div>
+                                <span class="text-sm font-medium text-white">{{ items|length }}</span>
+                            </div>
+                            
+                            <!-- Total Quantity -->
+                            <div class="px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-shopping-cart text-blue-400 mr-2"></i>
+                                    <span class="text-sm text-gray-300">Total Quantity</span>
+                                </div>
+                                <span class="text-sm font-medium text-white">{{ total_quantity }}</span>
+                            </div>
+                            
+                            <!-- Request Date -->
+                            <div class="px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="far fa-calendar-alt text-blue-400 mr-2"></i>
+                                    <span class="text-sm text-gray-300">Request Date</span>
+                                </div>
+                                <span class="text-sm font-medium text-white">{{ order_request.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            
+                            <!-- Subtotal -->
+                            <div class="px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-calculator text-blue-400 mr-2"></i>
+                                    <span class="text-sm text-gray-300">Subtotal</span>
+                                </div>
+                                <span class="text-sm font-medium text-white">KSh {{ total_amount|floatformat:2|intcomma }}</span>
+                            </div>
+                            
+                            <!-- Deposit (if applicable) -->
+                            {% if total_deposit > 0 %}
+                            <div class="px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-percentage text-emerald-400 mr-2"></i>
+                                    <span class="text-sm text-gray-300">Total Deposit</span>
+                                </div>
+                                <span class="text-sm font-semibold text-emerald-400">KSh {{ total_deposit|floatformat:2|intcomma }}</span>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% if total_deposit > 0 %}
-                        <div class="summary-item">
-                            <span class="text-muted">
-                                <i class="fas fa-percentage me-2"></i>Total Deposit
-                            </span>
-                            <span class="fw-bold text-info">KSh {{ total_deposit|intcomma }}</span>
+                        
+                        <!-- Additional Fees Section -->
+                        {% if additional_fees %}
+                        <div class="bg-gray-800 rounded-lg border border-gray-700 divide-y divide-gray-700 mb-4">
+                            <div class="px-4 py-3 bg-gray-700">
+                                <h6 class="text-sm font-medium text-gray-300 mb-0">
+                                    <i class="fas fa-plus-circle mr-2"></i>Additional Fees
+                                </h6>
+                            </div>
+                            {% for fee in additional_fees %}
+                            <div class="px-4 py-3 flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-receipt text-blue-400 mr-2"></i>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-300">{{ fee.fee_type }}</span>
+                                        {% if fee.description %}
+                                        <div class="text-xs text-gray-400">{{ fee.description }}</div>
+                                        {% endif %}
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if fee.pay_now %}bg-green-100 text-green-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                            {% if fee.pay_now %}Pay Now{% else %}Pay Later{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                                <span class="text-sm font-medium text-white">KSh {{ fee.amount|floatformat:2|intcomma }}</span>
+                            </div>
+                            {% endfor %}
                         </div>
                         {% endif %}
-                        <hr class="my-3">
-                        <div class="summary-item">
-                            <span class="h5 mb-0">
-                                <i class="fas fa-dollar-sign me-2"></i>Total Amount
-                            </span>
-                            <span class="h4 text-primary mb-0">KSh {{ total_amount|intcomma }}</span>
+                        
+                        <!-- Payment Summary -->
+                        <div class="space-y-4">
+                            <!-- 1. Order Subtotal -->
+                            <div class="bg-gradient-to-r from-gray-800 to-gray-900 p-4 rounded-lg border border-gray-700">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-shopping-cart text-blue-400 mr-2"></i>
+                                        <span class="font-medium text-gray-300">Order Subtotal</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-bold text-white">KSh {{ total_amount|floatformat:2|intcomma }}</div>
+                                        <div class="text-xs text-gray-400">({{ items|length }} items)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Individual Item Breakdown -->
+                            {% for item in items %}
+                            <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-700/50">
+                                <div class="font-medium text-gray-300 mb-2">
+                                    <i class="fas fa-box-open text-blue-300 mr-2"></i>{{ item.variation.product.name }} - {{ item.variation.name }}
+                                </div>
+                                
+                                <!-- Item Details -->
+                                <div class="flex justify-between text-sm text-gray-300 mb-2">
+                                    <span>Unit Price:</span>
+                                    <span>KSh {{ item.unit_price|floatformat:2|intcomma }}</span>
+                                </div>
+                                
+                                <div class="flex justify-between text-sm text-gray-300 mb-2">
+                                    <span>Quantity:</span>
+                                    <span>{{ item.quantity }}</span>
+                                </div>
+                                
+                                <!-- Item Total -->
+                                <div class="flex justify-between text-sm text-gray-300 mb-2 border-t border-gray-600 pt-2">
+                                    <span class="font-medium">Item Total:</span>
+                                    <span class="font-medium">KSh {{ item.subtotal|floatformat:2|intcomma }}</span>
+                                </div>
+                                
+                                <!-- Deposit Information -->
+                                {% if item.deposit_amount > 0 and item.deposit_percentage > 0 %}
+                                    {% with item_remaining=item.subtotal|sub:item.deposit_amount %}
+                                    <div class="bg-blue-900/20 p-3 rounded border border-blue-800/50 mb-2">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-blue-200">Deposit ({{ item.deposit_percentage }}%):</span>
+                                            <span class="text-blue-300 font-medium">KSh {{ item.deposit_amount|floatformat:2|intcomma }}</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm mt-1">
+                                            <span class="text-gray-400">Remaining Balance:</span>
+                                            <span class="text-gray-300">KSh {{ item_remaining|floatformat:2|intcomma }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Interest Calculation -->
+                                    {% for i_rate in item.variation.i_rates.all %}
+                                        {% if item.deposit_percentage >= i_rate.lower_range and item.deposit_percentage <= i_rate.upper_range %}
+                                            {% with interest_amount=item_remaining|mul:i_rate.rate|div:100 %}
+                                            {% with total_payable=item_remaining|add:interest_amount %}
+                                            <div class="bg-amber-900/20 p-3 rounded border border-amber-800/50 mt-2">
+                                                <div class="text-sm text-amber-200 mb-1">
+                                                    <i class="fas fa-percentage mr-1"></i> Interest ({{ i_rate.rate }}%):
+                                                    <span class="float-right">KSh {{ interest_amount|floatformat:2|intcomma }}</span>
+                                                </div>
+                                                <div class="text-sm text-amber-100 font-medium">
+                                                    Total at Pickup:
+                                                    <span class="float-right">KSh {{ total_payable|floatformat:2|intcomma }}</span>
+                                                </div>
+                                                {% if i_rate.must_pay_shipping %}
+                                                <div class="text-xs text-yellow-300 mt-1">
+                                                    <i class="fas fa-shipping-fast"></i> Shipping fees apply
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            {% endwith %}
+                                            {% endwith %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    {% endwith %}
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                            
+                            <!-- Summary Totals -->
+                            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 space-y-3">
+                                <!-- Additional Fees (if any) -->
+                                {% if additional_fees %}
+                                <div class="bg-purple-900/20 p-3 rounded border border-purple-800/50">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-plus-circle text-purple-400 mr-2"></i>
+                                            <span class="font-medium text-gray-300">Additional Fees</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold text-purple-300">
+                                                KSh {{ additional_fees|sum_fees|floatformat:2|intcomma }}
+                                            </div>
+                                            <div class="text-xs text-purple-200/70">
+                                                ({{ additional_fees|length }} fee{{ additional_fees|length|pluralize }})
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Amount to be Paid Now -->
+                                <div class="bg-emerald-900/20 p-3 rounded border border-emerald-800/50">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-credit-card text-emerald-400 mr-2"></i>
+                                            <span class="font-medium text-gray-300">Amount to be Paid Now</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold text-emerald-300">
+                                                KSh {{ order_request.amount_due_now|floatformat:2|intcomma }}
+                                            </div>
+                                            <div class="text-xs text-emerald-200/70">
+                                                (Deposits + Full price of non-deposit items)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Total at Pickup -->
+                                <div class="bg-amber-900/20 p-3 rounded border border-amber-800/50">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-truck-pickup text-amber-400 mr-2"></i>
+                                            <span class="font-medium text-gray-300">Total at Pickup</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold text-amber-300">
+                                                KSh {{ order_request.amount_due_at_pickup|floatformat:2|intcomma }}
+                                            </div>
+                                            <div class="text-xs text-amber-200/70">
+                                                (Remaining balance + Interest)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Order Total -->
+                                <div class="pt-3 border-t border-gray-700">
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-receipt text-blue-400 mr-2"></i>
+                                            <span class="font-medium text-gray-300">Order Total</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-lg font-bold text-white">KSh {{ order_request.total_amount|floatformat:2|intcomma }}</div>
+                                            <div class="text-xs text-gray-400">
+                                                (Pay Now: KSh {{ order_request.amount_due_now|floatformat:2|intcomma }} + 
+                                                Pickup: KSh {{ order_request.amount_due_at_pickup|floatformat:2|intcomma }})
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
             
             <!-- Customer Information -->
-            <div class="modern-card mb-4 fade-in-up-delay-3">
-                <div class="card-header-modern gradient-info">
-                    <h5 class="mb-0">
-                        <i class="fas fa-user me-2"></i>Customer Information
+            <div class="modern-card mb-6 fade-in-up-delay-3 overflow-hidden">
+                <div class="card-header-modern bg-gradient-to-r from-blue-900 to-indigo-900">
+                    <h5 class="text-lg font-semibold text-white flex items-center">
+                        <i class="fas fa-user mr-2"></i>Customer Information
                     </h5>
                 </div>
-                <div class="card-body p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="customer-avatar me-3">
+                <div class="p-6 bg-gray-800">
+                    <!-- Customer Profile -->
+                    <div class="flex items-center mb-6">
+                        <div class="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center text-2xl font-bold text-indigo-300 mr-4">
                             {% if order_request.user %}
-                                {{ order_request.user.first_name|first|upper }}{{ order_request.user.last_name|first|upper }}
+                                {{ order_request.user.first_name|first|upper }}{% if order_request.user.last_name %}{{ order_request.user.last_name|first|upper }}{% endif %}
                             {% else %}
                                 GU
                             {% endif %}
                         </div>
                         <div>
-                            <h6 class="mb-1 fw-bold">
+                            <h3 class="text-lg font-semibold text-white">
                                 {% if order_request.user %}
-                                    {{ order_request.user.get_full_name|default:order_request.user.username }}
+                                    {{ order_request.user.get_full_name|default:order_request.user.username|default:'Guest User' }}
                                 {% else %}
                                     Guest User
                                 {% endif %}
-                            </h6>
-                            <small class="text-muted">
-                                {% if order_request.user %}
+                            </h3>
+                            <p class="text-sm text-gray-400">
+                                {% if order_request.user and order_request.user.email %}
                                     {{ order_request.user.email }}
                                 {% else %}
                                     Guest Order
                                 {% endif %}
-                            </small>
+                            </p>
                         </div>
                     </div>
-                    
-                    {% if order_request.user %}
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="p-2 bg-light rounded">
-                                <i class="fas fa-envelope text-primary mb-1"></i>
-                                <div class="small fw-bold">Email</div>
-                                <small class="text-muted">{{ order_request.user.email|truncatechars:15 }}</small>
+
+                    <!-- Contact Information -->
+                    <div class="space-y-4">
+                        {% if order_request.user %}
+                            <!-- Email -->
+                            <div class="flex items-center p-3 bg-gray-700/50 rounded-lg">
+                                <div class="p-2 rounded-full bg-blue-500/10 mr-3">
+                                    <i class="fas fa-envelope text-blue-400"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-300">Email</p>
+                                    <p class="text-sm font-medium text-white truncate">
+                                        {{ order_request.user.email|default:'Not provided' }}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                        {% if order_request.user.phone_number %}
-                        <div class="col-6">
-                            <div class="p-2 bg-light rounded">
-                                <i class="fas fa-phone text-success mb-1"></i>
-                                <div class="small fw-bold">Phone</div>
-                                <small class="text-muted">{{ order_request.user.phone_number }}</small>
+
+                            <!-- Phone Number -->
+                            {% if order_request.user.phone_number %}
+                            <div class="flex items-center p-3 bg-gray-700/50 rounded-lg">
+                                <div class="p-2 rounded-full bg-green-500/10 mr-3">
+                                    <i class="fas fa-phone text-green-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-300">Phone</p>
+                                    <p class="text-sm font-medium text-white">
+                                        {{ order_request.user.phone_number }}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                            {% endif %}
+
+                            <!-- Account Created -->
+                            <div class="flex items-center p-3 bg-gray-700/50 rounded-lg">
+                                <div class="p-2 rounded-full bg-purple-500/10 mr-3">
+                                    <i class="fas fa-calendar-alt text-purple-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-300">Member Since</p>
+                                    <p class="text-sm font-medium text-white">
+                                        {{ order_request.user.date_joined|date:"M d, Y"|default:'N/A' }}
+                                    </p>
+                                </div>
+                            </div>
+                        {% else %}
+                            <!-- Guest User Info -->
+                            <div class="p-4 bg-gray-700/50 rounded-lg text-center">
+                                <i class="fas fa-user-clock text-2xl text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-300">This is a guest order. No account information is available.</p>
+                            </div>
                         {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
             
@@ -680,289 +1139,114 @@ $(document).ready(function() {
 });
 </script>
 
-<!-- Accept Request Modal -->
-<div class="modal fade" id="acceptRequestModal" tabindex="-1" aria-labelledby="acceptRequestModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000);">
-            <div class="modal-header" style="border-bottom: 1px solid var(--bs-border-color, #dee2e6);">
-                <h5 class="modal-title" id="acceptRequestModalLabel" style="color: var(--bs-body-color, #000);">
-                    <i class="fas fa-check-circle me-2 text-success"></i>
-                    Accept Order Request
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="acceptRequestForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="addAdditionalFees" name="add_additional_fees">
-                            <label class="form-check-label" for="addAdditionalFees" style="color: var(--bs-body-color, #000);">
-                                Add additional fees (Customs, Shipping, Handling, etc.)
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div id="additionalFeesSection" style="display: none;">
-                        <h6 class="mb-3" style="color: var(--bs-body-color, #000);">Additional Fees</h6>
-                        <div id="additionalFeesContainer">
-                            <div class="additional-fee-item mb-3 p-3 border rounded" style="border-color: var(--bs-border-color, #dee2e6); background-color: var(--bs-body-bg, #fff);">
-                                <div class="row">
-                                    <div class="col-md-4">
-                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Fee Type</label>
-                                        <select class="form-select" name="fee_types[]" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
-                                            <option value="">Select fee type</option>
-                                            <option value="Customs">Customs</option>
-                                            <option value="Shipping">Shipping</option>
-                                            <option value="Handling">Handling</option>
-                                            <option value="Insurance">Insurance</option>
-                                            <option value="Documentation">Documentation</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Amount (KSh)</label>
-                                        <input type="number" class="form-control" name="fee_amounts[]" step="0.01" min="0" placeholder="0.00" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Pay Now</label>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="fee_pay_now[]" value="true" checked>
-                                            <label class="form-check-label" style="color: var(--bs-body-color, #000);">
-                                                Pay immediately
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 d-flex align-items-end">
-                                        <button type="button" class="btn btn-outline-danger btn-sm remove-fee" style="display: none;">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="row mt-2">
-                                    <div class="col-12">
-                                        <label class="form-label" style="color: var(--bs-body-color, #000);">Description (Optional)</label>
-                                        <textarea class="form-control" name="fee_descriptions[]" rows="2" placeholder="Describe this additional fee..." style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);"></textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-outline-primary btn-sm" id="addFeeBtn">
-                            <i class="fas fa-plus me-1"></i> Add Another Fee
-                        </button>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <h6 style="color: var(--bs-body-color, #000);">Order Summary</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p class="mb-1" style="color: var(--bs-secondary-color, #6c757d);">Original Amount:</p>
-                                <p class="fw-bold" style="color: var(--bs-body-color, #000);">KSh <span id="originalAmount">{{ total_amount|intcomma }}</span></p>
-                            </div>
-                            <div class="col-md-6">
-                                <p class="mb-1" style="color: var(--bs-secondary-color, #6c757d);">Additional Fees:</p>
-                                <p class="fw-bold" style="color: var(--bs-body-color, #000);">KSh <span id="additionalFeesTotal">0.00</span></p>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row">
-                            <div class="col-12">
-                                <p class="mb-1" style="color: var(--bs-secondary-color, #6c757d);">Total Amount:</p>
-                                <h5 class="text-primary" style="color: var(--bs-primary, #0d6efd);">KSh <span id="totalAmount">{{ total_amount|intcomma }}</span></h5>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer" style="border-top: 1px solid var(--bs-border-color, #dee2e6);">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="confirmAcceptRequest">
-                    <i class="fas fa-check me-2"></i>Accept Request
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
-// Additional fees functionality
+// Simple accept/reject functionality
 $(document).ready(function() {
-    // Define showAlert function if not already defined
-    if (typeof showAlert === 'undefined') {
-        window.showAlert = function(type, message) {
-            const alertClass = type === 'success' ? 'alert-success' : 
-                              type === 'warning' ? 'alert-warning' : 
-                              type === 'danger' ? 'alert-danger' : 'alert-info';
-            
-            const alertHtml = `
-                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i>
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            `;
-            
-            // Insert alert at the top of the page
-            $('.container-fluid').prepend(alertHtml);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                $('.alert').fadeOut(300, function() { $(this).remove(); });
-            }, 5000);
-        };
-    }
-    // Toggle additional fees section
-    $('#addAdditionalFees').change(function() {
-        if ($(this).is(':checked')) {
-            $('#additionalFeesSection').show();
-        } else {
-            $('#additionalFeesSection').hide();
-        }
-    });
-    
-    // Add new fee row
-    $('#addFeeBtn').click(function() {
-        const feeHtml = `
-            <div class="additional-fee-item mb-3 p-3 border rounded" style="border-color: var(--bs-border-color, #dee2e6); background-color: var(--bs-body-bg, #fff);">
-                <div class="row">
-                    <div class="col-md-4">
-                        <label class="form-label" style="color: var(--bs-body-color, #000);">Fee Type</label>
-                        <select class="form-select" name="fee_types[]" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
-                            <option value="">Select fee type</option>
-                            <option value="Customs">Customs</option>
-                            <option value="Shipping">Shipping</option>
-                            <option value="Handling">Handling</option>
-                            <option value="Insurance">Insurance</option>
-                            <option value="Documentation">Documentation</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label" style="color: var(--bs-body-color, #000);">Amount (KSh)</label>
-                        <input type="number" class="form-control" name="fee_amounts[]" step="0.01" min="0" placeholder="0.00" required style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label" style="color: var(--bs-body-color, #000);">Pay Now</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="fee_pay_now[]" value="true" checked>
-                            <label class="form-check-label" style="color: var(--bs-body-color, #000);">
-                                Pay immediately
-                            </label>
-                        </div>
-                    </div>
-                    <div class="col-md-1 d-flex align-items-end">
-                        <button type="button" class="btn btn-outline-danger btn-sm remove-fee">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-12">
-                        <label class="form-label" style="color: var(--bs-body-color, #000);">Description (Optional)</label>
-                        <textarea class="form-control" name="fee_descriptions[]" rows="2" placeholder="Describe this additional fee..." style="background-color: var(--bs-body-bg, #fff); color: var(--bs-body-color, #000); border-color: var(--bs-border-color, #dee2e6);"></textarea>
-                    </div>
-                </div>
-            </div>
-        `;
-        $('#additionalFeesContainer').append(feeHtml);
-        updateRemoveButtons();
-    });
-    
-    // Remove fee row
-    $(document).on('click', '.remove-fee', function() {
-        $(this).closest('.additional-fee-item').remove();
-        updateRemoveButtons();
-        calculateTotal();
-    });
-    
-    // Update remove buttons visibility
-    function updateRemoveButtons() {
-        const feeItems = $('.additional-fee-item');
-        feeItems.find('.remove-fee').show();
-        if (feeItems.length === 1) {
-            feeItems.first().find('.remove-fee').hide();
-        }
-    }
-    
-    // Calculate total when amounts change
-    $(document).on('input', 'input[name="fee_amounts[]"]', function() {
-        calculateTotal();
-    });
-    
-    function calculateTotal() {
-        let additionalTotal = 0;
-        $('input[name="fee_amounts[]"]').each(function() {
-            const amount = parseFloat($(this).val()) || 0;
-            additionalTotal += amount;
-        });
-        
-        const originalAmount = parseFloat('{{ total_amount }}') || 0;
-        const totalAmount = originalAmount + additionalTotal;
-        
-        $('#additionalFeesTotal').text(additionalTotal.toLocaleString());
-        $('#totalAmount').text(totalAmount.toLocaleString());
-    }
-    
     // Handle accept request
-    $('#confirmAcceptRequest').click(function() {
-        // Ensure all checkboxes are included in the form data, even if unchecked
-        $('input[type="checkbox"][name^="fee_pay_now"]').each(function() {
-            // Add a hidden input with the same name and value 'false' before each checkbox
-            if (!$(this).is(':checked')) {
-                $(this).before('<input type="hidden" name="' + $(this).attr('name') + '" value="false">');
-            }
-        });
-
-        // Validate form
-        if ($('#addAdditionalFees').is(':checked')) {
-            let hasValidFee = false;
-            $('.additional-fee-item').each(function() {
-                const feeType = $(this).find('select[name="fee_types[]"]').val();
-                const feeAmount = $(this).find('input[name="fee_amounts[]"]').val();
-                if (feeType && feeAmount && parseFloat(feeAmount) > 0) {
-                    hasValidFee = true;
-                }
-            });
-            
-            if (!hasValidFee) {
-                showAlert('warning', 'Please add at least one valid additional fee or uncheck the additional fees option.');
-                return;
-            }
+    $('#acceptRequest').click(function() {
+        if (confirm('Are you sure you want to accept this order request? This will create an order.')) {
+            updateRequestStatus('accepted', $(this));
         }
+    });
+    
+    // Handle reject request
+    $('#rejectRequest').click(function() {
+        if (confirm('Are you sure you want to reject this order request?')) {
+            updateRequestStatus('rejected', $(this));
+        }
+    });
+    
+    function updateRequestStatus(status, $button) {
+        // Show loading state
+        const originalText = $button.html();
+        $button.addClass('loading').html('<span class="spinner me-2"></span>Processing...');
         
-        const formData = new FormData($('#acceptRequestForm')[0]);
-        formData.append('status', 'accepted');
-        
+        // Send the request
         $.ajax({
             url: '{% url "vendor:order_request_update_status" order_request.id %}',
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
+            method: 'POST',
+            data: JSON.stringify({
+                status: status
+            }),
+            contentType: 'application/json',
             headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
                 'X-Requested-With': 'XMLHttpRequest'
             },
             success: function(response) {
                 if (response.success) {
-                    $('#acceptRequestModal').modal('hide');
-                    showAlert('success', 'Order request accepted successfully!');
+                    // Show success message with animation
+                    showSuccessMessage(response.message, status);
+                    
+                    // Update UI after delay
                     setTimeout(() => {
-                        if (response.order_id) {
-                            // Redirect to the created order
-                            window.location.href = `{% url 'vendor:order_detail' 0 %}`.replace('0', response.order_id);
-                        } else {
-                            location.reload();
-                        }
-                    }, 1500);
+                        location.reload();
+                    }, 2000);
                 } else {
-                    showAlert('danger', response.message || 'Failed to accept order request.');
+                    showErrorMessage(response.error || 'Failed to update status');
+                    $button.removeClass('loading').html(originalText);
                 }
             },
-            error: function() {
-                showAlert('danger', 'An error occurred while accepting the order request.');
+            error: function(xhr, status, error) {
+                let errorMsg = 'An error occurred while updating the status.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                showErrorMessage(errorMsg);
+                $button.removeClass('loading').html(originalText);
             }
         });
-    });
+    }
+    
+    function showSuccessMessage(message, status) {
+        const icon = status === 'accepted' ? 'fa-check-circle' : 'fa-times-circle';
+        const color = status === 'accepted' ? 'success' : 'danger';
+        
+        const alertHtml = `
+            <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+                <div class="alert alert-${color} alert-dismissible fade show shadow-lg" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas ${icon} fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Success!</h6>
+                            <p class="mb-0">${message}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>`;
+        
+        $('body').append(alertHtml);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            $('.alert').fadeOut(300, function() { $(this).remove(); });
+        }, 5000);
+    }
+    
+    function showErrorMessage(message) {
+        const alertHtml = `
+            <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">
+                <div class="alert alert-danger alert-dismissible fade show shadow-lg" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">Error!</h6>
+                            <p class="mb-0">${message}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>`;
+        
+        $('body').append(alertHtml);
+        
+        // Auto remove after 7 seconds
+        setTimeout(() => {
+            $('.alert').fadeOut(300, function() { $(this).remove(); });
+        }, 7000);
+    }
 });
 </script>
 {% endblock %}

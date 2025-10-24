@@ -51,11 +51,18 @@ SECRET_KEY = 'django-insecure-w!k609iedac*rt_e$wwwnh&6bl4f-ddyohx(u%1j1%r)s)-f$j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'arhythmically-unciliated-danna.ngrok-free.dev',
     '.ngrok-free.dev',  # Allow all ngrok subdomains
+]
+
+# Required for CSRF protection with ngrok
+CSRF_TRUSTED_ORIGINS = [
+    'https://arhythmically-unciliated-danna.ngrok-free.dev',
+    'https://*.ngrok-free.dev',
 ]
 
 # M-Pesa Configuration

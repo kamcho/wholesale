@@ -3,107 +3,391 @@
 
 {% block title %}Orders - Vendor Panel{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<style>
+    /* Modern table styling */
+    .table {
+        --bs-table-bg: transparent;
+        --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+        --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+        margin-bottom: 0;
+    }
+    
+    .table > :not(caption) > * > * {
+        padding: 1rem 1.25rem;
+        background-color: transparent;
+        box-shadow: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .table > thead > tr > th {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+    }
+    
+    /* Date Range Picker Styles */
+    .daterangepicker {
+        background: #1f2937;
+        border: 1px solid #374151;
+        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    }
+    .daterangepicker:before, 
+    .daterangepicker:after {
+        border-bottom-color: #374151;
+    }
+    .daterangepicker .calendar-table {
+        background: #1f2937;
+        border: 1px solid #374151;
+    }
+    .daterangepicker td.off, 
+    .daterangepicker td.off.in-range,
+    .daterangepicker td.off.start-date, 
+    .daterangepicker td.off.end-date {
+        background: #1f2937;
+        color: #6b7280;
+    }
+    .daterangepicker td.available:hover, 
+    .daterangepicker th.available:hover {
+        background: #374151;
+    }
+    .daterangepicker td.in-range {
+        background: #1e40af;
+        color: white;
+    }
+    .daterangepicker td.active, 
+    .daterangepicker td.active:hover {
+        background: #1e40af;
+    }
+    .ranges li {
+        color: white;
+    }
+    .ranges li:hover {
+        background: #374151;
+    }
+    .ranges li.active {
+        background: #1e40af;
+    }
+    /* Dropdown Styles */
+    .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    /* Number Input Styles */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    /* Filter Badge Styles */
+    .filter-badge {
+        background: #1e40af;
+        color: white;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 0.75rem;
+        margin-right: 4px;
+        display: inline-flex;
+        align-items: center;
+    }
+    .filter-badge i {
+        margin-left: 4px;
+        cursor: pointer;
+    }
+    /* Clickable Row */
+    .clickable-row {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .clickable-row:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+    
+    .table > :not(caption) > * > * {
+        padding: 1rem 1.25rem;
+        background-color: transparent;
+        box-shadow: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .table > thead > tr > th {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        color: #94a3b8;
+    }
+    
+    .table > tbody > tr {
+        transition: all 0.2s ease;
+    }
+    
+    .table > tbody > tr:hover {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+    }
+    
+    /* Card styling */
+    .card {
+        border: none;
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+        transition: all 0.2s ease;
+    }
+    
+    .card:hover {
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header {
+        background-color: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 1.25rem 1.5rem;
+    }
+    
+    /* Status badges */
+    .badge {
+        font-weight: 500;
+        padding: 0.35rem 0.65rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+    }
+    
+    .badge.bg-warning {
+        background-color: rgba(234, 179, 8, 0.15) !important;
+        color: #eab308 !important;
+    }
+    
+    .badge.bg-success {
+        background-color: rgba(34, 197, 94, 0.15) !important;
+        color: #22c55e !important;
+    }
+    
+    .badge.bg-danger {
+        background-color: rgba(239, 68, 68, 0.15) !important;
+        color: #ef4444 !important;
+    }
+    
+    /* Buttons */
+    .btn-sm {
+        padding: 0.35rem 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 6px;
+    }
+    
+    /* Page header */
+    .page-header {
+        padding: 1.5rem 0;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Stats cards */
+    .stat-card {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: none;
+        color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    
+    .stat-card .card-body {
+        padding: 1.5rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0.5rem 0 0.25rem;
+        color: white;
+    }
+    
+    .stat-card .stat-label {
+        font-size: 0.8125rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+    
+    .stat-card .stat-icon {
+        font-size: 2.5rem;
+        opacity: 0.15;
+        position: absolute;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        transition: all 0.3s ease;
+        right: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center py-4">
-        <div>
-            <h1 class="h3 mb-0 text-gray-100">
-                <i class="fas fa-shopping-bag me-2"></i>Orders
-            </h1>
-            <p class="text-muted mb-0">Manage and track your product orders</p>
-        </div>
-        <div class="d-flex gap-2">
-            <form method="get" class="d-flex gap-2 flex-wrap" id="orderFilterForm">
-                <!-- Date Range Filter -->
-                <div class="input-group" style="width: 280px;">
-                    <span class="input-group-text bg-gray-700 border-gray-600 text-gray-300">
-                        <i class="fas fa-calendar me-1"></i> Date
-                    </span>
-                    <input type="text" class="form-control bg-gray-700 border-gray-600 text-white date-range-picker" 
-                           name="date_range" id="dateRange" placeholder="Select date range" 
-                           value="{{ request.GET.date_range }}" autocomplete="off">
-                </div>
-
-                <!-- Status Filter -->
-                <div class="dropdown">
-                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
-                            id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false" 
-                            data-bs-auto-close="outside">
-                        <i class="fas fa-filter me-1"></i> 
-                        <span id="statusFilterText">Status</span>
-                        {% if request.GET.status %}<span class="badge bg-primary ms-1">{{ request.GET.status|length }}</span>{% endif %}
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-end p-3 bg-gray-800 border-gray-700" style="min-width: 250px;">
-                        {% for value, label in status_choices %}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" 
-                                   name="status" value="{{ value }}" id="status{{ forloop.counter }}"
-                                   {% if value in selected_statuses %}checked{% endif %}>
-                            <label class="form-check-label text-white" for="status{{ forloop.counter }}">
-                                {{ label }}
-                            </label>
-                        </div>
-                        {% endfor %}
+<div class="container-fluid px-0 px-lg-3">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-2">
+                    <i class="fas fa-shopping-bag me-2"></i>Orders
+                </h1>
+                <p class="text-muted mb-0">Manage and track your product orders</p>
+            </div>
+            <div class="d-flex gap-2">
+                <form method="get" class="d-flex gap-2 flex-wrap" id="orderFilterForm">
+                    <!-- Search -->
+                    <div class="input-group" style="max-width: 280px;">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control bg-transparent border-start-0" 
+                               name="search" placeholder="Search orders..." 
+                               value="{{ request.GET.search|default:'' }}">
                     </div>
-                </div>
 
-                <!-- Price Range -->
-                <div class="input-group" style="width: 280px;">
-                    <span class="input-group-text bg-gray-700 border-gray-600 text-gray-300">
-                        <i class="fas fa-tag me-1"></i> Price
-                    </span>
-                    <input type="number" class="form-control bg-gray-700 border-gray-600 text-white" 
-                           name="min_price" placeholder="Min" value="{{ request.GET.min_price }}" step="0.01">
-                    <span class="input-group-text bg-gray-700 border-gray-600 text-gray-400">to</span>
-                    <input type="number" class="form-control bg-gray-700 border-gray-600 text-white" 
-                           name="max_price" placeholder="Max" value="{{ request.GET.max_price }}" step="0.01">
-                </div>
+                    <!-- Date Range Filter -->
+                    <div class="input-group" style="width: 280px;">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="fas fa-calendar text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control bg-transparent border-start-0 date-range-picker" 
+                               name="date_range" id="dateRange" placeholder="Select date range" 
+                               value="{{ request.GET.date_range }}" autocomplete="off">
+                    </div>
 
-                <!-- Search -->
-                <div class="input-group" style="width: 250px;">
-                    <span class="input-group-text bg-gray-700 border-gray-600">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </span>
-                    <input type="text" class="form-control bg-gray-700 border-gray-600 text-white" 
-                           name="search" placeholder="Search orders..." 
-                           value="{{ request.GET.search|default:'' }}">
-                </div>
+                    <!-- Status Filter -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                                id="statusFilter" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-filter me-1"></i> 
+                            <span id="statusFilterText">Status</span>
+                            {% if request.GET.status %}<span class="badge bg-primary ms-1">{{ request.GET.status|length }}</span>{% endif %}
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 250px;">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="selectAllStatuses">
+                                <label class="form-check-label" for="selectAllStatuses">
+                                    All Statuses
+                                </label>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            {% for value, label in status_choices %}
+                            <div class="form-check">
+                                <input class="form-check-input status-checkbox" type="checkbox" 
+                                       name="status" value="{{ value }}" id="status{{ forloop.counter }}"
+                                       {% if value in selected_statuses %}checked{% endif %}>
+                                <label class="form-check-label" for="status{{ forloop.counter }}">
+                                    {{ label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
 
-                <!-- Action Buttons -->
-                <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter me-1"></i> Apply
-                    </button>
-                    <a href="{% url 'vendor:orders' %}" class="btn btn-outline-secondary">
-                        <i class="fas fa-undo me-1"></i> Reset
-                    </a>
-                    <a href="{% url 'vendor:product_list' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left me-1"></i> Products
-                    </a>
-                </div>
-            </form>
+                    <!-- Action Buttons -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter me-1"></i> Apply
+                        </button>
+                        <a href="{% url 'vendor:orders' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-undo me-1"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2 bg-gray-800 border-0">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-uppercase mb-1 text-primary">
-                                Total Orders</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-100">{{ order_count|default:0 }}</div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h6 class="stat-label">Total Orders</h6>
+                            <h3 class="stat-value mb-0">{{ order_count|default:0 }}</h3>
+                            <div class="text-white-50 small mt-1">
+                                <i class="fas fa-caret-up me-1"></i> 12.5% from last month
+                            </div>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        <div class="ms-auto">
+                            <i class="fas fa-shopping-cart stat-icon text-white-10"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- Add more stat cards here if needed -->
+        
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h6 class="stat-label">Total Revenue</h6>
+                            <h3 class="stat-value mb-0">${{ total_revenue|default:0|floatformat:2|intcomma }}</h3>
+                            <div class="text-white-50 small mt-1">
+                                <i class="fas fa-caret-up me-1"></i> 8.2% from last month
+                            </div>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-dollar-sign stat-icon text-white-10"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h6 class="stat-label">Pending</h6>
+                            <h3 class="stat-value mb-0 text-warning">{{ pending_orders|default:0 }}</h3>
+                            <div class="text-white-50 small mt-1">
+                                <i class="fas fa-caret-down me-1"></i> 2.4% from last month
+                            </div>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-clock stat-icon text-white-10"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-xl-3">
+            <div class="stat-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <div>
+                            <h6 class="stat-label">Completed</h6>
+                            <h3 class="stat-value mb-0 text-success">{{ completed_orders|default:0 }}</h3>
+                            <div class="text-white-50 small mt-1">
+                                <i class="fas fa-caret-up me-1"></i> 5.7% from last month
+                            </div>
+                        </div>
+                        <div class="ms-auto">
+                            <i class="fas fa-check-circle stat-icon text-white-10"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Active Filters Display -->
@@ -112,170 +396,192 @@
     </div>
 
     <!-- Orders Table -->
-    <div class="card shadow mb-4 border-0 bg-gray-800">
-        <div class="card-header d-flex justify-content-between align-items-center bg-gray-800 border-0 py-3">
-            <h6 class="m-0 font-weight-bold text-gray-100">
-                <i class="fas fa-table me-2"></i>Order History
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-list-ul me-2"></i>Recent Orders
             </h6>
             <div class="d-flex gap-2">
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
-                            id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-filter me-1"></i> Filter
+                            id="timeFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="far fa-clock me-1"></i> Time Period
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end bg-gray-800 border-gray-700" aria-labelledby="filterDropdown">
-                        <li><a class="dropdown-item text-white" href="#">Today</a></li>
-                        <li><a class="dropdown-item text-white" href="#">This Week</a></li>
-                        <li><a class="dropdown-item text-white" href="#">This Month</a></li>
-                        <li><hr class="dropdown-divider bg-gray-700"></li>
-                        <li><a class="dropdown-item text-white" href="#">All Time</a></li>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="?time_period=today">Today</a></li>
+                        <li><a class="dropdown-item" href="?time_period=week">This Week</a></li>
+                        <li><a class="dropdown-item" href="?time_period=month">This Month</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="?time_period=all">All Time</a></li>
                     </ul>
                 </div>
-                <button class="btn btn-sm btn-outline-primary">
+                <a href="#" class="btn btn-sm btn-outline-primary" id="exportBtn">
                     <i class="fas fa-download me-1"></i> Export
-                </button>
+                </a>
             </div>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             {% if page_obj %}
             <div class="table-responsive">
-                <div class="list-group list-group-flush">
-                    {% for order_data in page_obj %}
-                    {% with order=order_data.order %}
-                    <div class="list-group-item bg-gray-800 border-gray-700">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <div>
-                                <h6 class="mb-0 d-flex align-items-center">
-                                    <a href="{% url 'vendor:order_detail' order.id %}" class="text-primary text-decoration-none fw-bold me-3">
-                                        #{{ order.id }}
+                <table class="table table-hover table-borderless mb-0" id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">ORDER</th>
+                            <th>CUSTOMER</th>
+                            <th>ITEMS</th>
+                            <th>TOTAL</th>
+                            <th>STATUS</th>
+                            <th>DATE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order_data in page_obj %}
+                        {% with order=order_data.order %}
+                        <tr class="align-middle clickable-row" data-href="{% url 'vendor:order_detail' order.id %}">
+                            <td class="ps-4">
+                                <div class="fw-medium">#{{ order.id|stringformat:"06d" }}</div>
+                                <small class="text-muted">{{ order.created_at|timesince }} ago</small>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle-sm bg-primary bg-opacity-10 text-primary me-2">
+                                        {% if order.user %}
+                                            {{ order.user.first_name|first|upper }}{{ order.user.last_name|first|default:''|upper }}
+                                        {% else %}
+                                            GU
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="fw-medium">
+                                            {% if order.user %}
+                                                {% with name=order.user.get_full_name %}
+                                                    {{ name|default:order.user.email|truncatechars:20 }}
+                                                {% endwith %}
+                                            {% else %}
+                                                Guest User
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ order_data.total_items }} items</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ order_data.total_items }} items</td>
+                            <td class="fw-medium">${{ order_data.total_amount|default:0|floatformat:2|intcomma }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if order.status == 'completed' %}bg-success
+                                    {% elif order.status == 'cancelled' %}bg-danger
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="text-muted">{{ order.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endwith %}
+                        {% empty %}
+                        <tr>
+                            <th colspan="6" class="text-center py-5">
+                                <div class="py-5">
+                                    <div class="mb-4">
+                                        <i class="fas fa-inbox fa-4x text-gray-500"></i>
+                                    </div>
+                                    <h4 class="text-gray-300 mb-2">No Orders Found</h4>
+                                    <p class="text-muted mb-4">No orders match your current filters.</p>
+                                    <a href="{% url 'vendor:orders' %}" class="btn btn-primary">
+                                        <i class="fas fa-undo me-1"></i> Clear Filters
                                     </a>
-                                    <span class="badge bg-{{ order.get_status_display|lower }}-soft">
-                                        {{ order.get_status_display }}
-                                    </span>
-                                </h6>
-                                <small class="text-muted">
-                                    {{ order.created_at|date:"M d, Y H:i" }}
-                                    {% if order.user %}
-                                    • {{ order.user.get_full_name|default:order.user.email }}
-                                    {% endif %}
-                                </small>
-                            </div>
-                            <div class="text-end">
-                                <div class="h5 mb-0">${{ order_data.total_amount|floatformat:2|intcomma }}</div>
-                                <small class="text-muted">{{ order_data.total_items }} item{{ order_data.total_items|pluralize }}</small>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-2">
-                            {% for item in order_data.items %}
-                            <div class="d-flex align-items-center py-2 border-top border-gray-700">
-                                <div class="flex-shrink-0 me-3">
-                                    {% if item.variation.images.first %}
-                                    <img src="{{ item.variation.images.first.image.url }}" 
-                                         class="rounded" width="50" height="50" 
-                                         alt="{{ item.variation.product.name }}">
-                                    {% else %}
-                                    <div class="bg-gray-700 rounded d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                        <i class="fas fa-box text-gray-500"></i>
-                                    </div>
-                                    {% endif %}
                                 </div>
-                                <div class="flex-grow-1">
-                                    <div class="d-flex justify-content-between">
-                                        <div>
-                                            <div class="fw-medium">{{ item.variation.product.name }}</div>
-                                            <small class="text-muted">
-                                                {{ item.variation.name|default:"Standard" }}
-                                                {% if item.variation.sku %}
-                                                • SKU: {{ item.variation.sku }}
-                                                {% endif %}
-                                            </small>
-                                        </div>
-                                        <div class="text-end">
-                                            <div>${{ item.price|floatformat:2|intcomma }} × {{ item.quantity }}</div>
-                                            <div class="fw-medium">${{ item.subtotal|floatformat:2|intcomma }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        
-                        <div class="mt-3 pt-2 border-top border-gray-700 d-flex justify-content-end">
-                            <a href="{% url 'vendor:order_detail' order.id %}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-eye me-1"></i> View Details
-                            </a>
-                        </div>
-                    </div>
-                    {% endwith %}
-                    {% empty %}
-                    <div class="text-center py-5">
-                        <div class="py-5">
-                            <div class="mb-4">
-                                <i class="fas fa-inbox fa-4x text-gray-500"></i>
-                            </div>
-                            <h4 class="text-gray-300 mb-2">No Orders Found</h4>
-                            <p class="text-muted mb-4">No orders match your current filters.</p>
-                            <a href="{% url 'vendor:orders' %}" class="btn btn-primary">
-                                <i class="fas fa-undo me-1"></i> Clear Filters
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
             
             <!-- Pagination -->
-            <div class="d-flex justify-content-between align-items-center mt-4">
-                <div class="text-muted small">
-                    Showing <span class="fw-semibold">{{ page_obj.start_index }}</span> to 
-                    <span class="fw-semibold">{{ page_obj.end_index }}</span> of 
-                    <span class="fw-semibold">{{ page_obj.paginator.count }}</span> orders
-                </div>
-                <nav aria-label="Orders pagination">
-                    <ul class="pagination pagination-sm mb-0">
-                        {% if page_obj.has_previous %}
-                        <li class="page-item">
-                            <a class="page-link bg-gray-800 border-gray-700 text-white" href="?page=1">
-                                <i class="fas fa-angle-double-left"></i>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link bg-gray-800 border-gray-700 text-white" 
-                               href="?page={{ page_obj.previous_page_number }}">
-                                <i class="fas fa-angle-left"></i>
-                            </a>
-                        </li>
-                        {% endif %}
-                        
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                                <li class="page-item active">
-                                    <span class="page-link bg-primary border-primary">{{ num }}</span>
-                                </li>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <div class="card mt-4 border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                        <div class="text-muted small mb-2 mb-md-0">
+                            Showing <span class="fw-semibold text-dark">{{ page_obj.start_index }}</span> to 
+                            <span class="fw-semibold text-dark">{{ page_obj.end_index }}</span> of 
+                            <span class="fw-semibold text-dark">{{ page_obj.paginator.count|intcomma }}</span> orders
+                        </div>
+                        <nav aria-label="Orders pagination">
+                            <ul class="pagination pagination-sm mb-0">
+                                {% if page_obj.has_previous %}
                                 <li class="page-item">
-                                    <a class="page-link bg-gray-800 border-gray-700 text-white" 
-                                       href="?page={{ num }}">{{ num }}</a>
+                                    <a class="page-link bg-white border-gray-200 text-gray-700 hover-bg-gray-50" 
+                                       href="?page=1" title="First Page">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
                                 </li>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if page_obj.has_next %}
-                        <li class="page-item">
-                            <a class="page-link bg-gray-800 border-gray-700 text-white" 
-                               href="?page={{ page_obj.next_page_number }}">
-                                <i class="fas fa-angle-right"></i>
-                            </a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link bg-gray-800 border-gray-700 text-white" 
-                               href="?page={{ page_obj.paginator.num_pages }}">
-                                <i class="fas fa-angle-double-right"></i>
-                            </a>
-                        </li>
-                        {% endif %}
+                                <li class="page-item">
+                                    <a class="page-link bg-white border-gray-200 text-gray-700 hover-bg-gray-50" 
+                                       href="?page={{ page_obj.previous_page_number }}" title="Previous">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link bg-gray-100 border-gray-200 text-gray-400">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link bg-gray-100 border-gray-200 text-gray-400">
+                                        <i class="fas fa-angle-left"></i>
+                                    </span>
+                                </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link bg-primary border-primary">{{ num }}</span>
+                                    </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link bg-white border-gray-200 text-gray-700 hover-bg-gray-50" 
+                                           href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                                    <li class="page-item">
+                                        <a class="page-link bg-white border-gray-200 text-gray-700 hover-bg-gray-50" 
+                                           href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link bg-transparent border-0">...</span>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link bg-white border-gray-200 text-gray-700 hover-bg-gray-50" 
+                                       href="?page={{ page_obj.next_page_number }}" title="Next">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link bg-white border-gray-200 text-gray-700 hover-bg-gray-50" 
+                                       href="?page={{ page_obj.paginator.num_pages }}" title="Last Page">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                                {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link bg-gray-100 border-gray-200 text-gray-400">
+                                        <i class="fas fa-angle-right"></i>
+                                    </span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link bg-gray-100 border-gray-200 text-gray-400">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </span>
+                                </li>
+                                {% endif %}
                     </ul>
                 </nav>
             </div>
@@ -296,74 +602,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
-<style>
-    /* Custom styles for the date range picker */
-    .daterangepicker {
-        background: #1f2937;
-        border: 1px solid #374151;
-        box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-    .daterangepicker:before, 
-    .daterangepicker:after {
-        border-bottom-color: #374151;
-    }
-    .daterangepicker .calendar-table {
-        background: #1f2937;
-        border: none;
-    }
-    .daterangepicker td.off {
-        color: #6b7280;
-    }
-    .daterangepicker td.available:hover, 
-    .daterangepicker th.available:hover {
-        background: #374151;
-    }
-    .daterangepicker td.in-range {
-        background: #1e3a8a;
-    }
-    .daterangepicker td.active, 
-    .daterangepicker td.active:hover {
-        background: #3b82f6;
-    }
-    .ranges li {
-        color: #e5e7eb;
-    }
-    .ranges li:hover {
-        background: #374151;
-    }
-    .ranges li.active {
-        background: #1e40af;
-    }
-    /* Custom scrollbar for dropdowns */
-    .dropdown-menu {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-    /* Style for the price range inputs */
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    /* Custom styling for the filter badges */
-    .filter-badge {
-        background: #1e40af;
-        color: white;
-        border-radius: 4px;
-        padding: 2px 8px;
-        font-size: 0.75rem;
-        margin-right: 4px;
-        display: inline-flex;
-        align-items: center;
-    }
-    .filter-badge i {
-        margin-left: 4px;
-        cursor: pointer;
-    }
 </style>
 {% endblock %}
 
@@ -371,7 +610,15 @@
 <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
-$(document).ready(function() {
+// Make table rows clickable
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle clickable rows
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
+        });
+    });
+
     // Initialize date range picker
     $('input[name="date_range"]').daterangepicker({
         autoUpdateInput: false,

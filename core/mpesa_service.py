@@ -74,31 +74,39 @@ class MPesaService:
     
     def get_callback_url(self, request=None, order_id=None):
         """
-        Get the callback URL for order detail page, using dynamic hostname if ngrok is enabled.
+        Get the M-Pesa callback URL using ngrok URL from environment variables.
+        Format: https://{NGROK_HOSTNAME}/api/mpesa-callback/
         """
-        if order_id:
-            if getattr(settings, 'USE_NGROK', False):
-                ngrok_hostname = getattr(settings, 'NGROK_HOSTNAME', 'localhost:8000')
-                if ngrok_hostname != 'localhost:8000':
-                    callback_url = f"https://{ngrok_hostname}/orders/{order_id}/"
-                else:
-                    callback_url = f"http://localhost:8000/orders/{order_id}/"
-            else:
-                # Use the request to build the URL dynamically
-                if request:
-                    callback_url = f"{request.scheme}://{request.get_host()}/orders/{order_id}/"
-                else:
-                    callback_url = f"http://localhost:8000/orders/{order_id}/"
-            
-            # Print callback URL for debugging
-            logger.info(f"Generated callback URL for order {order_id}: {callback_url}")
-            print(f"DEBUG: Callback URL for order {order_id}: {callback_url}")
-            return callback_url
+        # Get ngrok hostname from environment
+        ngrok_hostname = os.getenv('NGROK_HOSTNAME', '').strip()
         
-        # Fallback to configured callback URL
-        logger.info(f"Using fallback callback URL: {self.callback_url}")
-        print(f"DEBUG: Using fallback callback URL: {self.callback_url}")
-        return self.callback_url
+        if ngrok_hostname:
+            # Ensure ngrok URL is properly formatted
+            ngrok_hostname = ngrok_hostname.replace('http://', '').replace('https://', '').rstrip('/')
+            callback_url = f"https://{ngrok_hostname}/api/mpesa-callback/"
+            logger.info(f"Using ngrok M-Pesa callback URL: {callback_url}")
+            return callback_url
+            
+        # Fallback to the callback URL from settings if ngrok is not configured
+        if self.callback_url and self.callback_url.strip() and self.callback_url != 'https://yourdomain.com/api/mpesa-callback/':
+            callback_url = self.callback_url.strip()
+            if not callback_url.endswith('/'):
+                callback_url += '/'
+            logger.info(f"Using M-Pesa callback URL from settings: {callback_url}")
+            return callback_url
+            
+        # Last resort: use request host if available
+        if request is not None:
+            scheme = 'https' if request.is_secure() else 'http'
+            host = request.get_host()
+            callback_url = f"{scheme}://{host}/api/mpesa-callback/"
+            logger.warning(f"Using request-based fallback M-Pesa callback URL: {callback_url}")
+            return callback_url
+            
+        # Final fallback (shouldn't happen in normal operation)
+        fallback = 'https://yourdomain.com/api/mpesa-callback/'
+        logger.error(f"No valid callback URL found! Using fallback: {fallback}")
+        return fallback
     
     def _is_html_response(self, response_text):
         """Check if the response is HTML instead of JSON."""
@@ -285,7 +293,7 @@ class MPesaService:
                 'PartyA': phone,
                 'PartyB': self.business_shortcode,
                 'PhoneNumber': phone,
-                'CallBackURL': callback_url or self.get_callback_url(request, order_id),
+                'CallBackURL': self.get_callback_url(request=request, order_id=order_id),
                 'AccountReference': account_reference[:12],  # Max 12 chars
                 'TransactionDesc': description[:13]  # Max 13 chars
             }

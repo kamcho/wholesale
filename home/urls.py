@@ -33,7 +33,7 @@ urlpatterns = [
     path('api/process-mpesa-payment/', views.process_mpesa_payment, name='process_mpesa_payment'),
     path('api/process-card-payment/', views.process_card_payment, name='process_card_payment'),
     path('api/mpesa-callback/', views.mpesa_callback, name='mpesa_callback'),
-    path('api/check-payment-status/<int:order_id>/', views.check_payment_status, name='check_payment_status'),
+    path('api/check-payment-status/<str:checkout_request_id>/', views.check_payment_status, name='check_payment_status'),
     path('api/order-requests/<int:order_request_id>/process-mpesa-payment/', views.process_mpesa_payment_for_order_request, name='process_mpesa_payment_for_order_request'),
     path('wishlist/', views.wishlist_list, name='wishlist'),
     path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
@@ -51,9 +51,8 @@ urlpatterns = [
     path('manage/categories/filter/<int:filter_id>/delete/', admin_views.delete_category_filter, name='delete_category_filter'),
     path('manage/categories/category/<int:category_id>/delete/', admin_views.delete_product_category, name='delete_product_category'),
     
-    # Buyer-Seller Chat URLs (moved before the old chat URLs to avoid conflicts)
-    path('start-chat/<int:seller_id>/', buyer_seller_chat_views.start_chat, name='start_chat'),
-    path('start-chat/<int:seller_id>/product/<int:product_id>/', buyer_seller_chat_views.start_chat, name='start_chat_with_product'),
+    # Buyer-Seller Chat URLs
+    path('start-chat/<int:seller_id>/', buyer_seller_chat_views.start_chat, name='start_chat'),  # product_id can be passed as query parameter
     path('private-chat/<int:chat_id>/', buyer_seller_chat_views.buyer_seller_chat, name='buyer_seller_chat'),
     path('private-chat/<int:chat_id>/create-order/', buyer_seller_chat_views.create_order_from_chat, name='create_order_from_chat'),
     path('chats/', buyer_seller_chat_views.chat_list, name='chat_list'),

@@ -4,8 +4,123 @@ from django.core.exceptions import ValidationError
 from django.conf import settings   # use settings.AUTH_USER_MODEL instead of hardcoding
                                    # so it works with custom User models
 import uuid
-from decimal import Decimal
+import json
+from decimal import Decimal, ROUND_HALF_UP
 from django_countries.fields import CountryField
+
+
+class PaymentRequest(models.Model):
+    """
+    Model to store M-Pesa payment request and callback data
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+        ('timeout', 'Timed Out'),
+        ('insufficient', 'Insufficient Balance'),
+    ]
+
+    # Request details
+    merchant_request_id = models.CharField(max_length=100, blank=True, null=True)
+    checkout_request_id = models.CharField(max_length=100, blank=True, null=True)
+    order = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='payment_requests')
+    order_request = models.ForeignKey('OrderRequest', on_delete=models.SET_NULL, null=True, blank=True, related_name='payment_requests')
+    
+    # Payment details
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    account_reference = models.CharField(max_length=100, blank=True, null=True)
+    transaction_desc = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Status and timestamps
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_complete = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Raw request and response data
+    request_data = models.JSONField(blank=True, null=True)
+    callback_data = models.JSONField(blank=True, null=True)
+    
+    # Transaction details from callback
+    mpesa_receipt_number = models.CharField(max_length=100, blank=True, null=True)
+    transaction_date = models.DateTimeField(blank=True, null=True)
+    transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    
+    # Error information
+    error_code = models.CharField(max_length=50, blank=True, null=True)
+    error_message = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Payment Request'
+        verbose_name_plural = 'Payment Requests'
+    
+    def __str__(self):
+        return f"Payment {self.id} - {self.get_status_display()} - {self.amount} KES"
+    
+    def update_from_callback(self, callback_data):
+        """
+        Update payment request with callback data from M-Pesa
+        """
+        self.callback_data = callback_data
+        
+        # Parse the callback data
+        result_code = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultCode')
+        result_desc = callback_data.get('Body', {}).get('stkCallback', {}).get('ResultDesc', '').lower()
+        
+        # Map M-Pesa result codes to our statuses
+        if result_code == 0:
+            self.status = 'completed'
+            self.is_complete = True
+            
+            # Extract transaction details from callback metadata
+            metadata = {}
+            for item in callback_data.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', []):
+                if 'Name' in item and 'Value' in item:
+                    metadata[item['Name']] = item['Value']
+            
+            self.mpesa_receipt_number = metadata.get('MpesaReceiptNumber')
+            
+            # Handle transaction date conversion
+            transaction_date = metadata.get('TransactionDate')
+            if transaction_date and isinstance(transaction_date, str):
+                try:
+                    # M-Pesa date format: YYYYMMDDHHmmss
+                    from datetime import datetime
+                    self.transaction_date = datetime.strptime(transaction_date, '%Y%m%d%H%M%S')
+                except (ValueError, TypeError) as e:
+                    # If parsing fails, just set to current time
+                    from django.utils import timezone
+                    self.transaction_date = timezone.now()
+            
+            # Update amount if provided in metadata
+            amount = metadata.get('Amount')
+            if amount is not None:
+                try:
+                    self.amount = Decimal(str(amount))
+                except (TypeError, ValueError):
+                    # If amount conversion fails, keep the existing value
+                    pass
+            
+        elif 'cancelled' in result_desc or 'canceled' in result_desc:
+            self.status = 'cancelled'
+            self.error_message = result_desc
+        elif 'timeout' in result_desc:
+            self.status = 'timeout'
+            self.error_message = result_desc
+        elif 'insufficient' in result_desc or 'balance' in result_desc:
+            self.status = 'insufficient'
+            self.error_message = result_desc
+        else:
+            self.status = 'failed'
+            self.error_message = result_desc
+        
+        self.save()
+        return self
+
 
 class ExchangeRate(models.Model):
     currency = models.CharField(max_length=3)
@@ -470,14 +585,7 @@ class PromiseFee(models.Model):
     def __str__(self):
         return f"{self.variation} - {self.name}" 
 
-class IRate(models.Model):
-    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='i_rates')
-    lower_range= models.PositiveIntegerField()
-    upper_range = models.PositiveIntegerField()
-    must_pay_shipping = models.BooleanField(default=False)
-    rate = models.DecimalField(max_digits=10, decimal_places=2)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+
 
  
 
@@ -588,6 +696,14 @@ class Order(models.Model):
         ("delivered", "Delivered"),
         ("cancelled", "Cancelled"),
     ]
+    # In home/models.py, in the Order model, add:
+    order_request = models.OneToOneField(
+    'OrderRequest',
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name='order'
+)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -619,16 +735,51 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=50, blank=True, null=True)
     transaction_id = models.CharField(max_length=100, blank=True, null=True)
     note = models.TextField(blank=True, null=True, help_text="Additional notes or instructions for this order")
-
+    pay_now = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    pay_later = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     def calculate_total(self):
-        self.total = sum(item.subtotal() for item in self.items.all())
-        self.save()
+        """Calculate the total cost including all items and additional fees."""
+        item_total = sum(item.subtotal() for item in self.items.all())
+        additional_fees = sum(fee.amount for fee in self.additional_fees.all())
+        self.total = item_total + additional_fees
+        return self.total
+        
+    def get_total_cost(self):
+        """Calculate the total cost of the order by summing all items and additional fees."""
+        if not self.pk:
+            return getattr(self, 'total', 0)
+        return self.calculate_total()
+        
+    def update_payment_split(self, pay_now_amount=None):
+        """Update pay_now and pay_later amounts based on the total."""
+        total = self.calculate_total()
+        
+        if pay_now_amount is not None:
+            # Ensure pay_now_amount doesn't exceed the total
+            pay_now = min(max(Decimal('0'), Decimal(str(pay_now_amount))), total)
+            self.pay_now = pay_now
+            self.pay_later = total - pay_now
+        else:
+            # Default to full amount to pay now if not specified
+            self.pay_now = total
+            self.pay_later = Decimal('0')
+            
+        self.save(update_fields=['pay_now', 'pay_later', 'updated_at'])
+        return self.pay_now, self.pay_later
         
     def save(self, *args, **kwargs):
         # Set created_by to the user if it's a new order and created_by is not set
         if not self.pk and not self.created_by_id and hasattr(self, '_current_user'):
             self.created_by = self._current_user
+        
+        # Save the order first to get a primary key
         super().save(*args, **kwargs)
+        
+        # Update the total after saving (in case items were added before saving)
+        if not kwargs.pop('skip_total_update', False):
+            self.total = self.get_total_cost()
+            # Save again with the updated total
+            super().save(update_fields=['total'] if self.pk else None)
 
     def __str__(self):
         if self.user:
@@ -643,9 +794,31 @@ class OrderItem(models.Model):
     )
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def subtotal(self):
         return self.price * Decimal(self.quantity)
+        
+    def save(self, *args, **kwargs):
+        skip_order_update = kwargs.pop('skip_order_update', False)
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        # Update order total after saving the item
+        if not skip_order_update:
+            # Create a copy of kwargs without skip_total_update to pass to order.save()
+            order_save_kwargs = {k: v for k, v in kwargs.items() if k != 'skip_total_update'}
+            self.order.save(**order_save_kwargs)
+    
+    def delete(self, *args, **kwargs):
+        order = self.order
+        skip_order_update = kwargs.pop('skip_order_update', False)
+        super().delete(*args, **kwargs)
+        # Update order total after deleting the item
+        if not skip_order_update:
+            # Create a copy of kwargs without skip_total_update to pass to order.save()
+            order_save_kwargs = {k: v for k, v in kwargs.items() if k != 'skip_total_update'}
+            order.save(**order_save_kwargs)
 
     def __str__(self):
         return f"{self.quantity} x {self.variation}"
@@ -669,8 +842,49 @@ class OrderRequest(models.Model):
 
     def __str__(self):
         return f"OrderRequest #{self.id} ({self.status})"
+    
+    @property
+    def total_amount(self):
+        """Total amount for the entire order request (deposits + balances + interest)"""
+        total = sum(item.total_amount for item in self.items.all())
+        return Decimal(total).quantize(Decimal('0.00'))
+    
+    @property
+    def amount_due_now(self):
+        """Total amount to be paid now. For items with deposit, it's the deposit amount.
+        For items without deposit, it's the full price.
+        """
+        total = 0
+        for item in self.items.all():
+            if item.deposit_percentage > 0:
+                # For items with deposit, add the deposit amount
+                total += item.deposit_amount
+            else:
+                # For items without deposit, add the full price
+                total += item.subtotal()
+        return Decimal(total).quantize(Decimal('0.00'))
+    
+    @property
+    def amount_due_at_pickup(self):
+        """Total amount to be paid at pickup (balance + interest)"""
+        pickup_total = Decimal('0')
+        for item in self.items.all():
+            if item.deposit_percentage > 0:
+                # For items with deposit: remaining balance + interest
+                remaining_balance = max(Decimal('0'), item.subtotal() - item.deposit_amount)
+                pickup_total += remaining_balance + item.interest_amount
+            # For items without deposit, nothing is due at pickup (already paid in full)
+        return pickup_total.quantize(Decimal('0.00'))
 
 
+class IRate(models.Model):
+    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, related_name='i_rates')
+    lower_range= models.PositiveIntegerField()
+    upper_range = models.PositiveIntegerField()
+    must_pay_shipping = models.BooleanField(default=False)
+    rate = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 class OrderRequestItem(models.Model):
     """Items in an OrderRequest, including proposed deposit percentage per variation."""
     order_request = models.ForeignKey(OrderRequest, on_delete=models.CASCADE, related_name='items')
@@ -681,15 +895,91 @@ class OrderRequestItem(models.Model):
     deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
     def subtotal(self):
-        return self.unit_price * Decimal(self.quantity)
+        """Calculate the subtotal as unit_price * quantity, rounded to 2 decimal places."""
+        total = self.unit_price * Decimal(str(self.quantity))
+        return total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
     @property
     def deposit_amount(self):
-        """Calculate the deposit amount based on percentage"""
-        if self.deposit_percentage > 0:
-            return (self.subtotal() * self.deposit_percentage) / 100
-        return Decimal('0')
+        """
+        Calculate the deposit amount based on percentage.
+        Ensures deposit doesn't exceed 100% of the subtotal.
+        """
+        if self.deposit_percentage <= 0:
+            return Decimal('0.00')
+        # Ensure deposit doesn't exceed 100% of the subtotal
+        deposit = (self.subtotal() * min(self.deposit_percentage, Decimal('100'))) / 100
+        return min(deposit, self.subtotal()).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
 
+    @property
+    def irate(self):
+        """Get the interest rate for this item's deposit percentage.
+        
+        Returns:
+            Optional[IRate]: The matching interest rate, or None if:
+                - No variation is set
+                - Variation has no i_rates relationship
+                - No matching rate range is found
+        """
+        if not hasattr(self, 'variation') or not hasattr(self.variation, 'i_rates'):
+            return None
+            
+        try:
+            return self.variation.i_rates.filter(
+                lower_range__lte=self.deposit_percentage,
+                upper_range__gte=self.deposit_percentage
+            ).select_related('variation').first()
+        except Exception:
+            # Handle any potential database or query errors
+            return None
+
+    @property
+    def interest_amount(self):
+        """
+        Calculates the interest on the remaining balance after deposit.
+        Interest is calculated as: (remaining_balance * rate) / 100
+        """
+        if not self.irate or self.deposit_percentage <= 0:
+            return Decimal('0.00')
+        
+        remaining_balance = self.subtotal() - self.deposit_amount
+        if remaining_balance <= 0:
+            return Decimal('0.00')
+        
+        interest = (remaining_balance * self.irate.rate) / 100
+        return interest.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+    
+    @property
+    def total_amount(self):
+        """
+        Calculates the total amount to be paid, which is the sum of:
+        - The deposit amount
+        - The remaining balance after deposit
+        - Interest on the remaining balance
+        """
+        if self.deposit_percentage > 0:
+            # For items with deposit: deposit + remaining balance + interest
+            remaining_balance = max(Decimal('0'), self.subtotal() - self.deposit_amount)
+            total = self.deposit_amount + remaining_balance + self.interest_amount
+        else:
+            # For items without deposit: just the subtotal
+            total = self.subtotal()
+        return total.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+    
+    @property
+    def balance_due(self):
+        """
+        Calculates the amount to be paid at pickup, which is the sum of:
+        - The remaining balance after deposit
+        - Interest on the remaining balance
+        """
+        remaining_balance = max(Decimal('0'), self.subtotal() - self.deposit_amount)
+        if remaining_balance <= 0:
+            return Decimal('0.00')
+            
+        balance_due = remaining_balance + self.interest_amount
+        return balance_due.quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
+    
 # ==============================
 # WISHLIST
 # ==============================
@@ -955,6 +1245,14 @@ class BuyerSellerMessage(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='buyer_seller_messages'
+    )
+    product = models.ForeignKey(
+        'Product',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='product_chat_messages',
+        help_text="The product this message is about, if any"
     )
     message = models.TextField()
     is_read = models.BooleanField(default=False)
