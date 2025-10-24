@@ -72,6 +72,10 @@ def signup_view(request):
         form = MyUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            # Specify the backend to use for authentication
+            from django.contrib.auth import get_backends
+            backend = 'django.contrib.auth.backends.ModelBackend'
+            user.backend = backend
             login(request, user)
             # Clear any existing messages and show only this one
             messages.get_messages(request)
@@ -117,7 +121,6 @@ def profile_completion_view(request):
         last_name = request.POST.get('last_name')
         phone = request.POST.get('phone')
         location = request.POST.get('location')
-        date_of_birth = request.POST.get('date_of_birth')
         
         # Update user model
         user = request.user
@@ -131,8 +134,6 @@ def profile_completion_view(request):
         profile.last_name = last_name
         profile.phone = phone
         profile.location = location
-        if date_of_birth:
-            profile.date_of_birth = date_of_birth
         profile.save()
         
         # Clear any existing messages and show only this one
