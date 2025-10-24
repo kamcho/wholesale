@@ -1439,6 +1439,22 @@ document.addEventListener('DOMContentLoaded', function(){
 </div>
 
 <script>
+// Make modal functions globally available immediately
+window.openOrderModal = function() {
+    const modal = document.getElementById('orderModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        updateOrderTotal();
+    }
+};
+
+window.closeOrderModal = function() {
+    const modal = document.getElementById('orderModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+};
+
 // Function to handle form submission
 function handleOrderFormSubmit(event) {
     event.preventDefault();
@@ -1491,15 +1507,7 @@ function handleOrderFormSubmit(event) {
     return false;
 }
 
-// Make functions globally available
-window.openOrderModal = function() {
-    document.getElementById('orderModal').style.display = 'flex';
-    updateOrderTotal();
-};
-
-window.closeOrderModal = function() {
-    document.getElementById('orderModal').style.display = 'none';
-};
+// Functions are now defined at the top of the script
 
 // Track product price and variations
 const productPrice = parseFloat('{{ product.price|floatformat:2 }}');
