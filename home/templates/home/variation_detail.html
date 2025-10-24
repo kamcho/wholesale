@@ -1164,14 +1164,15 @@ let quantities = {
     {% endfor %}
 };
 
-function openOrderModal() {
+// Make functions globally available
+window.openOrderModal = function() {
     document.getElementById('orderModal').style.display = 'flex';
     updateOrderTotal();
-}
+};
 
-function closeOrderModal() {
+window.closeOrderModal = function() {
     document.getElementById('orderModal').style.display = 'none';
-}
+};
 
 function incrementQuantity(variationId) {
     const input = document.getElementById(`quantity_${variationId}`);

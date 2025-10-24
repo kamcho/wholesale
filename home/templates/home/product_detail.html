@@ -1545,7 +1545,7 @@ function updateVariationQuantity(variationId, change) {
 
 function updateOrderTotal() {
     let total = 0;
-{{ ... }}
+    let hasValidQuantity = false;
     
     // Check if we have variations
     const variationQuantities = document.querySelectorAll('.variation-quantity');
