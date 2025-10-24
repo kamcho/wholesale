@@ -18,12 +18,18 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Auth URLs
+    path('accounts/', include('allauth.urls')),  # This includes all auth URLs including Google
+    path('accountsf/', include('users.urls')),  # Your custom user URLs
+    
+    # App URLs
     path('', include(('home.urls', 'home'), namespace='home')),
-    path('accounts/', include('users.urls')),
     path('vendor/', include('vendor.urls')),
     path('core/', include('core.urls')),
     path('agents/', include('agents.urls')),

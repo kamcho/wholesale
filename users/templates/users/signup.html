@@ -1,78 +1,204 @@
 {% extends 'users/base.html' %}
+{% load static %}
+{% load socialaccount %}
 
-{% block title %}Sign Up - TravelsKe{% endblock %}
+{% block title %}Sign Up - Import Sourcing Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom styles for form inputs */
+    .form-input {
+        width: 100%;
+        padding: 0.5rem 1rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        transition: all 0.2s;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #0d9488;
+        box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+    }
+    .form-input.error {
+        border-color: #ef4444;
+    }
+    .form-input.error:focus {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md mx-auto">
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
         <!-- Header -->
-        <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full mb-4">
-                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+        <div class="text-center">
+            <div class="mx-auto h-16 w-16 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center mb-6">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                 </svg>
             </div>
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Join TravelsKe</h1>
-            <p class="text-gray-600">Create your account and start exploring</p>
+            <h2 class="text-3xl font-extrabold text-gray-900">
+                Create your account
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Or 
+                <a href="{% url 'login' %}" class="font-medium text-teal-600 hover:text-teal-500">
+                    sign in to your existing account
+                </a>
+            </p>
         </div>
 
         <!-- Signup Form -->
-        <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-            <form method="post">
+        <div class="mt-8 bg-white py-8 px-6 shadow-lg rounded-lg border border-gray-100">
+            <form class="space-y-6" method="post" novalidate>
                 {% csrf_token %}
                 
-                <div class="space-y-6">
+                <div class="space-y-4">
+                    {% if form.non_field_errors %}
+                        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-red-700">
+                                        {{ form.non_field_errors.0 }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Email Field -->
                     <div>
-                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.email.label }}
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Email address
                         </label>
-                        {{ form.email }}
+                        <div class="mt-1">
+                            <input 
+                                type="email" 
+                                name="{{ form.email.name }}" 
+                                id="{{ form.email.id_for_label }}" 
+                                value="{{ form.email.value|default:'' }}"
+                                autocomplete="email"
+                                class="form-input {% if form.email.errors %}error{% endif %}"
+                                required
+                            >
+                        </div>
                         {% if form.email.errors %}
-                            <div class="mt-1 text-sm text-red-600">
-                                {% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}
-                            </div>
+                            <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
                         {% endif %}
                     </div>
-                    
+
+                    <!-- Password Field -->
                     <div>
-                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.password1.label }}
+                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Password
                         </label>
-                        {{ form.password1 }}
+                        <div class="mt-1">
+                            <input 
+                                type="password" 
+                                name="{{ form.password1.name }}" 
+                                id="{{ form.password1.id_for_label }}" 
+                                autocomplete="new-password"
+                                class="form-input {% if form.password1.errors %}error{% endif %}"
+                                required
+                            >
+                        </div>
+                        {% if form.password1.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.password1.help_text }}</p>
+                        {% endif %}
                         {% if form.password1.errors %}
-                            <div class="mt-1 text-sm text-red-600">
-                                {% for error in form.password1.errors %}<p>{{ error }}</p>{% endfor %}
-                            </div>
+                            <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
                         {% endif %}
                     </div>
-                    
+
+                    <!-- Password Confirmation Field -->
                     <div>
-                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            {{ form.password2.label }}
+                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                            Confirm Password
                         </label>
-                        {{ form.password2 }}
+                        <div class="mt-1">
+                            <input 
+                                type="password" 
+                                name="{{ form.password2.name }}" 
+                                id="{{ form.password2.id_for_label }}" 
+                                autocomplete="new-password"
+                                class="form-input {% if form.password2.errors %}error{% endif %}"
+                                required
+                            >
+                        </div>
                         {% if form.password2.errors %}
-                            <div class="mt-1 text-sm text-red-600">
-                                {% for error in form.password2.errors %}<p>{{ error }}</p>{% endfor %}
-                            </div>
+                            <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
                         {% endif %}
                     </div>
+
+                    <!-- Role Field (Hidden by default, can be set via URL parameter) -->
+                    <input type="hidden" name="role" value="{{ request.GET.role|default:'Customer' }}">
                     
-                    <div class="flex items-start space-x-3">
-                        <input id="terms" name="terms" type="checkbox" required
-                               class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label for="terms" class="text-sm text-gray-700">
-                            I agree to the
-                            <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">Terms and Conditions</a>
-                            and
-                            <a href="#" class="text-blue-600 hover:text-blue-700 font-medium">Privacy Policy</a>
-                        </label>
+                    <!-- Terms and Conditions -->
+                    <div class="flex items-start">
+                        <div class="flex items-center h-5">
+                            <input id="terms" name="terms" type="checkbox" required
+                                class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                {% if form.terms.value %}checked{% endif %}>
+                        </div>
+                        <div class="ml-3 text-sm">
+                            <label for="terms" class="font-medium text-gray-700">I agree to the</label>
+                            <a href="" class="text-teal-600 hover:text-teal-500"> Terms & Conditions </a>
+                            <span class="text-gray-700">and</span>
+                            <a href="" class="text-teal-600 hover:text-teal-500"> Privacy Policy</a>
+                            {% if form.terms.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.terms.errors.0 }}</p>
+                            {% endif %}
+                        </div>
                     </div>
                     
-                    <button type="submit" 
-                            class="w-full bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white py-3 px-4 rounded-lg font-semibold transition duration-200 shadow-lg hover:shadow-xl">
-                        Create Account
-                    </button>
+                    <!-- Submit Button -->
+                    <div>
+                        <button type="submit"
+                            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out">
+                            Create Account
+                        </button>
+                    </div>
+                    
+                    <!-- Social Login Divider -->
+                    <div class="relative">
+                        <div class="absolute inset-0 flex items-center">
+                            <div class="w-full border-t border-gray-300"></div>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="px-2 bg-white text-gray-500">Or continue with</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Social Login Buttons -->
+                    <div class="mt-6 grid grid-cols-1 gap-3">
+                        <a href="{% provider_login_url 'google' %}" 
+                           class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                            <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                                <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+                                    <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.28426 53.749 C -8.52426 55.229 -9.42426 56.479 -10.7843 57.329 L -10.7843 60.529 L -6.82426 60.529 C -4.56426 58.499 -3.264 55.279 -3.264 51.509 Z"/>
+                                    <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.80426 62.159 -6.82426 60.529 L -10.7843 57.329 C -11.7643 58.049 -13.074 58.489 -14.754 58.489 C -17.444 58.489 -19.654 56.849 -20.474 54.479 L -24.594 54.479 L -24.594 57.779 C -22.564 61.689 -18.924 63.239 -14.754 63.239 Z"/>
+                                    <path fill="#FBBC05" d="M -20.474 54.479 C -20.724 53.719 -20.864 52.899 -20.864 52.039 C -20.864 51.179 -20.724 50.359 -20.474 49.599 L -20.474 46.289 L -24.594 46.289 C -25.564 48.299 -26.004 50.539 -26.004 52.039 C -26.004 53.539 -25.564 55.779 -24.594 57.789 L -20.474 54.479 Z"/>
+                                    <path fill="#EA4335" d="M -14.754 45.589 C -12.984 45.589 -11.404 46.199 -10.0846 47.389 L -6.82426 44.129 C -8.80426 42.189 -11.514 41.039 -14.754 41.039 C -18.924 41.039 -22.564 42.919 -24.594 46.289 L -20.474 49.599 C -19.654 47.229 -17.444 45.589 -14.754 45.589 Z"/>
+                                </g>
+                            </svg>
+                            Sign up with Google
+                        </a>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="pt-2">
+                        <button type="submit" 
+                                class="w-full bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white py-3 px-4 rounded-lg font-semibold transition duration-200 shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                            Create Account
+                        </button>
+                    </div>
                 </div>
             </form>
             
@@ -98,13 +224,35 @@
             {% endif %}
         </div>
         
-        <!-- Login Link -->
-        <div class="text-center mt-6">
-            <span class="text-gray-600">Already have an account? </span>
-            <a href="{% url 'login' %}" class="text-blue-600 hover:text-blue-700 font-semibold">
-                Sign in here
-            </a>
-        </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add error class to form inputs with errors
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add error class to any input with errors
+        const errorInputs = document.querySelectorAll('.error');
+        errorInputs.forEach(input => {
+            input.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+        });
+        
+        // Add focus styles to form inputs
+        const formInputs = document.querySelectorAll('.form-input');
+        formInputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                if (this.classList.contains('error')) {
+                    this.classList.add('ring-2', 'ring-red-500', 'border-red-500');
+                } else {
+                    this.classList.add('ring-2', 'ring-teal-500', 'border-teal-500');
+                }
+            });
+            
+            input.addEventListener('blur', function() {
+                this.classList.remove('ring-2', 'ring-teal-500', 'ring-red-500', 'border-teal-500');
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -25,7 +25,7 @@ class MyUserManager(BaseUserManager):
 
 class MyUser(AbstractUser):
     email = models.EmailField(_('email address'), max_length=50, unique=True)
-    username = None
+    username = models.CharField(max_length=50, unique=True,null=True, blank=True)
     ROLE_CHOICES = [
         ('Admin', 'Admin'),
         ('Supervisor', 'Supervisor'),

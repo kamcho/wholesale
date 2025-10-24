@@ -1,6 +1,8 @@
 {% extends 'users/base.html' %}
+{% load static %}
+{% load socialaccount %}
 
-{% block title %}Login - TravelsKe{% endblock %}
+{% block title %}Login - Import Sourcing Hub{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -13,7 +15,7 @@
                 </svg>
             </div>
             <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-            <p class="text-gray-600">Sign in to continue your journey with TravelsKe</p>
+            <p class="text-gray-600">Sign in to manage your import sourcing account</p>
         </div>
 
         <!-- Login Form -->
@@ -117,6 +119,33 @@
                 {% endif %}
             </form>
 
+            <!-- Social Auth Buttons -->
+            <div class="mt-6">
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">Or continue with</span>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <a href="{% provider_login_url 'google' %}" 
+                       class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" width="24" height="24" xmlns="http://www.w3.org/2000/svg">
+                            <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
+                                <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.28426 53.749 C -8.52426 55.229 -9.42426 56.479 -10.7843 57.329 L -10.7843 60.529 L -6.82426 60.529 C -4.56426 58.499 -3.264 55.279 -3.264 51.509 Z"/>
+                                <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.80426 62.159 -6.82426 60.529 L -10.7843 57.329 C -11.7643 58.049 -13.074 58.489 -14.754 58.489 C -17.444 58.489 -19.654 56.849 -20.474 54.479 L -24.594 54.479 L -24.594 57.779 C -22.564 61.689 -18.924 63.239 -14.754 63.239 Z"/>
+                                <path fill="#FBBC05" d="M -20.474 54.479 C -20.724 53.719 -20.864 52.899 -20.864 52.039 C -20.864 51.179 -20.724 50.359 -20.474 49.599 L -20.474 46.289 L -24.594 46.289 C -25.564 48.299 -26.004 50.539 -26.004 52.039 C -26.004 53.539 -25.564 55.779 -24.594 57.789 L -20.474 54.479 Z"/>
+                                <path fill="#EA4335" d="M -14.754 45.589 C -12.984 45.589 -11.404 46.199 -10.0846 47.389 L -6.82426 44.129 C -8.80426 42.189 -11.514 41.039 -14.754 41.039 C -18.924 41.039 -22.564 42.919 -24.594 46.289 L -20.474 49.599 C -19.654 47.229 -17.444 45.589 -14.754 45.589 Z"/>
+                            </g>
+                        </svg>
+                        Sign in with Google
+                    </a>
+                </div>
+            </div>
+
             <!-- Divider -->
             <div class="mt-6">
                 <div class="relative">
@@ -124,7 +153,7 @@
                         <div class="w-full border-t border-gray-300"></div>
                     </div>
                     <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white text-gray-500">New to TravelsKe?</span>
+                        <span class="px-2 bg-white text-gray-500">New to Import Sourcing Hub?</span>
                     </div>
                 </div>
             </div>
