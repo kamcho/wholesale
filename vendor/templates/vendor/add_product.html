@@ -64,10 +64,14 @@
                     </div>
                     
                     <div class="row">
-                        
-                        <div class="col-md-6 mb-3">
-                            <label for="{{ form.categories.id_for_label }}" class="form-label">Categories *</label>
-                            {{ form.categories }}
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Categories *</label>
+                            <div id="category-selector">
+                                <!-- Category filter and categories will be loaded here by JavaScript -->
+                            </div>
+                            <!-- Hidden field to store the final selected category ID -->
+                            <input type="hidden" name="categories" id="selected-category" required>
+                            <div id="category-path" class="mt-2 small text-muted"></div>
                             {% if form.categories.errors %}
                                 <div class="text-danger small mt-1">
                                     {% for error in form.categories.errors %}
@@ -75,6 +79,7 @@
                                     {% endfor %}
                                 </div>
                             {% endif %}
+                            <div class="form-text">Select a category filter first, then choose a specific category.</div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
@@ -194,6 +199,194 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    const categoryContainer = $('#category-selector');
+    const selectedCategory = $('#selected-category');
+    const categoryPath = $('#category-path');
+    let selectedCategories = [];
+    let allFilters = [];
+
+    // Load main filters and categories on page load
+    loadFilters();
+
+    // Handle category selection
+    $(document).on('change', '.category-select', function() {
+        const level = parseInt($(this).data('level'));
+        const value = $(this).val();
+        const optionText = $(this).find('option:selected').text();
+        
+        // Clear any existing selections after this level
+        selectedCategories = selectedCategories.slice(0, level);
+        
+        if (value) {
+            if (level === 0) {
+                // Selected a filter
+                const filterId = value.replace('filter_', '');
+                selectedCategories[level] = {
+                    id: filterId,
+                    name: optionText,
+                    isFilter: true
+                };
+                // Load categories for this filter
+                loadCategories(level + 1, filterId);
+            } else {
+                // Selected a category
+                selectedCategories[level] = {
+                    id: value,
+                    name: optionText,
+                    isFilter: false
+                };
+                // Update the hidden field with the selected category ID
+                selectedCategory.val(value);
+            }
+            
+            // Update the path display
+            updateCategoryPath();
+        } else {
+            // Clear was selected
+            if (level === 0) {
+                // If clearing the filter, remove category select
+                $('.category-level').slice(1).remove();
+                selectedCategory.val('');
+            }
+            updateCategoryPath();
+        }
+    });
+
+    // Update the category path display
+    function updateCategoryPath() {
+        if (selectedCategories.length > 0) {
+            const pathText = selectedCategories.map(item => item.name).join(' > ');
+            categoryPath.text('Selected: ' + pathText);
+        } else {
+            categoryPath.text('');
+        }
+    }
+
+    // Function to load filters
+    function loadFilters() {
+        const url = '{% url "vendor:get_categories" %}';
+        const loadingId = 'category-loading';
+        
+        // Show loading state
+        $(`#${loadingId}`).remove();
+        categoryContainer.append(`<div id="${loadingId}" class="text-muted small mb-2">Loading categories...</div>`);
+
+        // Make AJAX request to get filters
+        $.getJSON(url)
+            .done(function(filters) {
+                // Remove loading indicator
+                $(`#${loadingId}`).remove();
+                categoryContainer.empty();
+                
+                if (filters && filters.length > 0) {
+                    allFilters = filters; // Store for later use
+                    
+                    // Create filter select
+                    const filterSelect = `
+                        <div class="category-level mb-3" data-level="0">
+                            <label class="form-label">Category Filter</label>
+                            <select class="form-select category-select" data-level="0" id="category-filter">
+                                <option value="">Select a category filter</option>
+                            </select>
+                        </div>
+                        <div class="category-level mb-3" data-level="1" style="display: none;">
+                            <label class="form-label">Category</label>
+                            <select class="form-select category-select" data-level="1" id="category">
+                                <option value="">Select a category</option>
+                            </select>
+                        </div>
+                    `;
+                    
+                    // Add to container
+                    categoryContainer.append(filterSelect);
+                    
+                    // Add filter options
+                    const filterSelectElement = $('#category-filter');
+                    filters.forEach(function(filter) {
+                        filterSelectElement.append(new Option(filter.name, `filter_${filter.id}`, false, false));
+                    });
+                    
+                    // If there's a selected filter in the URL or form, pre-select it
+                    {% if form.categories.value %}
+                        const selectedId = '{{ form.categories.value }}';
+                        const category = {{ form.categories.value|default:'null' }};
+                        if (category) {
+                            // Find the filter that contains this category
+                            const filter = filters.find(f => 
+                                f.categories.some(cat => cat.id.toString() === selectedId)
+                            );
+                            if (filter) {
+                                $(`#category-filter`).val(`filter_${filter.id}`).trigger('change');
+                                // The category will be selected after the categories are loaded
+                                setTimeout(() => {
+                                    $('#category').val(selectedId);
+                                    updateCategoryPath();
+                                }, 100);
+                            }
+                        }
+                    {% endif %}
+                } else {
+                    categoryContainer.append('<div class="alert alert-warning">No category filters found.</div>');
+                }
+            })
+            .fail(function(xhr, status, error) {
+                $(`#${loadingId}`).text('Error loading category filters: ' + error);
+                console.error('Error loading category filters:', error);
+            });
+    }
+    
+    // Function to load categories for a specific filter
+    function loadCategories(level, filterId) {
+        const url = '{% url "vendor:get_categories" %}';
+        const loadingId = 'category-loading';
+        
+        // Show loading state
+        $(`#${loadingId}`).remove();
+        $(`#category`).parent().after(`<div id="${loadingId}" class="text-muted small mb-2">Loading categories...</div>`);
+
+        // Make AJAX request to get categories for the selected filter
+        $.getJSON(`${url}?filter_id=${filterId}`)
+            .done(function(categories) {
+                // Remove loading indicator
+                $(`#${loadingId}`).remove();
+                
+                // Get the category select element
+                const categorySelect = $('#category');
+                categorySelect.empty().append('<option value="">Select a category</option>');
+                
+                if (categories && categories.length > 0) {
+                    categories.forEach(function(category) {
+                        categorySelect.append(new Option(
+                            category.name, 
+                            category.id, 
+                            false, 
+                            category.id.toString() === selectedCategory.val()
+                        ));
+                    });
+                    categorySelect.parent().show();
+                } else {
+                    categorySelect.parent().hide();
+                }
+                
+                // Update the selected category if needed
+                if (selectedCategories.length > 1 && selectedCategories[1]) {
+                    const selectedId = selectedCategories[1].id.toString();
+                    if (categorySelect.find(`option[value="${selectedId}"]`).length) {
+                        categorySelect.val(selectedId);
+                    }
+                }
+            })
+            .fail(function(xhr, status, error) {
+                $(`#${loadingId}`).text('Error loading categories: ' + error);
+                console.error('Error loading categories:', error);
+            });
+    }
+});
+</script>
+
 <script>
 $(document).ready(function() {
     // Add form validation

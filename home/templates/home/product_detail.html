@@ -1003,6 +1003,27 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
+// Make sure the function is available globally
+window.openOrderModal = function() {
+    const modal = document.getElementById('orderModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        updateOrderTotal();
+    } else {
+        console.error('Order modal not found');
+    }
+};
+
+// Close modal function
+window.closeOrderModal = function() {
+    const modal = document.getElementById('orderModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+};
+
 function changeMainImage(imageUrl) {
     document.getElementById('main-image').src = imageUrl;
 }
@@ -1490,16 +1511,6 @@ function handleOrderFormSubmit(event) {
     
     return false;
 }
-
-// Make functions globally available
-window.openOrderModal = function() {
-    document.getElementById('orderModal').style.display = 'flex';
-    updateOrderTotal();
-};
-
-window.closeOrderModal = function() {
-    document.getElementById('orderModal').style.display = 'none';
-};
 
 // Track product price and variations
 const productPrice = parseFloat('{{ product.price|floatformat:2 }}');

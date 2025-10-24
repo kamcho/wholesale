@@ -23,7 +23,7 @@ from home.models import (
     ProductAttributeAssignment, ProductAttribute, 
     ProductAttributeValue, PriceTier, PromiseFee, 
     IRate, ProductServicing, Agent, OrderRequest, OrderRequestItem, AdditionalFees,
-    BuyerSellerChat, Order
+    BuyerSellerChat, Order, ProductCategoryFilter
 )
 from .forms import (
     ProductForm,
@@ -1491,13 +1491,44 @@ def add_variation_attribute(request, pk):
 
 @login_required
 def get_categories(request):
-    """Get categories for a specific filter (AJAX)"""
+    """Get categories based on filter_id"""
     filter_id = request.GET.get('filter_id')
+    
     if filter_id:
-        categories = ProductCategory.objects.filter(filter_id=filter_id)
-        data = [{'id': cat.id, 'name': cat.name} for cat in categories]
+        # Remove 'filter_' prefix if it exists
+        if filter_id.startswith('filter_'):
+            filter_id = filter_id.replace('filter_', '')
+            
+        try:
+            # Get categories for the selected filter
+            categories = ProductCategory.objects.filter(filter_id=filter_id).order_by('name')
+            data = [{
+                'id': cat.id,
+                'name': cat.name,
+                'filter_id': cat.filter_id
+            } for cat in categories]
+            return JsonResponse(data, safe=False)
+        except (ValueError, ProductCategory.DoesNotExist):
+            return JsonResponse([], safe=False)
+    else:
+        # Get all filters with their categories
+        filters = ProductCategoryFilter.objects.prefetch_related('categories').order_by('name')
+        
+        data = []
+        for filter_obj in filters:
+            filter_data = {
+                'id': f'filter_{filter_obj.id}',
+                'name': filter_obj.name,
+                'is_filter': True,
+                'categories': [{
+                    'id': cat.id,
+                    'name': cat.name,
+                    'filter_id': cat.filter_id
+                } for cat in filter_obj.categories.all()]
+            }
+            data.append(filter_data)
+        
         return JsonResponse(data, safe=False)
-    return JsonResponse([], safe=False)
 
 
 @login_required
