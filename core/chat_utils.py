@@ -56,7 +56,6 @@ def generate_product_context(product, variation=None):
     categories = [{
         'id': cat.id,
         'name': cat.name,
-        'slug': cat.slug,
         'description': getattr(cat, 'description', '')
     } for cat in product.categories.all()] if product.categories.exists() else []
 

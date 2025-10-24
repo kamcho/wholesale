@@ -1491,44 +1491,98 @@ def add_variation_attribute(request, pk):
 
 @login_required
 def get_categories(request):
-    """Get categories based on filter_id"""
+    """Get categories based on filter_id with support for existing product categories"""
     filter_id = request.GET.get('filter_id')
+    product_id = request.GET.get('product_id')
     
-    if filter_id:
-        # Remove 'filter_' prefix if it exists
-        if filter_id.startswith('filter_'):
-            filter_id = filter_id.replace('filter_', '')
+    try:
+        if filter_id:
+            # Handle filter selection
+            if isinstance(filter_id, str) and filter_id.startswith('filter_'):
+                filter_id = filter_id[7:]  # Remove 'filter_' prefix
             
-        try:
-            # Get categories for the selected filter
-            categories = ProductCategory.objects.filter(filter_id=filter_id).order_by('name')
-            data = [{
-                'id': cat.id,
-                'name': cat.name,
-                'filter_id': cat.filter_id
-            } for cat in categories]
-            return JsonResponse(data, safe=False)
-        except (ValueError, ProductCategory.DoesNotExist):
-            return JsonResponse([], safe=False)
-    else:
-        # Get all filters with their categories
-        filters = ProductCategoryFilter.objects.prefetch_related('categories').order_by('name')
-        
-        data = []
-        for filter_obj in filters:
-            filter_data = {
-                'id': f'filter_{filter_obj.id}',
-                'name': filter_obj.name,
-                'is_filter': True,
-                'categories': [{
-                    'id': cat.id,
+            try:
+                filter_id = int(filter_id)  # Ensure it's an integer
+                # Get categories for the selected filter
+                categories = ProductCategory.objects.filter(filter_id=filter_id).order_by('name')
+                
+                # If we have a product ID, include its current category even if not in this filter
+                current_category = None
+                if product_id and product_id.isdigit():
+                    try:
+                        product = Product.objects.get(id=product_id)
+                        if product.categories.exists():
+                            current_category = product.categories.first()
+                            # If current category is not in the filtered set, add it
+                            if current_category.filter_id != filter_id and not categories.filter(id=current_category.id).exists():
+                                categories = list(categories) + [current_category]
+                    except (Product.DoesNotExist, ValueError):
+                        pass
+                
+                data = [{
+                    'id': str(cat.id),  # Ensure ID is a string for consistency
                     'name': cat.name,
-                    'filter_id': cat.filter_id
-                } for cat in filter_obj.categories.all()]
-            }
-            data.append(filter_data)
-        
-        return JsonResponse(data, safe=False)
+                    'filter_id': cat.filter_id,
+                    'is_current': (current_category and cat.id == current_category.id)
+                } for cat in categories]
+                
+                # Sort by name but ensure current category is first if it exists
+                data.sort(key=lambda x: (not x.get('is_current', False), x['name']))
+                
+                return JsonResponse(data, safe=False)
+                
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Invalid filter_id format: {filter_id}")
+                return JsonResponse([], safe=False)
+                
+        else:
+            # Initial load - get all filters with their categories
+            filters = ProductCategoryFilter.objects.prefetch_related('categories').order_by('name')
+            
+            # Get current category if product_id is provided
+            current_category = None
+            if product_id and product_id.isdigit():
+                try:
+                    product = Product.objects.get(id=product_id)
+                    if product.categories.exists():
+                        current_category = product.categories.first()
+                except (Product.DoesNotExist, ValueError):
+                    pass
+            
+            data = []
+            for filter_obj in filters:
+                categories = filter_obj.categories.all()
+                
+                # If we have a current category not in this filter, include it
+                if current_category and current_category.filter_id == filter_obj.id and \
+                   not categories.filter(id=current_category.id).exists():
+                    categories = list(categories) + [current_category]
+                
+                filter_data = {
+                    'id': f'filter_{filter_obj.id}',
+                    'name': filter_obj.name,
+                    'is_filter': True,
+                    'categories': [{
+                        'id': str(cat.id),  # Ensure ID is a string for consistency
+                        'name': cat.name,
+                        'filter_id': cat.filter_id,
+                        'is_current': (current_category and cat.id == current_category.id)
+                    } for cat in categories]
+                }
+                
+                # Sort categories by name but ensure current category is first if it exists
+                filter_data['categories'].sort(key=lambda x: (not x.get('is_current', False), x['name']))
+                
+                data.append(filter_data)
+            
+            return JsonResponse(data, safe=False)
+            
+    except Exception as e:
+        logger.error(f"Error in get_categories: {str(e)}", exc_info=True)
+        return JsonResponse(
+            {'error': 'An error occurred while loading categories'}, 
+            status=500
+        )
 
 
 @login_required
