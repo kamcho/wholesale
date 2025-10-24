@@ -807,34 +807,18 @@ def add_product_variation(request, pk):
         messages.error(request, 'You do not have permission to add variations to this product.')
         return redirect('vendor:product_list')
     
-    VariationImageFormSet = modelformset_factory(
-        ProductImage,
-        form=ProductVariationImageForm,
-        extra=1,
-        can_delete=False,
-    )
-
     if request.method == 'POST':
         form = ProductVariationForm(request.POST)
-        formset = VariationImageFormSet(request.POST, request.FILES, queryset=ProductImage.objects.none())
         
-        if form.is_valid() and formset.is_valid():
+        if form.is_valid():
             try:
                 # Create the variation
                 variation = form.save(commit=False)
                 variation.product = product
                 variation.save()
                 
-                # Save images tied to this variation
-                images = formset.save(commit=False)
-                for img in images:
-                    if img.image:  # Only save if there's an image file
-                        img.variation = variation
-                        img.product = None  # ensure XOR holds
-                        img.save()
-                
                 messages.success(request, 'Product variation added successfully!')
-                return redirect('vendor:product_detail', pk=product.id)
+                return redirect('vendor:variation_detail', pk=variation.id)
                 
             except Exception as e:
                 # Log the error for debugging
@@ -847,19 +831,12 @@ def add_product_variation(request, pk):
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
-            
-            for formset_form in formset:
-                for field, errors in formset_form.errors.items():
-                    for error in errors:
-                        messages.error(request, f"Image {field}: {error}")
     else:
         form = ProductVariationForm()
-        formset = VariationImageFormSet(queryset=ProductImage.objects.none())
 
     context = {
         'product': product,
         'form': form,
-        'formset': formset,
     }
 
     return render(request, 'vendor/add_product_variation.html', context)

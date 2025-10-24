@@ -59,6 +59,44 @@ class ProductForm(forms.ModelForm):
         return instance
 
 
+class ProductVariationImageForm(forms.ModelForm):
+    """Form specifically for adding images to product variations"""
+    class Meta:
+        model = ProductImage
+        fields = ['image', 'caption', 'is_default']
+        widgets = {
+            'image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+                'required': True
+            }),
+            'caption': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter caption (optional)'
+            }),
+            'is_default': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+        
+    def __init__(self, *args, **kwargs):
+        self.variation = kwargs.pop('variation', None)
+        super().__init__(*args, **kwargs)
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        # Ensure product is not set for variation images
+        cleaned_data['product'] = None
+        return cleaned_data
+        
+    def save(self, commit=True):
+        # Set the variation before saving
+        if self.variation:
+            self.instance.variation = self.variation
+            self.instance.product = None  # Ensure product is None for variations
+        return super().save(commit)
+
+
 class ProductImageForm(forms.ModelForm):
     """Form for adding product images and videos"""
     MEDIA_TYPE_CHOICES = [
@@ -190,52 +228,65 @@ class ProductVariationImageForm(forms.ModelForm):
     """Form for adding images attached to a ProductVariation."""
     class Meta:
         model = ProductImage
-        fields = ['image', 'caption', 'is_default']
+        fields = ['image', 'caption', 'is_default', 'product', 'variation']
         widgets = {
             'image': forms.FileInput(attrs={
                 'class': 'form-control',
                 'accept': 'image/*',
                 'required': True
             }),
+            'product': forms.HiddenInput(),
+            'variation': forms.HiddenInput(),
             'caption': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Image caption (optional)'
+                'placeholder': 'Enter caption (optional)'
             }),
             'is_default': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             })
         }
-    
+
     def __init__(self, *args, **kwargs):
         self.variation = kwargs.pop('variation', None)
         super().__init__(*args, **kwargs)
-        self.fields['image'].required = True
         
-        # Set the variation on the instance if provided
-        if self.variation and not self.instance.pk:
-            self.instance.variation = self.variation
-    
+        # Always set product to None for variation images
+        self.fields['product'].initial = None
+        
+        if self.variation:
+            self.fields['variation'].initial = self.variation
+            
+            # Set the instance values to ensure validation passes
+            if self.instance and not self.instance.pk:
+                self.instance.variation = self.variation
+                self.instance.product = None  # Explicitly set to None
+                
+        # Make sure these fields are not required in the form
+        self.fields['product'].required = False
+        self.fields['variation'].required = False
+        
     def clean(self):
         cleaned_data = super().clean()
-        if not self.variation:
-            raise forms.ValidationError("Variation is required")
         
-        # Ensure the variation is set and product is not set
-        self.instance.variation = self.variation
-        self.instance.product = None  # Explicitly set product to None
-        
+        # If we have a variation, ensure only variation is set and product is None
+        if hasattr(self, 'variation') and self.variation:
+            cleaned_data['product'] = None  # Explicitly set to None
+            cleaned_data['variation'] = self.variation
+            
+            # Update the instance to ensure the correct values are used during save
+            self.instance.product = None  # Explicitly set to None
+            self.instance.variation = self.variation
+            
         return cleaned_data
     
     def save(self, commit=True):
-        # Ensure variation is set and product is None before saving
-        self.instance.variation = self.variation
+        # Ensure product is None before saving
         self.instance.product = None
-        
         if commit:
             self.instance.save()
             
         return self.instance
-        return self.instance
+
 
 class ProductSearchForm(forms.Form):
     """Form for searching products"""

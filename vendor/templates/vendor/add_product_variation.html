@@ -128,96 +128,6 @@
                         </div>
                     </div>
                     
-                    <!-- Media for this variation -->
-                    <hr class="my-4" />
-                    <h5 class="mb-3"><i class="fas fa-images me-2"></i>Variation Media</h5>
-                    {% if formset.non_form_errors %}
-                        <div class="alert alert-danger">
-                            {% for err in formset.non_form_errors %}
-                                <div>{{ err }}</div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    {{ formset.management_form }}
-                    <div class="row">
-                        {% for f in formset %}
-                        <div class="col-md-12">
-                            <div class="border rounded p-3">
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <label class="form-label d-block">Media Type</label>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                {% for choice in f.media_type %}
-                                                    {{ choice.tag }}
-                                                    <label for="{{ choice.id_for_label }}" class="btn btn-outline-primary">
-                                                        {{ choice.choice_label }}
-                                                    </label>
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Image Upload -->
-                                        <div class="mb-3 image-upload-container">
-                                            <label class="form-label">Image</label>
-                                            <div class="input-group">
-                                                <input type="text" class="form-control image-filename" placeholder="No image selected" readonly>
-                                                <button class="btn btn-outline-secondary image-browse" type="button">
-                                                    <i class="fas fa-folder-open"></i> Browse
-                                                </button>
-                                                {{ f.image }}
-                                            </div>
-                                            {% if f.image.errors %}
-                                                <div class="alert alert-danger mt-1 p-2">
-                                                    {% for error in f.image.errors %}
-                                                        <div class="small">{{ error }}</div>
-                                                    {% endfor %}
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                        
-                                        <!-- Video Upload -->
-                                        <div class="mb-3 video-upload-container d-none">
-                                            <label class="form-label">Video</label>
-                                            <div class="input-group">
-                                                <input type="text" class="form-control video-filename" placeholder="No video selected" readonly>
-                                                <button class="btn btn-outline-secondary video-browse" type="button">
-                                                    <i class="fas fa-folder-open"></i> Browse
-                                                </button>
-                                                {{ f.video }}
-                                            </div>
-                                            {% if f.video.errors %}
-                                                <div class="alert alert-danger mt-1 p-2">
-                                                    {% for error in f.video.errors %}
-                                                        <div class="small">{{ error }}</div>
-                                                    {% endfor %}
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="form-text text-muted">Upload an image or video for this variation (optional)</div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Caption</label>
-                                        {{ f.caption }}
-                                        {% if f.caption.errors %}
-                                            <div class="text-danger small mt-1">
-                                                {% for error in f.caption.errors %}<div>{{ error }}</div>{% endfor %}
-                                            </div>
-                                        {% endif %}
-                                        <div class="form-text">Optional media description</div>
-                                    </div>
-                                    <div class="col-md-2 d-flex align-items-end">
-                                        <div class="form-check">
-                                            {{ f.is_default }}
-                                            <label class="form-check-label">Default Media</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
 
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
@@ -301,149 +211,57 @@
 
 {% block extra_js %}
 <script>
-// Handle media type toggle
-function setupMediaTypeToggle(container) {
-    const mediaTypeInputs = container.querySelectorAll('input[name$="-media_type"]');
-    const imageContainer = container.querySelector('.image-upload-container');
-    const videoContainer = container.querySelector('.video-upload-container');
-    
-    function toggleMediaType() {
-        const isImage = container.querySelector('input[name$="-media_type"]:checked').value === 'image';
-        imageContainer.style.display = isImage ? 'block' : 'none';
-        videoContainer.style.display = isImage ? 'none' : 'block';
-    }
-    
-    mediaTypeInputs.forEach(input => {
-        input.addEventListener('change', toggleMediaType);
-    });
-    
-    // Initialize
-    toggleMediaType();
-}
-
-// Handle file input display
-function setupFileInputs() {
-    // For image uploads
-    document.querySelectorAll('.image-browse').forEach(button => {
-        const container = button.closest('.image-upload-container');
-        const fileInput = container.querySelector('input[type="file"]');
-        const fileNameInput = container.querySelector('.image-filename');
-        
-        button.addEventListener('click', () => fileInput.click());
-        
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                fileNameInput.value = fileInput.files[0].name;
-            } else {
-                fileNameInput.value = '';
-            }
-        });
-    });
-    
-    // For video uploads
-    document.querySelectorAll('.video-browse').forEach(button => {
-        const container = button.closest('.video-upload-container');
-        const fileInput = container.querySelector('input[type="file"]');
-        const fileNameInput = container.querySelector('.video-filename');
-        
-        button.addEventListener('click', () => fileInput.click());
-        
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length > 0) {
-                fileNameInput.value = fileInput.files[0].name;
-            } else {
-                fileNameInput.value = '';
-            }
-        });
-    });
-}
-
-// Initialize when document is ready
+// Basic form validation
 document.addEventListener('DOMContentLoaded', function() {
-    // Set up media type toggles for each form
-    document.querySelectorAll('.border.rounded.p-3').forEach(container => {
-        setupMediaTypeToggle(container);
-    });
-    
-    // Set up file inputs
-    setupFileInputs();
+    // Add form validation
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Check required fields
+            const requiredFields = form.querySelectorAll('input[required], select[required], textarea[required]');
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields.');
+            }
+        });
+        
+        // Remove validation classes on input
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+            });
+        });
+    }
 });
 </script>
 
 <style>
-/* Style for media type toggle buttons */
-.btn-group .btn-outline-primary {
-    border-color: #0d6efd;
-    color: #0d6efd;
-    padding: 0.25rem 0.75rem;
+/* Basic form styling */
+.is-invalid {
+    border-color: #dc3545;
 }
 
-.btn-group .btn-check:checked + .btn-outline-primary {
-    background-color: #0d6efd;
-    color: white;
-}
-
-/* Hide the default file input */
-input[type="file"] {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    border: 0;
-}
-
-/* Style for the file input group */
-.input-group .form-control[readonly] {
-    background-color: #fff;
-    cursor: default;
-}
-
-/* Ensure proper spacing for media containers */
-.image-upload-container,
-.video-upload-container {
-    margin-bottom: 1rem;
-}
-
-/* Style for the media preview area */
-.media-preview {
-    margin-top: 10px;
-    max-width: 100%;
-    max-height: 200px;
+.invalid-feedback {
     display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
 }
 </style>
 
-<script>
-$(document).ready(function() {
-    // Add form validation
-    $('form').on('submit', function(e) {
-        var isValid = true;
-        
-        // Check required fields
-        $('input[required], select[required], textarea[required]').each(function() {
-            if (!$(this).val()) {
-                $(this).addClass('is-invalid');
-                isValid = false;
-            } else {
-                $(this).removeClass('is-invalid');
-            }
-        });
-        
-        if (!isValid) {
-            e.preventDefault();
-            alert('Please fill in all required fields.');
-        }
-    });
-    
-    // Remove validation classes on input
-    $('input, select, textarea').on('input change', function() {
-        $(this).removeClass('is-invalid');
-    });
-});
-</script>
 {% endblock %}
 
 
