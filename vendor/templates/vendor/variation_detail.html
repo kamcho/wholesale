@@ -101,7 +101,7 @@
               </div>
               <div class="ml-4">
                 <div class="text-sm font-medium text-gray-300">Price per Unit</div>
-                <div class="text-2xl font-bold text-white">${{ variation.price }}</div>
+                <div class="text-2xl font-bold text-white">Ksh{{ variation.price }}</div>
               </div>
             </div>
           </div>
@@ -161,7 +161,40 @@
             </div>
           </div>
           <div class="p-5">
-            <p class="text-gray-400 text-sm">No attributes added yet. Click "Add Attribute" to get started.</p>
+            {% if attributes %}
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for attr in attributes %}
+                  <div class="bg-gray-700/30 border border-gray-600 rounded-lg p-4 hover:bg-gray-700/50 transition-colors duration-200">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <h4 class="text-sm font-medium text-white">{{ attr.value.attribute.name }}</h4>
+                        <p class="text-sm text-gray-300 mt-1">{{ attr.value.value }}</p>
+                      </div>
+                      <div class="flex items-center space-x-2">
+                        <span class="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
+                          Attribute
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-8">
+                <svg class="w-12 h-12 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-300 mb-2">No Attributes Added</h3>
+                <p class="text-gray-400 text-sm mb-4">Add product attributes to provide more details about this variation.</p>
+                <a href="{% url 'vendor:add_variation_attribute' variation.id %}" 
+                   class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors duration-200">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                  </svg>
+                  Add First Attribute
+                </a>
+              </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -260,7 +293,7 @@
               </div>
               <div class="ml-4">
                 <div class="text-sm font-medium text-gray-300">Total Revenue</div>
-                <div class="text-2xl font-bold text-white">${{ total_revenue|default:"0.00"|floatformat:2 }}</div>
+                <div class="text-2xl font-bold text-white">Ksh {{ total_revenue|default:"0.00"|floatformat:2 }}</div>
                 <div class="text-xs text-gray-400">Total revenue generated</div>
               </div>
             </div>
@@ -549,147 +582,6 @@
         {% endif %}
       </div>
     </div>
-
-    <!-- Bulk Pricing (Price Tiers) Section -->
-    <div class="bg-gray-800 rounded-xl shadow-lg overflow-hidden mb-6 border border-gray-700 hover:border-orange-500/30 transition-all duration-300 hover:shadow-xl">
-      <div class="px-6 py-4 border-b border-gray-700 bg-gradient-to-r from-gray-800 to-gray-900">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-lg flex items-center justify-center shadow-md">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-              </svg>
-            </div>
-            <h3 class="ml-3 text-lg font-semibold text-white">Bulk Pricing (Price Tiers)</h3>
-          </div>
-        </div>
-      </div>
-      
-      <div class="p-6">
-        <form method="post" class="space-y-6" id="price-tier-form">
-          {% csrf_token %}
-          <input type="hidden" name="price_tier_submit" value="1" />
-          
-          <div id="price-tiers-container" class="space-y-4">
-            {{ price_tier_formset.management_form }}
-            {% for form in price_tier_formset %}
-              <div class="price-tier-row p-5 rounded-xl border border-gray-700 bg-gray-800/50 hover:bg-gray-800/70 transition-colors duration-200 group">
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                  <!-- Min Quantity -->
-                  <div class="md:col-span-3">
-                    <label class="block text-sm font-medium text-gray-300 mb-1">
-                      Min Quantity
-                      <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-400">≥</span>
-                      </div>
-                      <input type="number" name="{{ form.min_quantity.name }}" 
-                             id="{{ form.min_quantity.id_for_label }}" 
-                             value="{{ form.min_quantity.value|default:'' }}"
-                             class="pl-8 pr-3 py-2.5 w-full bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                             placeholder="Min quantity"
-                             required>
-                    </div>
-                    {% if form.min_quantity.errors %}
-                      <p class="mt-1 text-sm text-red-400">{{ form.min_quantity.errors.0 }}</p>
-                    {% endif %}
-                  </div>
-                  
-                  <!-- Max Quantity -->
-                  <div class="md:col-span-3">
-                    <label class="block text-sm font-medium text-gray-300 mb-1">
-                      Max Quantity
-                      <span class="text-xs text-gray-400">(0 for no max)</span>
-                    </label>
-                    <div class="relative">
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-400">≤</span>
-                      </div>
-                      <input type="number" name="{{ form.max_quantity.name }}" 
-                             id="{{ form.max_quantity.id_for_label }}" 
-                             value="{{ form.max_quantity.value|default:'' }}"
-                             class="pl-8 pr-3 py-2.5 w-full bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                             placeholder="Max quantity (0 for no max)">
-                    </div>
-                    {% if form.max_quantity.errors %}
-                      <p class="mt-1 text-sm text-red-400">{{ form.max_quantity.errors.0 }}</p>
-                    {% endif %}
-                  </div>
-                  
-                  <!-- Price per Unit -->
-                  <div class="md:col-span-3">
-                    <label class="block text-sm font-medium text-gray-300 mb-1">
-                      Price per Unit
-                      <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span class="text-gray-400">KSh</span>
-                      </div>
-                      <input type="number" name="{{ form.price.name }}" 
-                             id="{{ form.price.id_for_label }}" 
-                             value="{{ form.price.value|default:'' }}"
-                             step="0.01"
-                             min="0"
-                             class="pl-14 pr-3 py-2.5 w-full bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                             placeholder="0.00"
-                             required>
-                    </div>
-                    {% if form.price.errors %}
-                      <p class="mt-1 text-sm text-red-400">{{ form.price.errors.0 }}</p>
-                    {% endif %}
-                  </div>
-                  
-                  <!-- Delete Button -->
-                  <div class="md:col-span-2 flex items-end space-x-2">
-                    {% if price_tier_formset.can_delete and form.instance.pk %}
-                      <button type="button" 
-                              class="delete-tier-btn p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-700 transition-colors duration-200"
-                              data-tier-id="{{ form.instance.pk }}"
-                              data-bs-toggle="tooltip" 
-                              title="Delete this tier">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                      </button>
-                    {% elif price_tier_formset.can_delete %}
-                      <button type="button" 
-                              class="remove-tier-btn p-2 text-gray-400 hover:text-red-400 rounded-lg hover:bg-gray-700 transition-colors duration-200"
-                              data-bs-toggle="tooltip" 
-                              title="Remove this tier">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                      </button>
-                    {% endif %}
-                    {{ form.id }}
-                    {% if price_tier_formset.can_delete %}
-                      {{ form.DELETE }}
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-          
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0 mt-6 pt-5 border-t border-gray-700">
-            <button type="button" id="add-tier" class="inline-flex items-center px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg border border-gray-600 hover:border-orange-500/50 transition-all duration-200">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-              </svg>
-              Add Price Tier
-            </button>
-            
-            <button type="submit" class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-orange-600/50">
-              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
-              Save Price Tiers
-            </button>
-          </div>
-        </form>
       </div>
     </div>
 
@@ -903,7 +795,7 @@
                     <span class="text-red-500">*</span>
                   </label>
                   <div class="relative">
-                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">$</span>
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">Ksh</span>
                     <input type="number" 
                            name="rate" 
                            class="w-full pl-8 pr-3 py-2.5 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
@@ -1309,59 +1201,6 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentDeleteForm = null;
   let currentDeleteButton = null;
 
-  // Handle delete button clicks for price tiers
-  document.addEventListener('click', function(e) {
-    // Handle delete tier button clicks
-    if (e.target.closest('.delete-tier-btn')) {
-      e.preventDefault();
-      const button = e.target.closest('.delete-tier-btn');
-      const tierId = button.dataset.tierId;
-      const row = button.closest('.price-tier-row');
-      
-      if (confirm('Are you sure you want to delete this price tier?')) {
-        // Show loading state
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
-        
-        // Send DELETE request
-        fetch(`/vendor/price-tier/${tierId}/delete/`, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': csrftoken,
-            'X-Requested-With': 'XMLHttpRequest',
-          },
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            // Remove the row from the UI
-            row.remove();
-            // Show success message
-            showAlert('Price tier deleted successfully!', 'success');
-          } else {
-            throw new Error(data.message || 'Failed to delete price tier');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          showAlert('Error deleting price tier: ' + error.message, 'danger');
-          button.disabled = false;
-          button.innerHTML = '<i class="fas fa-trash"></i>';
-        });
-      }
-    }
-  });
-
-  // Handle remove button clicks for unsaved tiers
-  document.querySelectorAll('.remove-tier-btn').forEach(button => {
-    button.addEventListener('click', function() {
-      this.closest('.price-tier-row').remove();
-      // Update the TOTAL_FORMS count
-      const totalForms = document.getElementById('id_price_tier-TOTAL_FORMS');
-      totalForms.value = parseInt(totalForms.value) - 1;
-    });
-  });
-
   // Handle confirm delete button click
   document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
     if (currentDeleteForm) {
@@ -1376,91 +1215,7 @@ document.addEventListener('DOMContentLoaded', function() {
     deleteModal.hide();
   });
 
-  // Handle form submission
-  const priceTierForm = document.getElementById('price-tier-form');
-  if (priceTierForm) {
-    priceTierForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      
-      // Get the submit button and show loading state
-      const submitButton = this.querySelector('button[type="submit"]');
-      const originalText = submitButton.innerHTML;
-      submitButton.disabled = true;
-      submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
-      
-      // Submit the form data
-      const formData = new FormData(this);
-      
-      fetch(this.action || window.location.href, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-        },
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          showAlert('Price tiers saved successfully!', 'success');
-          // Optionally reload the page to reflect changes
-          setTimeout(() => window.location.reload(), 1000);
-        } else {
-          throw new Error(data.message || 'Failed to save price tiers');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error saving price tiers: ' + error.message, 'danger');
-      })
-      .finally(() => {
-        submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
-      });
-    });
-  }
 
-  // Add tier form handling
-  const addTierBtn = document.getElementById('add-tier');
-  if (addTierBtn) {
-    addTierBtn.addEventListener('click', function() {
-      const formCount = document.querySelectorAll('.price-tier-row').length;
-      const formsetContainer = document.getElementById('price-tiers-container');
-      const emptyForm = formsetContainer.querySelector('.price-tier-row:last-child').cloneNode(true);
-      
-      // Update form field names and IDs
-      const formRegex = RegExp(`(price_tier-)(\\d+)(-)`, 'g');
-      const replacement = `price_tier-${formCount}-`;
-      
-      emptyForm.innerHTML = emptyForm.innerHTML.replace(formRegex, replacement);
-      
-      // Clear values
-      emptyForm.querySelectorAll('input:not([type=hidden])').forEach(input => {
-        input.value = '';
-      });
-      
-      // Update the TOTAL_FORMS count
-      const totalForms = document.getElementById('id_price_tier-TOTAL_FORMS');
-      totalForms.value = formCount + 1;
-      
-      // Add the new form to the container
-      formsetContainer.appendChild(emptyForm);
-      
-      // Reinitialize tooltips for the new elements
-      var newTooltipTriggerList = [].slice.call(emptyForm.querySelectorAll('[data-bs-toggle="tooltip"]'));
-      newTooltipTriggerList.forEach(function (tooltipTriggerEl) {
-        new bootstrap.Tooltip(tooltipTriggerEl);
-      });
-      
-      // Add event listener for the remove button
-      const removeBtn = emptyForm.querySelector('.remove-tier-btn');
-      if (removeBtn) {
-        removeBtn.addEventListener('click', function() {
-          emptyForm.remove();
-          totalForms.value = parseInt(totalForms.value) - 1;
-        });
-      }
-    });
-  }
 
   // Promise fees handling
   const addPromiseFeeBtn = document.getElementById('add-promise-fee');
@@ -1587,8 +1342,10 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       
       // Update the TOTAL_FORMS count
-      const totalForms = document.getElementById('id_irate-TOTAL_FORMS');
-      totalForms.value = formCount + 1;
+      const totalForms = document.querySelector('input[name="irate-TOTAL_FORMS"]');
+      if (totalForms) {
+        totalForms.value = formCount + 1;
+      }
       
       // Add the new form to the container
       formsetContainer.appendChild(emptyForm);
@@ -1604,7 +1361,10 @@ document.addEventListener('DOMContentLoaded', function() {
       if (removeBtn) {
         removeBtn.addEventListener('click', function() {
           emptyForm.remove();
-          totalForms.value = parseInt(totalForms.value) - 1;
+          const totalForms = document.querySelector('input[name="irate-TOTAL_FORMS"]');
+          if (totalForms) {
+            totalForms.value = parseInt(totalForms.value) - 1;
+          }
         });
       }
     });
@@ -1615,8 +1375,10 @@ document.addEventListener('DOMContentLoaded', function() {
     button.addEventListener('click', function() {
       this.closest('.i-rate-row').remove();
       // Update the TOTAL_FORMS count
-      const totalForms = document.getElementById('id_irate-TOTAL_FORMS');
-      totalForms.value = parseInt(totalForms.value) - 1;
+      const totalForms = document.querySelector('input[name="irate-TOTAL_FORMS"]');
+      if (totalForms) {
+        totalForms.value = parseInt(totalForms.value) - 1;
+      }
     });
   });
 

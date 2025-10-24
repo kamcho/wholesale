@@ -904,7 +904,7 @@ def add_variation_image(request, pk):
                     ).exclude(pk=img.pk).update(is_default=False)
                 
                 messages.success(request, 'Variation image added successfully!')
-                return redirect('vendor:edit_product_variation', pk=variation.id)
+                return redirect('vendor:variation_detail', pk=variation.id)
                 
             except Exception as e:
                 messages.error(request, f'Error saving image: {str(e)}')
@@ -1353,10 +1353,14 @@ def variation_detail(request, pk):
     # Debug output (will be visible in the server console)
     print(f"Promise fee for variation {variation.id}:", promise_fees[0] if promise_fees else 'None')
     
+    # Get product attributes for this variation
+    attributes = ProductAttributeAssignment.objects.filter(product=variation).select_related('value__attribute')
+    
     context = {
         'product': product,
         'variation': variation,
         'images': images,
+        'attributes': attributes,
         'price_tier_formset': price_tier_formset,
         'i_rate_formset': i_rate_formset,
         'i_rates': variation.i_rates.order_by('lower_range'),  # Add this line for template

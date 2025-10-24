@@ -5,7 +5,7 @@
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">
-        <i class="fas fa-{% if existing_business %}store{% else %}plus-circle{% endfor %} me-2"></i>
+        <i class="fas fa-{% if existing_business %}store{% else %}plus-circle{% endif %} me-2"></i>
         {% if existing_business %}Your Business{% else %}Add New Business{% endif %}
     </h1>
 </div>
