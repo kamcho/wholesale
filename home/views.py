@@ -1586,7 +1586,7 @@ def order_history(request):
     """Display a user's order history and order requests"""
     if not request.user.is_authenticated:
         messages.warning(request, 'Please log in to view your order history.')
-        return redirect('account_login')
+        return redirect('login')  # Updated to use the correct login URL name
     
     # Get user's orders and order requests, ordered by most recent first
     orders = Order.objects.filter(user=request.user).order_by('-created_at')

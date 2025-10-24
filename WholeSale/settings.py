@@ -153,12 +153,39 @@ WSGI_APPLICATION = 'WholeSale.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# Database configuration
+# Default SQLite configuration for development
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
+
+# Only try to use MySQL if explicitly enabled via environment variable
+if os.getenv('USE_MYSQL', '').lower() == 'true':
+    try:
+        import MySQLdb  # noqa: F401
+        
+        if all(os.getenv(var) for var in ['DB_ENGINE', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST']):
+            DATABASES = {
+                'default': {
+                    'ENGINE': os.getenv('DB_ENGINE'),
+                    'NAME': os.getenv('DB_NAME'),
+                    'USER': os.getenv('DB_USER'),
+                    'PASSWORD': os.getenv('DB_PASSWORD'),
+                    'HOST': os.getenv('DB_HOST'),
+                    'PORT': os.getenv('DB_PORT', '3306'),
+                    'OPTIONS': {
+                        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                        'charset': 'utf8mb4',
+                    },
+                }
+            }
+        else:
+            print('Warning: MySQL environment variables not fully configured. Using SQLite.')
+    except ImportError:
+        print('Warning: MySQLdb not installed. Using SQLite. Install mysqlclient if you need MySQL support.')
 
 
 # Password validation
