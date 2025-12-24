@@ -55,14 +55,12 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'arhythmically-unciliated-danna.ngrok-free.dev',
-    'bibletrivia.pythonanywhere.com',
-    '.ngrok-free.dev',  # Allow all ngrok subdomains
+    'crowdsource.arrotechsolutions.com',
 ]
 
 # Required for CSRF protection with ngrok
 CSRF_TRUSTED_ORIGINS = [
-    'https://arhythmically-unciliated-danna.ngrok-free.dev',
+    'https://crowdsource.arrotechsolutions.com',
     'https://*.ngrok-free.dev',
 ]
 
